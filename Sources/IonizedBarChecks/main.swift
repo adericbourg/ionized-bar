@@ -520,6 +520,21 @@ do {
     check("previewFrame_ofFractionalCenter_roundsTheOrigin", previewFrame(entry: CGRect(x: 1400, y: 0, width: 201, height: 36), size: size, screen: screen, gap: 4).minX == 1341)
 }
 
+// isInPreviewGap
+do {
+    let entry = CGRect(x: 100, y: 0, width: 48, height: 36)
+    let panel = CGRect(x: 4, y: 40, width: 320, height: 100)
+    // Given the pointer between the entry and the panel, Then it is in the gap, the whole panel's width
+    check("isInPreviewGap_ofPointBetween_isTrue", isInPreviewGap(CGPoint(x: 120, y: 38), entry: entry, panel: panel))
+    check("isInPreviewGap_ofPointBesideTheEntryUnderThePanel_isTrue", isInPreviewGap(CGPoint(x: 300, y: 38), entry: entry, panel: panel))
+    // Given the pointer level with the gap but past the panel's sides, Then it has left sideways
+    check("isInPreviewGap_ofPointLeftOfThePanel_isFalse", !isInPreviewGap(CGPoint(x: 2, y: 38), entry: entry, panel: panel))
+    check("isInPreviewGap_ofPointRightOfThePanel_isFalse", !isInPreviewGap(CGPoint(x: 324, y: 38), entry: entry, panel: panel))
+    // Given the pointer on the panel or on the entry, Then it is not in the gap
+    check("isInPreviewGap_ofPointOnThePanel_isFalse", !isInPreviewGap(CGPoint(x: 120, y: 40), entry: entry, panel: panel))
+    check("isInPreviewGap_ofPointOnTheEntry_isFalse", !isInPreviewGap(CGPoint(x: 120, y: 35), entry: entry, panel: panel))
+}
+
 // fittedSize
 do {
     let box = CGSize(width: 300, height: 200)

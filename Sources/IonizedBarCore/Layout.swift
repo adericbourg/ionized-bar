@@ -55,6 +55,11 @@ public func previewFrame(entry: CGRect, size: CGSize, screen: CGRect, gap: CGFlo
     return CGRect(x: x.rounded(), y: (entry.maxY + gap).rounded(), width: size.width, height: size.height)
 }
 
+/// Whether `point` is in the strip between `entry` and the `panel` above it, within the panel's width.
+public func isInPreviewGap(_ point: CGPoint, entry: CGRect, panel: CGRect) -> Bool {
+    (entry.maxY..<panel.minY).contains(point.y) && (panel.minX..<panel.maxX).contains(point.x)
+}
+
 /// `size` scaled down to fit `box`, keeping its proportions. Never scaled up.
 public func fittedSize(_ size: CGSize, within box: CGSize) -> CGSize {
     let scale = min(1, box.width / size.width, box.height / size.height)

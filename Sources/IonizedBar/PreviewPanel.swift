@@ -142,6 +142,8 @@ final class PreviewController {
     }
 
     private func pointerLeft() {
+        // A late exit from a panel already dismissed: its grace would cancel the next preview.
+        guard entry != nil else { return }
         hiding?.cancel()
         hiding = Task { [weak self] in
             try? await Task.sleep(for: Self.hideGrace)
@@ -155,7 +157,9 @@ final class PreviewController {
         guard let entry, let entryWindow = entry.window else { return dismiss() }
         let mouse = NSEvent.mouseLocation
         let entryFrame = entryWindow.convertToScreen(entry.convert(entry.bounds, to: nil))
-        if !panel.frame.contains(mouse) && !entryFrame.contains(mouse) { dismiss() }
+        if panel.frame.contains(mouse) || entryFrame.contains(mouse) { return }
+        // No tracking area covers the gap, so nothing would report the pointer leaving it: check again.
+        if isInPreviewGap(mouse, entry: entryFrame, panel: panel.frame) { pointerLeft() } else { dismiss() }
     }
 
     func dismiss(for entry: EntryView) {
