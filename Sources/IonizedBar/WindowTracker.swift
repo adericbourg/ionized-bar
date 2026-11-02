@@ -24,6 +24,8 @@ final class WindowTracker: @unchecked Sendable {
         var retry: Timer?
         /// `isFocused` here only means focused within the app; `publish()` applies the frontmost pid.
         var windows: [CachedWindow] = []
+        /// Outlives the cache: a read can miss a window that is still there, or AX can omit it on another Space.
+        var orders: [AXUIElement: Int] = [:]
     }
 
     private struct CachedWindow {
@@ -120,9 +122,10 @@ final class WindowTracker: @unchecked Sendable {
         guard AXUIElementGetPid(element, &pid) == .success else { return }
         // On a window element this notification never fires (macOS 27.2). On the app element it
         // fires for every destroyed descendant, so keep only the windows.
-        if notification as String == kAXUIElementDestroyedNotification,
-           apps[pid]?.windows.contains(where: { CFEqual($0.window.element, element) }) != true {
-            return
+        if notification as String == kAXUIElementDestroyedNotification {
+            // ponytail: a window whose notification never comes keeps its entry until the app quits, one Int each; sweep with a full window list if that ever adds up.
+            apps[pid]?.orders[element] = nil
+            guard apps[pid]?.windows.contains(where: { CFEqual($0.window.element, element) }) == true else { return }
         }
         if notification as String == kAXWindowMovedNotification || notification as String == kAXWindowResizedNotification {
             moving.insert(element)
@@ -201,7 +204,7 @@ final class WindowTracker: @unchecked Sendable {
     /// A failed read keeps the cache and moves to the retry timer, so a hung app costs at most
     /// one messaging timeout per second, whatever the other apps are doing.
     private func read(_ pids: Set<pid_t>) {
-        for pid in pids {
+        for pid in pids.sorted() {
             guard let app = apps[pid] else { continue }
             if let windows = readWindows(pid: pid, app: app) {
                 apps[pid]?.windows = windows
@@ -276,11 +279,12 @@ final class WindowTracker: @unchecked Sendable {
             guard let position = axValue(attributes[1], .cgPoint, CGPoint.zero),
                   let size = axValue(attributes[2], .cgSize, CGSize.zero) else { continue }
             let order: Int
-            if let known = app.windows.first(where: { CFEqual($0.window.element, element) }) {
-                order = known.window.order
+            if let known = apps[pid]?.orders[element] {
+                order = known
             } else {
                 order = nextOrder
                 nextOrder += 1
+                apps[pid]?.orders[element] = order
             }
             windows.append(CachedWindow(window: TrackedWindow(
                 element: element,
