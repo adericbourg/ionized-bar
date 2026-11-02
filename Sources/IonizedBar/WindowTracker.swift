@@ -37,6 +37,9 @@ final class WindowTracker: @unchecked Sendable {
     private var frontmost: pid_t?
     private var debounce: Timer?
     private var refreshDeadline: Date?
+    private var retrying: Set<pid_t> = []
+    private var retryTimer: Timer?
+    private var hasLoggedApiDisabled = false
 
     init(onChange: @escaping @Sendable ([TrackedWindow]) -> Void) {
         self.onChange = onChange
@@ -80,7 +83,7 @@ final class WindowTracker: @unchecked Sendable {
 
     func markAllDirty() {
         onThread { [self] in
-            dirty.formUnion(apps.keys)
+            dirty.formUnion(Set(apps.keys).subtracting(retrying))
             scheduleRefresh()
         }
     }
@@ -136,9 +139,12 @@ final class WindowTracker: @unchecked Sendable {
         app.retry?.invalidate()
         CFRunLoopRemoveSource(runLoop, AXObserverGetRunLoopSource(app.observer), .defaultMode)
         dirty.remove(pid)
+        retrying.remove(pid)
     }
 
     private func markDirty(_ pid: pid_t) {
+        // The retry timer re-reads it within 1s: its notifications must not restart the debounce.
+        guard !retrying.contains(pid) else { return }
         dirty.insert(pid)
         scheduleRefresh()
     }
@@ -152,14 +158,35 @@ final class WindowTracker: @unchecked Sendable {
     }
 
     private func refresh() {
-        for pid in dirty {
-            if let app = apps[pid], let windows = readWindows(pid: pid, app: app) {
-                apps[pid]?.windows = windows
-            }
-        }
+        let pids = dirty
         dirty = []
         refreshDeadline = nil
+        read(pids)
         publish()
+    }
+
+    private func retryReads() {
+        retryTimer = nil
+        let pids = retrying
+        read(pids)
+        if retrying != pids { publish() }
+    }
+
+    /// A failed read keeps the cache and moves to the retry timer, so a hung app costs at most
+    /// one messaging timeout per second, whatever the other apps are doing.
+    private func read(_ pids: Set<pid_t>) {
+        for pid in pids {
+            guard let app = apps[pid] else { continue }
+            if let windows = readWindows(pid: pid, app: app) {
+                apps[pid]?.windows = windows
+                retrying.remove(pid)
+            } else {
+                retrying.insert(pid)
+            }
+        }
+        if !retrying.isEmpty && retryTimer == nil {
+            retryTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { [self] _ in retryReads() }
+        }
     }
 
     private func publish() {
@@ -172,30 +199,39 @@ final class WindowTracker: @unchecked Sendable {
         })
     }
 
-    /// Nil when the app timed out: the caller keeps its cache, and stopping at the first timeout
-    /// keeps a hung app's stall to one messaging timeout per refresh.
-    // ponytail: the app stays stale until its next notification; retry here if that shows up in practice.
+    /// Nil when the read failed, stopping at the first failure so a hung app stalls this thread once.
     private func readWindows(pid: pid_t, app: App) -> [(element: AXUIElement, window: TrackedWindow)]? {
         var windowsValue: CFTypeRef?
-        switch AXUIElementCopyAttributeValue(app.element, kAXWindowsAttribute as CFString, &windowsValue) {
-        case .success: break
-        case .cannotComplete: return nil
-        default: return []
+        let windowsError = AXUIElementCopyAttributeValue(app.element, kAXWindowsAttribute as CFString, &windowsValue)
+        guard windowsError == .success else {
+            if windowsError == .apiDisabled && !hasLoggedApiDisabled {
+                hasLoggedApiDisabled = true
+                log("Accessibility permission lost; window list frozen")
+            }
+            return isAbsent(windowsError) ? [] : nil
         }
         let elements = windowsValue as? [AXUIElement] ?? []
         guard !elements.isEmpty else { return [] }
 
         var focusedValue: CFTypeRef?
         let focusedError = AXUIElementCopyAttributeValue(app.element, kAXFocusedWindowAttribute as CFString, &focusedValue)
-        guard focusedError != .cannotComplete else { return nil }
+        guard focusedError == .success || isAbsent(focusedError) else { return nil }
 
         var windows: [(element: AXUIElement, window: TrackedWindow)] = []
         for element in elements {
             var values: CFArray?
             let error = AXUIElementCopyMultipleAttributeValues(element, Self.windowAttributes as CFArray, AXCopyMultipleAttributeOptions(rawValue: 0), &values)
-            guard error != .cannotComplete else { return nil }
-            guard error == .success, let attributes = values as? [Any], attributes.count == 4,
-                  let position = axValue(attributes[1], .cgPoint, CGPoint.zero),
+            guard error == .success else {
+                if isAbsent(error) { continue }
+                return nil
+            }
+            guard let attributes = values as? [Any], attributes.count == 4 else { continue }
+            // Each attribute's own error comes back as an AXValue in the array.
+            let hasFailedAttribute = attributes.contains { value in
+                axValue(value, .axError, AXError.success).map { !isAbsent($0) } ?? false
+            }
+            guard !hasFailedAttribute else { return nil }
+            guard let position = axValue(attributes[1], .cgPoint, CGPoint.zero),
                   let size = axValue(attributes[2], .cgSize, CGSize.zero) else { continue }
             windows.append((element, TrackedWindow(
                 pid: pid,
@@ -207,6 +243,11 @@ final class WindowTracker: @unchecked Sendable {
             )))
         }
         return windows
+    }
+
+    /// The thing being read is not there, as opposed to the read having failed.
+    private func isAbsent(_ error: AXError) -> Bool {
+        [.noValue, .attributeUnsupported, .invalidUIElement].contains(error)
     }
 
     private func axValue<T: BitwiseCopyable>(_ value: Any, _ type: AXValueType, _ initial: T) -> T? {
