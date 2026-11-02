@@ -7,7 +7,7 @@ A KDE Plasma–style taskbar for macOS that replaces the Dock.
 - Hides the Dock while running and restores it on quit
 - Starts at login
 
-> Status: design phase, nothing to install yet. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap.
+> Status: design phase, nothing to install yet. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
 
 ## Requirements
 
