@@ -6,6 +6,7 @@ struct EntryActions {
     let minimize: (TrackedWindow) -> Void
     let restore: (TrackedWindow) -> Void
     let close: (TrackedWindow) -> Void
+    let openSettings: @MainActor () -> Void
 }
 
 final class EntryView: NSView {
@@ -179,6 +180,8 @@ final class EntryView: NSView {
             menu.addItem(withTitle: "Close All Windows", action: #selector(closeWindows), keyEquivalent: "")
         }
         menu.addItem(withTitle: "Quit \(appName)", action: #selector(quitApp), keyEquivalent: "")
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "")
         menu.items.forEach { $0.target = self }
         return menu
     }
@@ -188,6 +191,7 @@ final class EntryView: NSView {
         if window.isMinimized { actions.restore(window) } else { actions.raise(window) }
     }
 
+    @objc private func openSettings() { actions.openSettings() }
     @objc private func closeWindows() { item.windows.forEach(actions.close) }
     @objc private func minimizeWindow() { item.windows.forEach(actions.minimize) }
     @objc private func quitApp() { NSRunningApplication(processIdentifier: item.windows[0].pid)?.terminate() }

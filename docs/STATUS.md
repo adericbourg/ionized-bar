@@ -17,7 +17,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
 | M6 – Window preview | ⬜ | 0/6 |
-| M7 – Settings | 🚧 | 4/6 |
+| M7 – Settings | 🚧 | 5/6 |
 
 ## Requirements
 
@@ -100,7 +100,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Saved settings, re-applied to the bars without waiting for a window event
 - [x] Task display modes: Icon only, App name, Content
 - [x] Group entries and their window list
-- [ ] Settings window, and "Settings…" on entries and the empty bar
+- [x] Settings window, and "Settings…" on entries and the empty bar
 - [ ] Manual pass
 
 ## Known issues (tracked)
@@ -150,3 +150,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M7 task 1: `appsToGroup` and `barItems` in `IonizedBarCore` decide which apps merge and where a group sits, with checks. Nothing calls them yet, so the bar is unchanged. Checks pass. M7 at 1/6.
 - 2026-11-02 — M7 tasks 2 and 3: `Settings` is saved in `UserDefaults`, and `BarManager` can re-apply it to the latest snapshot. Entries show Icon only (compact 48pt, packed left), App name or Content, with the title in a tooltip when it isn't shown. Nothing changes the settings until the settings window exists. Build and checks pass, and an offscreen render of the views showed all three modes. The app was not launched. M7 at 3/6.
 - 2026-11-02 — M7 task 4: the bar groups windows through `barItems`, and regroups when its width changes. A group shows the icon, app name and count (icon and count when icon-only); a click opens a native menu listing its windows, middle-click does nothing, and right-click offers Close All Windows and Quit. Entries are now VoiceOver buttons with a label for the window or group. Build and checks pass. An offscreen render showed grouping in every mode, including When full merging the largest apps first and stopping, and printed menus and labels were right. The app was not launched, so the menu's position above the entry, picking a window and VoiceOver are unverified until the manual pass. M7 at 4/6.
+- 2026-11-02 — M7 task 5: `SettingsWindow` (AppKit, two labelled pop-ups) opens with "Settings…" from an entry's or the empty bar's right-click menu; changes apply at once and are saved. Build and checks pass. The app was not launched, so the window itself, activation and Cmd-W are unverified until the manual pass. M7 at 5/6.

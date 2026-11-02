@@ -116,6 +116,15 @@ final class BarContentView: NSView {
         }
     }
 
+    // Keeps settings reachable with no windows open.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "").target = self
+        return menu
+    }
+
+    @objc private func openSettings() { actions.openSettings() }
+
     // Backing alignment changes with the scale.
     override func viewDidChangeBackingProperties() {
         super.viewDidChangeBackingProperties()
