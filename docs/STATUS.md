@@ -11,7 +11,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | Milestone | Status | Progress |
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
-| M1 – Window model (headless) | ⬜ | 0/5 |
+| M1 – Window model (headless) | 🚧 | 1/5 |
 | M2 – Bars | ⬜ | 0/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
@@ -45,7 +45,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] One `AXObserver` per app (created, destroyed, moved, resized, title, minimized, focused)
 - [ ] Standard-window filtering (R4) and current-Space filtering (R8)
 - [ ] Display assignment by largest intersection (R3)
-- [ ] Checks (`swift run IonizedBarChecks`): coordinate conversion, display assignment, equal-width layout math
+- [x] Checks (`swift run IonizedBarChecks`): coordinate conversion, display assignment, equal-width layout math
 
 ### M2 – Bars
 - [ ] One non-activating `NSPanel` per screen, following screen add, remove and resize (R2)
@@ -87,3 +87,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — First CI run failed: the runner's default Xcode 27.1 ships only the macOS 27.0 SDK. The workflow now selects Xcode 27.2; its first run is pending.
 - 2026-11-02 — CI build is green on `main` with Xcode 27.2 (result reported by the user). M0 done, 5/5.
 - 2026-11-02 — Testing approach decided: a `swift run` check executable, because Command Line Tools have no working test framework. Minimum drops to macOS 27.0 only if CI needs it.
+- 2026-11-02 — M1 task 1: added `IonizedBarCore` (`flipRect`, `assignDisplay`, `entryWidth`) and the `IonizedBarChecks` executable, run in CI. M1 at 1/5.

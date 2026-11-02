@@ -5,6 +5,8 @@ let package = Package(
     name: "IonizedBar",
     platforms: [.macOS("27.2")],
     targets: [
-        .executableTarget(name: "IonizedBar")
+        .target(name: "IonizedBarCore"),
+        .executableTarget(name: "IonizedBar", dependencies: ["IonizedBarCore"]),
+        .executableTarget(name: "IonizedBarChecks", dependencies: ["IonizedBarCore"])
     ]
 )

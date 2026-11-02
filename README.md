@@ -30,6 +30,8 @@ Command Line Tools are enough, Xcode is not needed.
 open build/IonizedBar.app
 ```
 
+Checks: `swift run IonizedBarChecks` runs the pure-logic checks (no XCTest on Command Line Tools) and exits non-zero on failure.
+
 ## License
 
 [GPLv3](LICENSE)
