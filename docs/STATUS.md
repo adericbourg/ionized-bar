@@ -17,7 +17,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
 | M6 – Window preview | ⬜ | 0/6 |
-| M7 – Settings | 🚧 | 1/6 |
+| M7 – Settings | 🚧 | 3/6 |
 
 ## Requirements
 
@@ -97,8 +97,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 ### M7 – Settings
 - [x] Grouping decision with checks (`appsToGroup`, `barItems`)
-- [ ] Saved settings, re-applied to the bars without waiting for a window event
-- [ ] Task display modes: Icon only, App name, Content
+- [x] Saved settings, re-applied to the bars without waiting for a window event
+- [x] Task display modes: Icon only, App name, Content
 - [ ] Group entries and their window list
 - [ ] Settings window, and "Settings…" on entries and the empty bar
 - [ ] Manual pass
@@ -148,3 +148,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M2 task 4: entries act on windows. A left click on mouse-up raises, minimizes an active window or restores a minimized one (`clickAction` in `IonizedBarCore`, with checks); a middle click closes; the context menu has Close, Minimize and Quit. `WindowTracker` gains `raise`, `minimize`, `restore` and `close`, on its thread, logging AX failures. Build, checks and bundle pass. A scratch run sent synthetic mouse events through a real off-screen `BarPanel`, with recording closures in place of the tracker: click decisions, mouse-up outside, middle and other buttons, menu items and their disabled state, right-click and control-click menus, and the panel staying non-key with the app inactive. The app was not launched and the scratch run made no AX calls, so the AX actions on real windows, focus staying with the raised app and real mouse input are unverified until the M2 manual pass. M2 at 4/6.
 - 2026-11-02 — Added M7 – Settings, after v1: window grouping (Never, When full, Always) and task display (Icon only, App name, Content), set in a settings window. PRODUCT.md no longer lists grouping as a non-goal, and a group entry has no M6 preview. M7 at 0/6.
 - 2026-11-02 — M7 task 1: `appsToGroup` and `barItems` in `IonizedBarCore` decide which apps merge and where a group sits, with checks. Nothing calls them yet, so the bar is unchanged. Checks pass. M7 at 1/6.
+- 2026-11-02 — M7 tasks 2 and 3: `Settings` is saved in `UserDefaults`, and `BarManager` can re-apply it to the latest snapshot. Entries show Icon only (compact 48pt, packed left), App name or Content, with the title in a tooltip when it isn't shown. Nothing changes the settings until the settings window exists. Build and checks pass, and an offscreen render of the views showed all three modes. The app was not launched. M7 at 3/6.

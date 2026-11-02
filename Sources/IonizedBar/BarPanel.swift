@@ -35,8 +35,8 @@ final class BarPanel: NSPanel {
         }
     }
 
-    func update(with windows: [TrackedWindow]) {
-        content.update(with: windows)
+    func update(with windows: [TrackedWindow], settings: Settings) {
+        content.update(with: windows, settings: settings)
     }
 }
 

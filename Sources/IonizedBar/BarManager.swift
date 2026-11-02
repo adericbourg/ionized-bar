@@ -5,6 +5,8 @@ import IonizedBarCore
 final class BarManager {
     private let actions: EntryActions
     private var panels: [UInt32: BarPanel] = [:]
+    private var settings = Settings.load()
+    private var latestWindowsByDisplay: [UInt32: [TrackedWindow]] = [:]
 
     init(windowTracker: WindowTracker) {
         actions = EntryActions(raise: windowTracker.raise, minimize: windowTracker.minimize, restore: windowTracker.restore, close: windowTracker.close)
@@ -31,8 +33,15 @@ final class BarManager {
     }
 
     func update(windowsByDisplay: [UInt32: [TrackedWindow]]) {
+        latestWindowsByDisplay = windowsByDisplay
         for (id, panel) in panels {
-            panel.update(with: windowsByDisplay[id] ?? [])
+            panel.update(with: windowsByDisplay[id] ?? [], settings: settings)
         }
+    }
+
+    private func apply(_ newSettings: Settings) {
+        settings = newSettings
+        settings.save()
+        update(windowsByDisplay: latestWindowsByDisplay)
     }
 }

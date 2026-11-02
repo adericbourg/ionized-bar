@@ -7,8 +7,10 @@ final class BarContentView: NSView {
     private var ordered: [EntryView] = []
     // Entries fading out; one is revived if its window returns before the fade ends.
     private var leaving: [AXUIElement: EntryView] = [:]
+    private var settings = Settings.load()
 
     private static let duration: TimeInterval = 0.12
+    private static let iconOnlyWidth: CGFloat = 48
     private var isMotionReduced: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
     init(actions: EntryActions) {
@@ -26,13 +28,14 @@ final class BarContentView: NSView {
         }, completionHandler: completion)
     }
 
-    func update(with windows: [TrackedWindow]) {
+    func update(with windows: [TrackedWindow], settings: Settings) {
+        self.settings = settings
         var gone = entries
         ordered = windows.map { window in
             let entry = entries[window.element] ?? revive(window.element) ?? addEntry(window)
             entries[window.element] = entry
             gone[window.element] = nil
-            entry.update(with: window)
+            entry.update(with: window, display: settings.taskDisplay)
             return entry
         }
         for (element, entry) in gone {
@@ -67,9 +70,12 @@ final class BarContentView: NSView {
 
     override func layout() {
         super.layout()
-        let layoutWidth = entryWidth(barWidth: bounds.width, entryCount: ordered.count)
+        let isIconOnlyMode = settings.taskDisplay == .iconOnly
+        let layoutWidth = isIconOnlyMode
+            ? entryWidth(barWidth: bounds.width, entryCount: ordered.count, maxWidth: Self.iconOnlyWidth)
+            : entryWidth(barWidth: bounds.width, entryCount: ordered.count)
         for (index, entry) in ordered.enumerated() {
-            entry.isIconOnly = layoutWidth.isIconOnly
+            entry.isIconOnly = isIconOnlyMode || layoutWidth.isIconOnly
             let target = backingAlignedRect(CGRect(x: CGFloat(index) * layoutWidth.width, y: 0, width: layoutWidth.width, height: bounds.height), options: .alignAllEdgesNearest)
             if entry.frame == .zero {
                 entry.frame = target

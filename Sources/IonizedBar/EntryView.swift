@@ -18,11 +18,11 @@ final class EntryView: NSView {
     private let title = NSTextField(labelWithString: "")
     private var isActive = false { didSet { needsDisplay = true } }
     private var isHovered = false { didSet { needsDisplay = true } }
+    private var display = TaskDisplay.content
     var isIconOnly = false {
         didSet {
             guard isIconOnly != oldValue else { return }
-            title.isHidden = isIconOnly
-            toolTip = isIconOnly ? title.stringValue : nil
+            updateText()
             needsLayout = true
         }
     }
@@ -42,12 +42,19 @@ final class EntryView: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    func update(with window: TrackedWindow) {
+    private func updateText() {
+        let isTitleShown = display == .content && !isIconOnly
+        title.stringValue = display == .content ? tracked.title : tracked.appName
+        title.isHidden = isIconOnly
+        toolTip = isTitleShown ? nil : tracked.title
+    }
+
+    func update(with window: TrackedWindow, display: TaskDisplay) {
         tracked = window
+        self.display = display
+        updateText()
         isActive = window.isFocused
         icon.alphaValue = window.isMinimized ? 0.5 : 1
-        title.stringValue = window.title
-        if isIconOnly { toolTip = window.title }
         let font = NSFont.systemFont(ofSize: 13)
         title.font = window.isMinimized ? NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) : font
         title.textColor = window.isFocused ? .alternateSelectedControlTextColor : window.isMinimized ? .secondaryLabelColor : .labelColor
