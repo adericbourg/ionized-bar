@@ -32,8 +32,10 @@ do {
 
     check("assignDisplay_ofWindowInsideSecond_returnsSecond",
           assignDisplay(windowFrame: CGRect(x: 1100, y: 100, width: 200, height: 200), displays: displays) == right)
-    check("assignDisplay_ofStraddlingWindow_returnsDisplayWithMostArea",
-          assignDisplay(windowFrame: CGRect(x: 800, y: 100, width: 400, height: 200), displays: displays) == left)
+    check("assignDisplay_ofWindowMostlyOnSecond_returnsSecond",
+          assignDisplay(windowFrame: CGRect(x: 900, y: 100, width: 400, height: 200), displays: displays) == right)
+    check("assignDisplay_ofWindowMostlyOnFirst_returnsFirst",
+          assignDisplay(windowFrame: CGRect(x: 700, y: 100, width: 400, height: 200), displays: [right, left]) == left)
     check("assignDisplay_whenTie_returnsFirst",
           assignDisplay(windowFrame: CGRect(x: 900, y: 100, width: 200, height: 200), displays: displays) == left)
     check("assignDisplay_whenNothingIntersects_returnsNil",
