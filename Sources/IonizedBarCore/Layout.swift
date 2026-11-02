@@ -49,6 +49,18 @@ public func matchWindow(pid: Int32, frame: CGRect, candidates: [CaptureCandidate
     return matches.count == 1 ? matches[0].id : nil
 }
 
+/// Centered above `entry` and kept on `screen`, all in Cocoa coordinates.
+public func previewFrame(entry: CGRect, size: CGSize, screen: CGRect, gap: CGFloat) -> CGRect {
+    let x = min(max(entry.midX - size.width / 2, screen.minX + gap), screen.maxX - size.width - gap)
+    return CGRect(x: x.rounded(), y: (entry.maxY + gap).rounded(), width: size.width, height: size.height)
+}
+
+/// `size` scaled down to fit `box`, keeping its proportions. Never scaled up.
+public func fittedSize(_ size: CGSize, within box: CGSize) -> CGSize {
+    let scale = min(1, box.width / size.width, box.height / size.height)
+    return CGSize(width: size.width * scale, height: size.height * scale)
+}
+
 /// Both frames are in top-left-origin coordinates (AX and CG/ScreenCaptureKit agree).
 func framesMatch(_ a: CGRect, _ b: CGRect) -> Bool {
     abs(a.minX - b.minX) <= 2 && abs(a.minY - b.minY) <= 2 && abs(a.maxX - b.maxX) <= 2 && abs(a.maxY - b.maxY) <= 2

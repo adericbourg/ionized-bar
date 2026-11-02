@@ -11,8 +11,11 @@ final class BarManager {
             var newSettings = settings
             newSettings.showsPreviews = $0
             apply(newSettings)
-        }
+        },
+        preview: preview
     )
+    // The one place a capture is asked for, always after the setting is checked (`EntryView.previewWindow`).
+    private let preview = PreviewController { await PreviewCapture.thumbnail(pid: $0.pid, frame: $0.frame) }
     private let windowTracker: WindowTracker
     private let settingsWindow: SettingsWindow
     private var panels: [UInt32: BarPanel] = [:]
@@ -35,6 +38,7 @@ final class BarManager {
     }
 
     func sync() {
+        preview.dismiss()
         var current: [UInt32: NSScreen] = [:]
         for screen in NSScreen.screens {
             if let id = screen.displayID { current[id] = screen }
@@ -70,6 +74,7 @@ final class BarManager {
     private func apply(_ newSettings: Settings) {
         let isEnablingPreviews = newSettings.showsPreviews && !settings.showsPreviews
         settings = newSettings
+        if !settings.showsPreviews { preview.dismiss() }
         if isEnablingPreviews { CGRequestScreenCaptureAccess() }
         settings.save()
         update(windowsByDisplay: latestWindowsByDisplay)

@@ -507,6 +507,30 @@ do {
     check("matchWindow_ofNoCandidates_returnsNil", matchWindow(pid: 7, frame: frame, candidates: []) == nil)
 }
 
+// previewFrame
+do {
+    let screen = CGRect(x: 1000, y: 0, width: 1000, height: 800)
+    let size = CGSize(width: 320, height: 100)
+    // Given an entry mid-bar, Then the panel is centered above it, with the gap
+    check("previewFrame_ofMidBarEntry_isCenteredAboveIt", previewFrame(entry: CGRect(x: 1400, y: 0, width: 200, height: 36), size: size, screen: screen, gap: 4) == CGRect(x: 1340, y: 40, width: 320, height: 100))
+    // Given an entry at either edge of a non-primary screen, Then the panel stays on that screen, the gap from its edge
+    check("previewFrame_ofLeftEdgeEntry_staysOnScreen", previewFrame(entry: CGRect(x: 1000, y: 0, width: 48, height: 36), size: size, screen: screen, gap: 4).minX == 1004)
+    check("previewFrame_ofRightEdgeEntry_staysOnScreen", previewFrame(entry: CGRect(x: 1952, y: 0, width: 48, height: 36), size: size, screen: screen, gap: 4).maxX == 1996)
+    // Given a half-point center, Then the origin is on an integer point, so the panel stays sharp
+    check("previewFrame_ofFractionalCenter_roundsTheOrigin", previewFrame(entry: CGRect(x: 1400, y: 0, width: 201, height: 36), size: size, screen: screen, gap: 4).minX == 1341)
+}
+
+// fittedSize
+do {
+    let box = CGSize(width: 300, height: 200)
+    // Given a wide image, Then the width limits it
+    check("fittedSize_ofWideImage_fillsTheWidth", fittedSize(CGSize(width: 640, height: 320), within: box) == CGSize(width: 300, height: 150))
+    // Given a tall image, Then the height limits it
+    check("fittedSize_ofTallImage_fillsTheHeight", fittedSize(CGSize(width: 320, height: 640), within: box) == CGSize(width: 100, height: 200))
+    // Given a small image, Then it is not upscaled
+    check("fittedSize_ofSmallImage_keepsItsSize", fittedSize(CGSize(width: 40, height: 20), within: box) == CGSize(width: 40, height: 20))
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

@@ -77,6 +77,7 @@ final class BarContentView: NSView {
         for (key, entry) in gone {
             entries[key] = nil
             leaving[key] = entry
+            actions.preview.dismiss(for: entry)
             animate({ entry.animator().alphaValue = 0 }) { [weak self] in
                 MainActor.assumeIsolated { self?.finishLeaving(entry) }
             }
@@ -133,6 +134,7 @@ final class BarContentView: NSView {
             if entry.frame == .zero {
                 entry.frame = target
             } else if entry.frame != target {
+                actions.preview.dismiss(for: entry)
                 animate { entry.animator().frame = target }
             }
         }

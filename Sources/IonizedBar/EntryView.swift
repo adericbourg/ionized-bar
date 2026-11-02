@@ -10,6 +10,7 @@ struct EntryActions {
     let openSettings: @MainActor () -> Void
     let showsPreviews: @MainActor () -> Bool
     let setShowsPreviews: @MainActor (Bool) -> Void
+    let preview: PreviewController
 }
 
 final class EntryView: NSView {
@@ -59,7 +60,8 @@ final class EntryView: NSView {
             let isTitleShown = display == .content && !isIconOnly
             title.stringValue = display == .content ? window.title : window.appName
             title.isHidden = isIconOnly
-            let newToolTip = isTitleShown ? nil : window.title
+            // The preview panel shows the title, so a tooltip would stack with it.
+            let newToolTip = isTitleShown || actions.showsPreviews() ? nil : window.title
             if toolTip != newToolTip { toolTip = newToolTip }
         case .group(_, let windows):
             let label = "\(windows[0].appName) (\(windows.count))"
@@ -69,6 +71,14 @@ final class EntryView: NSView {
             if toolTip != newToolTip { toolTip = newToolTip }
         }
     }
+
+    /// The window a preview would show: none on a group, or with previews off.
+    var previewWindow: TrackedWindow? {
+        guard actions.showsPreviews(), case .window(let window) = item else { return nil }
+        return window
+    }
+
+    func showPreview() { actions.preview.show(for: self) }
 
     private var accessibilityText: String {
         switch item {
@@ -123,8 +133,15 @@ final class EntryView: NSView {
         }
     }
 
-    override func mouseEntered(with event: NSEvent) { isHovered = true }
-    override func mouseExited(with event: NSEvent) { isHovered = false }
+    override func mouseEntered(with event: NSEvent) {
+        isHovered = true
+        showPreview()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isHovered = false
+        actions.preview.pointerLeft(self)
+    }
 
     // Keeps the icon and title out of event dispatch: a control-click on the title opens no menu otherwise.
     override func hitTest(_ point: NSPoint) -> NSView? {
@@ -143,7 +160,10 @@ final class EntryView: NSView {
         if event.buttonNumber == 2 && isInside(event), case .window(let window) = item { actions.close(window) }
     }
 
-    override func menu(for event: NSEvent) -> NSMenu? { contextMenu() }
+    override func menu(for event: NSEvent) -> NSMenu? {
+        actions.preview.dismiss()
+        return contextMenu()
+    }
 
     private func isInside(_ event: NSEvent) -> Bool {
         bounds.contains(convert(event.locationInWindow, from: nil))
@@ -197,7 +217,10 @@ final class EntryView: NSView {
         return true
     }
 
-    private func showContextMenu() { popUpAbove(contextMenu()) }
+    private func showContextMenu() {
+        actions.preview.dismiss()
+        popUpAbove(contextMenu())
+    }
 
     private func popUpAbove(_ menu: NSMenu) {
         // popUp places the menu's top-left at this point, so this puts the whole menu above the entry.
@@ -205,6 +228,7 @@ final class EntryView: NSView {
     }
 
     func performClickAction() {
+        actions.preview.dismiss()
         switch item {
         case .window(let window):
             switch clickAction(isActive: window.isFocused, isMinimized: window.isMinimized) {

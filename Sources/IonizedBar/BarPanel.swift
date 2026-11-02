@@ -2,9 +2,11 @@ import AppKit
 
 final class BarPanel: NSPanel {
     private let content: BarContentView
+    private let preview: PreviewController
 
     init(frame: CGRect, actions: EntryActions) {
         content = BarContentView(actions: actions)
+        preview = actions.preview
         super.init(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         level = .statusBar
         collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
@@ -45,6 +47,16 @@ final class BarPanel: NSPanel {
     override func resignKey() {
         super.resignKey()
         makeFirstResponder(nil)
+        preview.dismiss()
+    }
+
+    // Key only: clicking an entry also makes it first responder, on a panel that isn't key.
+    // Here rather than in EntryView: a clicked entry stays first responder, so ⌃⌥B wouldn't call its becomeFirstResponder.
+    @discardableResult
+    override func makeFirstResponder(_ responder: NSResponder?) -> Bool {
+        let isMade = super.makeFirstResponder(responder)
+        if isKeyWindow, let entry = responder as? EntryView { entry.showPreview() }
+        return isMade
     }
 
     // A clicked entry stays first responder on the non-key panel, so makeFirstResponder is a no-op
