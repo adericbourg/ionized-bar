@@ -11,7 +11,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | Milestone | Status | Progress |
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
-| M1 – Window model (headless) | ✅ | 5/5 |
+| M1 – Window model (headless) | 🚧 | 5/5, manual pass pending |
 | M2 – Bars | ⬜ | 0/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
@@ -28,7 +28,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | R5 | Equal width | M2 | ⬜ |
 | R6 | Replaces the Dock | M3 | ⬜ |
 | R7 | Launch at login | M3 | ⬜ |
-| R8 | Current Space only | M1 | ✅ |
+| R8 | Current Space only | M1 | 🚧 |
 | R9 | Push windows away | M4 | ⬜ |
 
 ## Milestones
@@ -45,7 +45,19 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] One `AXObserver` per app (created, destroyed, moved, resized, title, minimized, focused)
 - [x] Standard-window filtering (R4) and current-Space filtering (R8)
 - [x] Display assignment by largest intersection (R3)
-- [x] Checks (`swift run IonizedBarChecks`): coordinate conversion, display assignment, equal-width layout math
+- [x] Checks (`swift run IonizedBarChecks`): coordinate conversion, display assignment, equal-width layout math, `isRealWindow`, `isOnCurrentSpace`
+
+### M1 manual pass
+- [ ] Space switch: the list updates and the CG list settles
+- [ ] A real window on another Space is filtered
+- [ ] Real mouse drag, with a terminal spinner running in another app
+- [ ] Close latency is about 1s
+- [ ] Click-driven `setFrontmost`
+- [ ] Screen-parameter change
+- [ ] Restore from minimized
+- [ ] Chromium or Electron subrole while minimized and hidden
+- [ ] An app whose AX frame might differ from CG bounds (Electron, Qt or Java)
+- [ ] First CI run of the checks step (fall back to macOS 27.0 per PRODUCT.md if it cannot load)
 
 ### M2 – Bars
 - [ ] One non-activating `NSPanel` per screen, following screen add, remove and resize (R2)
@@ -77,12 +89,12 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 |---|---|
 | Accessibility grant lost on every `brew upgrade` (unsigned build) | ⬜ open, accepted for v1 |
 | Gatekeeper quarantine on install | ⬜ open, accepted for v1 |
-| A minimized window on another Space cannot be told apart, so it is listed (public APIs cannot map an AX element to a `CGWindowID`) | ⬜ open, accepted for v1 |
+| A minimized window on another Space cannot be told apart, so it is listed (public APIs cannot map an AX element to a `CGWindowID`) | ⬜ open, pending the user's decision |
 | Native tabs are listed as duplicates while minimized (one entry per tab, seen on TextEdit; not seen while hidden) | ⬜ open, accepted for v1 |
 | A hidden app's dialogs, and minimized dialogs, can be listed: real windows read as `AXDialog` in those states on macOS 27.2, so they cannot be told apart. An app reporting another subrole in those states is not listed | ⬜ open, accepted for v1 |
-| Two same-app windows with the same frame on different Spaces cannot be told apart (both are listed if AX lists both), and a hidden app's other-Space windows are listed too | ⬜ open, accepted for v1 |
-| A hung or retrying app's windows skip the Space check, so they stay listed across a Space switch while it hangs (an `.apiDisabled` state turns off Space filtering for every app) | ⬜ open, accepted for v1 |
-| The minimized flag can show about 1.6s late, because the first read during the animation fails and waits for the retry | ⬜ open, accepted for v1 |
+| Two same-app windows with the same frame on different Spaces cannot be told apart (both are listed if AX lists both), and a hidden app's other-Space windows are listed too | ⬜ open, pending the user's decision |
+| A hung or retrying app's windows skip the Space check, so they stay listed across a Space switch while it hangs (an `.apiDisabled` state turns off Space filtering for every app) | ⬜ open, pending the user's decision |
+| The minimized flag can show more than 1s late, because the first read during the animation fails and waits for the retry | ⬜ open, accepted for v1 |
 
 ## Log
 
@@ -102,3 +114,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M1 task 5: `WindowModel` (main actor) flips each AX frame with the primary screen height, assigns it to a display by largest intersection and logs windows per display; windows with no intersection are logged as unassigned. A screen parameter change marks every app dirty. Checked by hand on 3 displays: every window got a display, and a TextEdit window moved across displays changed entry within about 1s. M1 done, 5/5; R3 done.
 - 2026-11-02 — M1 final review fix: every refresh schedules one trailing publish about 0.5s later, with no AX read, so a window filtered or kept by an unsettled CG list is corrected without waiting for another event. An unchanged trailing snapshot is logged again.
 - 2026-11-02 — M1 final review fix: an attach that gets `.cannotComplete` now retries while the process lives, at 5s after the first 10 fast retries, logged once per pid, instead of losing the app until relaunch. Apps still attaching are skipped by `markAllDirty`. Measured on 12 helpers that never answer: each failed attempt returns in under 1ms, so about 5ms of AX thread time per 5s. A failed read now logs once when the app starts retrying.
+- 2026-11-02 — M1 final review docs: M1 and R8 go back to 🚧 until the M1 manual pass checklist is done, and the R8 limits are open pending the user's decision. README status and `open --stderr` command, and the KVO note in PRODUCT.md, are corrected.

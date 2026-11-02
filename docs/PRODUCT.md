@@ -43,7 +43,7 @@ Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, wi
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
 - **Bar window:** borderless, non-activating `NSPanel`, one per `NSScreen`, placed at `.statusBar` level. It joins all Spaces (`canJoinAllSpaces`, `stationary`) and does not show in Cmd-Tab (`LSUIElement`).
-- **Window model:** `NSWorkspace` app launch and terminate notifications, plus one `AXObserver` per app for created, destroyed, moved, resized, title changed, minimized and focused. `CGWindowListCopyWindowInfo` is used only to cross-check what's on screen. No Screen Recording permission: titles come from AX.
+- **Window model:** KVO on `NSWorkspace.runningApplications` for app launch and terminate (the launch and terminate notifications skip `LSUIElement` apps), plus one `AXObserver` per app for created, destroyed, moved, resized, title changed, minimized and focused. `CGWindowListCopyWindowInfo` is used only to cross-check what's on screen. No Screen Recording permission: titles come from AX.
 - **Display assignment:** the largest intersection between the window frame and `NSScreen.frame` (after converting AX top-left coordinates to Cocoa bottom-left).
 - **Push windows away:** when a window moves or resizes and its frame overlaps the bar's strip, set `kAXSize` and `kAXPosition` so it fits the screen's frame minus the bar.
 - **Dock handling:** `defaults` domain `com.apple.dock`, then `killall Dock` to apply. The original values are saved in the app's own prefs so a crash can be recovered on the next launch.
