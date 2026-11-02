@@ -10,7 +10,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 | Milestone | Status | Progress |
 |---|---|---|
-| M0 – Bootstrap | 🚧 | 4/5 |
+| M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ⬜ | 0/5 |
 | M2 – Bars | ⬜ | 0/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
@@ -38,7 +38,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] `README.md`
 - [x] `docs/PRODUCT.md`
 - [x] Empty SwiftPM app (Swift 6, AppKit, `LSUIElement`, not sandboxed)
-- [ ] CI build (GitHub Actions)
+- [x] CI build (GitHub Actions)
 
 ### M1 – Window model (headless)
 - [ ] App launch and terminate tracking (`NSWorkspace`)
@@ -85,3 +85,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — Empty SwiftPM app (`Package.swift`, `Info.plist`, `scripts/bundle.sh`) builds into a signed `.app` that runs as an agent app. M0 at 4/5.
 - 2026-11-02 — Added the `Build` GitHub Actions workflow (`.github/workflows/build.yml`, runs `scripts/bundle.sh` on `xcode-27`). First run pending, so the CI box stays unticked. M0 at 4/5.
 - 2026-11-02 — First CI run failed: the runner's default Xcode 27.1 ships only the macOS 27.0 SDK. The workflow now selects Xcode 27.2; its first run is pending.
+- 2026-11-02 — CI build is green on `main` with Xcode 27.2 (result reported by the user). M0 done, 5/5.
