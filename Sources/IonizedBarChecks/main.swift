@@ -198,6 +198,147 @@ do {
     check("barItems_whenNever_keepsEveryWindow", describe(items(mode: .never)) == ["a", "b", "c", "d"])
 }
 
+// hideDock, restoreDock
+do {
+    final class FakeDock {
+        var current: DockPrefs
+        var saved: DockPrefs?
+        var calls: [String] = []
+        var isReadOK = true
+        var isWriteOK = true
+        var isRelaunchOK = true
+        var isSaveOK = true
+
+        init(current: DockPrefs, saved: DockPrefs? = nil) {
+            self.current = current
+            self.saved = saved
+        }
+
+        var store: DockStore {
+            DockStore(
+                read: { self.calls.append("read"); return self.isReadOK ? self.current : nil },
+                write: { prefs in
+                    self.calls.append("write")
+                    if self.isWriteOK { self.current = prefs }
+                    return self.isWriteOK
+                },
+                relaunchDock: { self.calls.append("relaunch"); return self.isRelaunchOK },
+                loadSaved: { self.saved },
+                save: { prefs in
+                    self.calls.append("save")
+                    if self.isSaveOK { self.saved = prefs }
+                    return self.isSaveOK
+                },
+                clearSaved: { self.calls.append("clear"); self.saved = nil }
+            )
+        }
+    }
+    let user = DockPrefs(autohide: false, autohideDelay: 0.5)
+    let absent = DockPrefs(autohide: nil, autohideDelay: nil)
+
+    // Given a first run, When hiding, Then originals are saved before any write
+    let firstRun = FakeDock(current: user)
+    check("hideDock_whenFirstRun_returnsTrue", hideDock(firstRun.store))
+    check("hideDock_whenFirstRun_savesBeforeWriting", firstRun.calls == ["read", "save", "write", "relaunch"])
+    check("hideDock_whenFirstRun_savesOriginals", firstRun.saved == user)
+    check("hideDock_whenFirstRun_writesHiddenValues", firstRun.current == .hidden)
+
+    // Given originals left by a crash and a Dock still hidden, When hiding, Then they are kept and the Dock is hidden again
+    let crashed = FakeDock(current: .hidden, saved: user)
+    check("hideDock_whenCrashed_returnsTrue", hideDock(crashed.store))
+    check("hideDock_whenCrashed_keepsOriginals", crashed.saved == user && !crashed.calls.contains("save"))
+    check("hideDock_whenCrashed_hidesAsNormal", crashed.calls == ["write", "relaunch"] && crashed.current == .hidden)
+
+    // Given absent keys, When a run crashes and the next one quits, Then saved "both absent" still counts and they end up absent
+    let absentKeys = FakeDock(current: absent)
+    _ = hideDock(absentKeys.store)
+    check("hideDock_ofAbsentKeys_savesThemAsAbsent", absentKeys.saved == absent)
+    _ = hideDock(absentKeys.store)
+    check("hideDock_whenCrashedWithAbsentKeys_keepsThemAbsent", absentKeys.saved == absent)
+    restoreDock(absentKeys.store)
+    check("restoreDock_ofAbsentKeys_removesThem", absentKeys.current == absent && absentKeys.saved == nil)
+
+    // Given a failed read or save, When hiding, Then the Dock is left alone
+    let readFails = FakeDock(current: user)
+    readFails.isReadOK = false
+    check("hideDock_whenReadFails_returnsFalse", !hideDock(readFails.store))
+    check("hideDock_whenReadFails_doesNotHide", readFails.calls == ["read"] && readFails.saved == nil)
+    let saveFails = FakeDock(current: user)
+    saveFails.isSaveOK = false
+    check("hideDock_whenSaveFails_returnsFalse", !hideDock(saveFails.store))
+    check("hideDock_whenSaveFails_doesNotHide", saveFails.calls == ["read", "save"] && saveFails.current == user)
+
+    // Given a failed write or Dock relaunch, When hiding, Then it reports failure and the originals stay for the restore
+    let hideWriteFails = FakeDock(current: user)
+    hideWriteFails.isWriteOK = false
+    check("hideDock_whenWriteFails_returnsFalse", !hideDock(hideWriteFails.store) && hideWriteFails.saved == user)
+    let hideRelaunchFails = FakeDock(current: user)
+    hideRelaunchFails.isRelaunchOK = false
+    check("hideDock_whenRelaunchFails_returnsFalse", !hideDock(hideRelaunchFails.store) && hideRelaunchFails.saved == user)
+
+    // Given saved originals, When restoring, Then they are written, the Dock relaunched and only then the state cleared
+    let restored = FakeDock(current: .hidden, saved: user)
+    restoreDock(restored.store)
+    check("restoreDock_writesRelaunchesThenClears", restored.calls == ["write", "relaunch", "clear"])
+    check("restoreDock_writesOriginalsAndClearsState", restored.current == user && restored.saved == nil)
+
+    // Given nothing saved, When restoring, Then nothing happens
+    let nothingSaved = FakeDock(current: user)
+    restoreDock(nothingSaved.store)
+    check("restoreDock_whenNothingSaved_doesNothing", nothingSaved.calls.isEmpty && nothingSaved.current == user)
+
+    // Given a failed write, When restoring, Then the state stays so a later restore can still succeed
+    let restoreFails = FakeDock(current: .hidden, saved: user)
+    restoreFails.isWriteOK = false
+    restoreDock(restoreFails.store)
+    check("restoreDock_whenWriteFails_keepsState", restoreFails.saved == user && !restoreFails.calls.contains("clear"))
+    restoreFails.isWriteOK = true
+    restoreDock(restoreFails.store)
+    check("restoreDock_afterFailedWrite_canRetry", restoreFails.current == user && restoreFails.saved == nil)
+
+    // Given a failed Dock relaunch, When restoring, Then the state is cleared, as the prefs are back
+    let restoreRelaunchFails = FakeDock(current: .hidden, saved: user)
+    restoreRelaunchFails.isRelaunchOK = false
+    restoreDock(restoreRelaunchFails.store)
+    check("restoreDock_whenRelaunchFails_clearsState", restoreRelaunchFails.current == user && restoreRelaunchFails.saved == nil)
+}
+
+// parseDockPrefs
+do {
+    func plist(_ body: String) -> Data {
+        Data("""
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">\(body)</plist>
+        """.utf8)
+    }
+
+    // Given an export with both keys, When parsing, Then both are read
+    check("parseDockPrefs_ofSetKeys_returnsThem",
+          parseDockPrefs(plist: plist("<dict><key>autohide</key><false/><key>autohide-delay</key><real>0.5</real><key>tilesize</key><integer>48</integer></dict>"))
+              == DockPrefs(autohide: false, autohideDelay: 0.5))
+    // Given integers, as `defaults write -int` stores them, When parsing, Then they count
+    check("parseDockPrefs_ofIntegers_returnsThem",
+          parseDockPrefs(plist: plist("<dict><key>autohide</key><integer>1</integer><key>autohide-delay</key><integer>0</integer></dict>"))
+              == DockPrefs(autohide: true, autohideDelay: 0))
+    // Given missing keys or an empty domain, When parsing, Then they are absent, not defaults
+    check("parseDockPrefs_ofEmptyDomain_returnsAbsent", parseDockPrefs(plist: plist("<dict/>")) == DockPrefs(autohide: nil, autohideDelay: nil))
+    check("parseDockPrefs_ofOneKey_returnsOtherAbsent",
+          parseDockPrefs(plist: plist("<dict><key>autohide</key><true/></dict>")) == DockPrefs(autohide: true, autohideDelay: nil))
+    // Given anything that can't be restored faithfully, When parsing, Then it is a failure
+    check("parseDockPrefs_ofUnexpectedType_returnsNil",
+          parseDockPrefs(plist: plist("<dict><key>autohide</key><string>yes</string></dict>")) == nil)
+    check("parseDockPrefs_ofGarbage_returnsNil", parseDockPrefs(plist: Data("not a plist".utf8)) == nil)
+    check("parseDockPrefs_ofNoOutput_returnsNil", parseDockPrefs(plist: Data()) == nil)
+    check("parseDockPrefs_ofArray_returnsNil", parseDockPrefs(plist: plist("<array/>")) == nil)
+
+    // Given prefs saved as a dictionary, When reading them back, Then absent stays absent
+    for prefs in [DockPrefs(autohide: false, autohideDelay: 0.5), DockPrefs(autohide: true, autohideDelay: nil), DockPrefs(autohide: nil, autohideDelay: nil)] {
+        check("dockPrefs_dictionary_roundTrips", DockPrefs(dictionary: prefs.dictionary) == prefs)
+    }
+    check("dockPrefs_dictionary_ofAbsentKeys_isEmpty", DockPrefs(autohide: nil, autohideDelay: nil).dictionary.isEmpty)
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

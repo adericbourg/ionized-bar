@@ -7,11 +7,29 @@ A KDE Plasma–style taskbar for macOS that replaces the Dock.
 - Hides the Dock while running and restores it on quit
 - Starts at login
 
-> Status: the bars exist. The Dock is not hidden yet, there is no login item and nothing to install. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
+> Status: the bars exist and the Dock is hidden while the app runs. There is no login item and nothing to install yet. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
 
 ## Requirements
 
 macOS 27.2 or later. The app needs the Accessibility permission to list, raise and move windows; a small window explains it and opens the right System Settings pane.
+
+## Dock
+
+The Dock can't be removed, so the app hides it the usual way: it sets `autohide` to true and `autohide-delay` to 1000 seconds in `com.apple.dock`, then runs `killall Dock`. It does this only once it has the Accessibility permission, since the bar is empty until then. The Dock can still be glimpsed at the screen edge.
+
+Your original values are saved in the app's own prefs first, and a key that wasn't set is deleted again on restore rather than given a default. They come back on a normal quit, and on `SIGTERM` or `SIGINT`.
+
+`kill -9` or a crash can't restore anything, so the Dock stays hidden until the next launch. That launch treats the saved values as the truth and keeps them: it hides the Dock again and the next quit restores them. Without the permission, it restores them right away.
+
+Quit any other app that hides the Dock (boringBar, uBar) before the first launch, or its values are the ones saved and restored.
+
+To get the Dock back by hand, for example after a crash followed by uninstalling the app:
+
+```sh
+defaults delete com.apple.dock autohide-delay
+defaults write com.apple.dock autohide -bool false
+killall Dock
+```
 
 ## Installation (planned)
 

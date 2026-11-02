@@ -1,5 +1,6 @@
 import AppKit
 @preconcurrency import ApplicationServices
+import IonizedBarCore
 
 let windowTracker = WindowTracker { windows in
     Task { @MainActor in WindowModel.update(windows, barManager: barManager) }
@@ -22,6 +23,9 @@ let tracker = AppTracker(
     }
 )
 
+let dock = defaultsDockStore(domain: "com.apple.dock", savedIn: .standard, relaunchDock: killallDock)
+restoreDockOnTermination { restoreDock(dock) }
+
 // The one place that runs once Accessibility is granted, on the main thread; later M3 and M4 steps hook in here.
 @MainActor func onAccessibilityTrusted() {
     log("Accessibility trusted; tracking apps")
@@ -37,6 +41,7 @@ let tracker = AppTracker(
     NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { _ in
         MainActor.assumeIsolated { windowTracker.markAllDirty() }
     }
+    log(hideDock(dock) ? "Dock hidden" : "Dock not hidden")
 }
 
 let onboardingWindow = OnboardingWindow()
@@ -44,6 +49,8 @@ if AXIsProcessTrusted() {
     onAccessibilityTrusted()
 } else {
     log("Accessibility permission required; waiting for it to be granted")
+    // After a crash with the permission lost (each upgrade loses it), the Dock would stay hidden above an empty bar.
+    restoreDock(dock)
     onboardingWindow.show()
     let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
         guard AXIsProcessTrusted() else { return }

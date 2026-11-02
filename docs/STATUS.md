@@ -13,7 +13,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ✅ | 5/5 |
 | M2 – Bars | 🚧 | 5/6 |
-| M3 – Dock replacement and launch at login | 🚧 | 1/4 |
+| M3 – Dock replacement and launch at login | 🚧 | 3/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
 | M6 – Window preview | ⬜ | 0/6 |
@@ -28,7 +28,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | R3 | Per-display tasks | M1 | ✅ |
 | R4 | Real windows only | M1 | ✅ |
 | R5 | Equal width | M2 | 🚧 |
-| R6 | Replaces the Dock | M3 | ⬜ |
+| R6 | Replaces the Dock | M3 | 🚧 |
 | R7 | Launch at login | M3 | ⬜ |
 | R8 | Current Space only | M1 | ✅ |
 | R9 | Push windows away | M4 | ⬜ |
@@ -117,14 +117,19 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] Material pick
 
 ### M3 – Dock replacement and launch at login
-- [ ] Save the Dock prefs, then autohide with a huge delay (R6)
-- [ ] Restore on quit, and recover after a crash on the next launch (R6)
+- [x] Save the Dock prefs, then autohide with a huge delay (R6)
+- [x] Restore on quit, and recover after a crash on the next launch (R6)
 - [ ] Launch at login via `SMAppService` (R7)
 - [x] Accessibility permission onboarding
 
 ### M3 manual pass
 - [ ] Onboarding window: shows only when untrusted, button opens the Accessibility pane, grant closes it and starts tracking, Cmd-W closes it without quitting and polling goes on, Tab/Return and VoiceOver reach the button
 - [ ] IonizedBar appears in the Accessibility list without pressing +, and the system prompt and the opened pane don't get in each other's way
+- [ ] Dock, with boringBar quit first and the Dock visible (autohide off): it stays until the permission is granted, then hides; the app's log shows no `defaults` or `killall` failure; a delay of 1000 keeps it from showing at the screen edge
+- [ ] Dock comes back with the original values, read with `defaults read com.apple.dock`, after Quit IonizedBar, `kill -TERM` and `kill -INT`, including with a key that was absent before
+- [ ] `kill -9`, relaunch: the Dock stays hidden, then Quit restores the original values and not the hidden ones
+- [ ] `kill -9`, Accessibility permission removed, relaunch: the Dock comes back while the onboarding window shows
+- [ ] Log out with the app running: the Dock is restored
 
 ### M4 – Push windows away
 - [ ] Detect windows that overlap the bar (R9)
@@ -208,3 +213,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M2 final-review fixes: `BarPanel.becomeKey` redraws the first responder so the focus outline shows after a click then ⌃⌥B; `kAXWindowDeminiaturizedNotification` is treated like moved and resized so a restored window is not filtered by the lagging CG list (no blink); `EntryView` only assigns a tooltip when it changes; README says entries are per app when grouped and lists login as not yet there; the M2 manual pass gains the missing checks. M7's tick predates keyboard access, whose group-list check is on the M2 manual pass. Build, checks and bundle pass; the app was not launched, so the fixes are unverified until the manual pass. M2 stays 5/6.
 - 2026-11-02 — Window titles are no longer logged, per the user: the per-snapshot window listing in `WindowModel` is gone, since the bars show it, and failed-action logs name the app and pid instead. M2 stays 5/6.
 - 2026-11-02 — M3 task 1: `OnboardingWindow` (AppKit, explanation plus a default "Open Accessibility Settings" button, Cmd-W closes) replaces the stopgap prompt; `main.swift` shows it only when `AXIsProcessTrusted()` is false, keeps the 1s poll, and on grant closes it and runs `onAccessibilityTrusted()`, the main-thread path later M3 and M4 steps hook into (also called directly when already trusted). The button also calls `AXIsProcessTrustedWithOptions` with the prompt option, since that call is believed to be what adds the app to the Accessibility list; it is not called at launch, so no system dialog covers the guide (that registration is an assumption, unverified on macOS 27). Build, checks and bundle pass. A scratch run of the real window showed its size, the button as initial first responder and Cmd-W handled. The app was not launched, so the window's look, the Settings pane opening, the grant closing it and tracking starting, and VoiceOver are unverified until the M3 manual pass. M3 at 1/4.
+- 2026-11-02 — M3 task 2: the app saves `autohide` and `autohide-delay` in its own prefs (absent keys stay absent, flushed to disk before any write; if that fails the Dock is left alone), then hides the Dock from the trusted path with a delay of 1000 and `killall Dock`. Quit, `SIGTERM` and `SIGINT` restore it; saved values found at launch mean a crash and are kept. The decisions (`hideDock`, `restoreDock`, `parseDockPrefs`) are in `IonizedBarCore`, with checks. Reads use `defaults export`, because `defaults` error messages can't reliably tell an absent key from a failure. Not in the brief: without the permission, a launch that finds saved values restores them right away, since the bar is empty and each upgrade loses the permission. Build, checks and bundle pass. A scratch app with the real `defaults` code on a scratch domain and a fake Dock relaunch went through `SIGTERM`, `SIGINT`, terminate and `kill -9` then relaunch, with set and absent keys: values and saved state were right each time, and the real `com.apple.dock` and Dock pid did not change. The app was not launched and the Dock was never written, so the real hide and restore, the Dock's reaction, the untrusted restore and logout are unverified until the M3 manual pass. boringBar was running here with the same values (autohide on, delay 1000): it must be quit before testing, or those are the originals saved. If the saved state is lost while the Dock is hidden, the hidden values become the originals; the README has the manual recovery. M3 at 3/4, R6 🚧.
