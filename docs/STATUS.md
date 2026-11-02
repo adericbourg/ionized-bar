@@ -20,6 +20,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M7 – Settings | ✅ | 6/6 |
 | M8 – App launcher | ⬜ | 0/6 |
 | M9 – Pin applications | ⬜ | 0/6 |
+| M10 – Re-order tasks | ⬜ | 0/5 |
 
 ## Requirements
 
@@ -192,6 +193,13 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] "Keep pinned app icons visible" in the settings window, off by default
 - [ ] ⌃⌥B keyboard mode and VoiceOver on pinned icons; manual pass
 
+### M10 – Re-order tasks
+- [ ] Order decision in `IonizedBarCore`, with checks (moving a window and a group, a new window goes last, a returning window keeps its place)
+- [ ] User-set order, in memory, applied to each snapshot
+- [ ] Drag on entries: threshold, entries sliding apart, drop, no click after a drag
+- [ ] Group entries drag as one
+- [ ] "Move Left" and "Move Right" in the right-click menu; keyboard mode, VoiceOver, Reduce Motion and manual pass
+
 ## Known issues (tracked)
 
 | Issue | Status |
@@ -260,3 +268,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M6 task 9: `Settings.showsPreviews` (off by default, saved) and a checkable "Show window previews" item in a window entry's right-click menu (not on groups or the empty bar). Turning it on calls `CGRequestScreenCaptureAccess()`; at launch, only if it is on, `CGPreflightScreenCaptureAccess()` runs read-only and is logged. With it off no Screen Recording call is made. The settings window keeps the stored value when it reports its own changes. Build, checks and bundle pass. The app was not launched and the request was not called, so the menu item, the system prompt and the persisted value are unverified until the M6 manual pass. M6 at 1/6, the spike box stays open.
 - 2026-11-02 — M6 task 10: `matchWindow` in `IonizedBarCore` returns the id of the only candidate with the entry's pid and bounds within 2pt (nil for none or several), sharing `framesMatch` with the Space check; AX and CG/ScreenCaptureKit frames both use a top-left origin, as the Space check already relies on. `PreviewCapture.thumbnail(pid:frame:)` lists `SCShareableContent` with `onScreenWindowsOnly: false` (so Task 12 can see minimized windows), keeps layer 0, matches, and captures with `SCScreenshotManager` at most 640px on the longest side; nil on ambiguity, denial or any error, logged by pid without titles. Same-app windows on other Spaces or hidden with the same frame make the match ambiguous. Nothing calls it yet; the caller must check `Settings.showsPreviews` first. 5 checks added (red on behaviour before the implementation); build, checks and bundle pass. The capture itself is unverified: after the spike's `-3811` failures it was not run, and the `SCShareableContent` listing in this code was not run either. M6 at 2/6.
 - 2026-11-02 — Added M8 – App launcher and M9 – Pin applications, after M7 and out of v1 scope; framing only, nothing is implemented. PRODUCT.md no longer lists a start menu or pinned launchers as non-goals, and R4 now says pinned icons are not tasks. With "Keep pinned app icons visible" off (the default), a pinned icon hides per bar, only where that bar shows a task for the app. Whether apps provide a usable description is still open, so M8 starts with a spike. M8 at 0/6, M9 at 0/6.
+- 2026-11-02 — Added M10 – Re-order tasks, after M9 and out of v1 scope; framing only, nothing is implemented. PRODUCT.md no longer lists drag to reorder as a non-goal. The order stays in memory, within one bar, and "Move Left" and "Move Right" are the alternative to dragging (WCAG 2.5.7). M10 at 0/5.

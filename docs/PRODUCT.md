@@ -38,7 +38,7 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 - **Motion:** entries animate in, out and when resized in under 150ms. Animations are off when *Reduce Motion* is on.
 
 ## Non-goals (v1)
-Widgets (tray, clock), drag to reorder, windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover, grouping windows by app, an app launcher and pinned apps are planned after v1, see below.
+Widgets (tray, clock), windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover, grouping windows by app, an app launcher, pinned apps and re-ordering tasks are planned after v1, see below.
 
 ## After v1: window preview (M6)
 Hovering an entry shows a panel above it with the app icon and name, the window title and a thumbnail of that window. A preview always shows one window, so a group entry (M7) has no preview: its window list takes that place.
@@ -86,6 +86,17 @@ Pinning keeps an app's icon on the bar while it's closed, and clicking the icon 
 - **Keyboard:** pinned icons are in ⌃⌥B keyboard mode, between the launcher and the tasks. Shift-F10 opens their menu.
 - **Accessibility:** a pinned icon is a VoiceOver button labelled with the app name and "pinned".
 
+## After v1: re-order tasks (M10)
+Dragging a task along its bar changes its place on that bar. Only the entry moves: the window itself is neither raised nor moved.
+
+- **Scope:** an entry moves within its own bar. It can't be dragged to another bar, because R3 ties an entry to its window's display. A drag past the end of the task area stops at the end.
+- **Click or drag:** a drag starts once the pointer has moved about 4pt, and its mouse-up is not a click. Dropping an entry back where it started changes nothing. Esc doesn't cancel a drag, because the panel is never key.
+- **Order:** kept in memory only, so it's lost on quit: AX window elements don't survive a restart, and public APIs have no stable window id. A new window still goes last. A window that leaves and returns (Space switch, another display) keeps its place.
+- **Group entry (M7):** drags as one, and its windows stay next to each other if the bar later ungroups. The order inside a group's window list can't be dragged.
+- **Launcher and pinned icons (M8, M9):** can't be dragged, and a task can't be dropped before them.
+- **Without dragging:** "Move Left" and "Move Right" in the right-click menu of a task or group entry, disabled at the ends. WCAG 2.2 AA 2.5.7 asks for an alternative to dragging. The menu also covers keyboard mode (Shift-F10) and VoiceOver, so there's no new shortcut.
+- **Motion:** the other entries slide apart in under 150ms, and jump with *Reduce Motion* on. A drag dismisses the M6 preview.
+
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
 - **Bar window:** borderless, non-activating `NSPanel`, one per `NSScreen`, placed at `.statusBar` level. It joins all Spaces (`canJoinAllSpaces`, `stationary`) and does not show in Cmd-Tab (`LSUIElement`).
@@ -95,6 +106,7 @@ Pinning keeps an app's icon on the bar while it's closed, and clicking the icon 
 - **Push windows away:** when a window moves or resizes and its frame overlaps the bar's strip, set `kAXSize` and `kAXPosition` so it fits the screen's frame minus the bar. The top limit is `NSScreen.visibleFrame`'s top, so a push never goes under the menu bar. A window straddling two displays is only checked against the bar of its assigned display. No push while a mouse button is held or before the frame has settled, and none for fullscreen windows. A window a push leaves over the bar is not pushed again until its frame changes.
 - **Dock handling:** `defaults` domain `com.apple.dock`, then `killall Dock` to apply. The original values are saved in the app's own prefs so a crash can be recovered on the next launch.
 - **Permissions onboarding:** check `AXIsProcessTrusted()`. If it's false, show a single-window guide and poll until the grant is given.
+- **Re-ordering (M10):** mouse tracking in the existing entry views rather than `NSDraggingSource`, since nothing leaves the bar and no pasteboard is needed. The order decision is pure logic in `IonizedBarCore`, with checks.
 
 ## Risks
 | Risk | Impact | Mitigation |
@@ -109,6 +121,7 @@ Pinning keeps an app's icon on the bar while it's closed, and clicking the icon 
 | Preview (M6): the Screen Recording grant is probably lost on upgrade, like Accessibility (unverified) | Previews stop working after an update | Check during M6. Same fix as the Accessibility grant, see *Known issues* |
 | Launcher and pins (M8, M9) take bar width | Tasks shrink sooner, and many pins can leave little room for them | The entry width and the When full grouping both use the width left for tasks. Tasks shrink as usual; pins never do |
 | Launcher (M8): apps may provide no usable description | Description search rarely matches anything | Check it first in M8. Fall back to names only |
+| Re-order (M10): a drag can fire a click or raise a window | Dropping an entry minimizes or raises a window by accident | The 4pt threshold, and a manual check |
 
 ## Milestones
 1. **M0 – Bootstrap:** `LICENSE` (GPLv3), README, `docs/PRODUCT.md`, an empty SwiftPM app, CI build on GitHub Actions.
@@ -121,6 +134,7 @@ Pinning keeps an app's icon on the bar while it's closed, and clicking the icon 
 8. **M7 – Settings:** window grouping and task display, after v1. Depends on the M2 interactions.
 9. **M8 – App launcher:** a button at the left of the bar and an application list with fuzzy search, after v1. Depends on the M2 bars and keyboard mode.
 10. **M9 – Pin applications:** pinned icons on the bar and the "Keep pinned app icons visible" setting, after v1. Depends on the M7 settings window, and on M8 for the bar's order and task width.
+11. **M10 – Re-order tasks:** drag and drop a task on its bar, with "Move Left" and "Move Right" as the alternative, after v1. Depends on the M2 entries and interactions and on the M7 group entries.
 
 ## Verification (per milestone, once implemented)
 - A check executable (`swift run IonizedBarChecks`) for the pure logic, because Command Line Tools have no working test framework (no `TestingMacros` plugin, no XCTest): screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation. CI runs it too. If it can't load on the runner's older macOS, lower the minimum from 27.2 to 27.0.
@@ -130,6 +144,7 @@ Pinning keeps an app's icon on the bar while it's closed, and clicking the icon 
 - Manual checklist for M7: every display mode with every grouping mode, and settings surviving a relaunch. Going past and back under the When full threshold, with each bar deciding on its own. Picking and restoring from a group's list, by mouse and keyboard. Opening settings with no windows open, closing with Cmd-W, and using them with VoiceOver.
 - Manual checklist for M8: the button on every bar, in every display mode and with no tasks. Fuzzy search with typos and partial names, opening an app by mouse and keyboard, Esc and a click outside, keys going back to the frontmost app, and VoiceOver.
 - Manual checklist for M9: pin and unpin from a task, a group entry and a pinned icon. The icon opening a closed app and raising a running one. The setting on and off, with the app open on one display only, on another Space, and running with no windows. Pins surviving a relaunch, an uninstalled pinned app, and VoiceOver and keyboard on a pinned icon.
+- Manual checklist for M10: drag a task and a group entry in every display mode, with and without grouping. A plain click and a small pointer slip still act as a click, and a drop neither raises nor minimizes a window. A drag past either end, and a window opening or closing during a drag. The order across a Space switch, a window moved to another display and back, and ungrouping. "Move Left" and "Move Right" by mouse, keyboard and VoiceOver. Reduce Motion, and a drag with a preview showing.
 
 ## Known issues (to fix later)
 - **The Accessibility grant is lost on every `brew upgrade`.** TCC ties the grant to the code signature, and an ad-hoc or unsigned build gets a new identity on each release. Accepted for v1. Candidate fixes to evaluate later: a Developer ID with a stable Team ID and notarization, or a stable self-signed certificate used for every release. Once M6 ships, the Screen Recording grant is probably affected too (unverified).
