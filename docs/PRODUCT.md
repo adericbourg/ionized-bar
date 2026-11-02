@@ -38,12 +38,24 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 - **Motion:** entries animate in, out and when resized in under 150ms. Animations are off when *Reduce Motion* is on.
 
 ## Non-goals (v1)
-Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, window thumbnails on hover, drag to reorder, windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version.
+Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, drag to reorder, windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover are planned after v1, see below.
+
+## After v1: window preview (M6)
+Hovering an entry shows a panel above it with the app icon and name, the window title and a thumbnail of that window. Entries aren't grouped by app, so a preview always shows one window.
+
+- **Opt-in:** off by default, toggled by a "Show window previews" item in the entry's right-click menu. The bar works fully without Screen Recording, and macOS only prompts when previews are turned on. With previews off, nothing appears and the icon-only tooltip stays as it is. If the permission is denied, no preview appears.
+- **Showing and dismissing:** the panel appears after about 300ms of hover, and also on keyboard focus. Esc dismisses it, and it stays open while the pointer is over it (WCAG 1.4.13).
+- **Display-only:** clicking the panel does nothing. Clicks stay on the entry.
+- **Minimized windows:** a live capture if macOS allows it (the first M6 task checks this), otherwise the last captured image. With no captured image, the panel shows the header only.
+- **Cache, if needed:** in memory only, never written to disk. It's filled on hover and drops an image when its window closes, so a window minimized with its yellow button and never hovered shows the header only.
+- **Ambiguous match:** if the window can't be identified with certainty, the panel shows the header only. Showing another window's content is worse than showing none.
+- **Accessibility:** the panel honors *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*, like the bar.
 
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
 - **Bar window:** borderless, non-activating `NSPanel`, one per `NSScreen`, placed at `.statusBar` level. It joins all Spaces (`canJoinAllSpaces`, `stationary`) and does not show in Cmd-Tab (`LSUIElement`).
-- **Window model:** KVO on `NSWorkspace.runningApplications` for app launch and terminate (the launch and terminate notifications skip `LSUIElement` apps), plus one `AXObserver` per app for created, destroyed, moved, resized, title changed, minimized and focused. `CGWindowListCopyWindowInfo` is used only to cross-check what's on screen. No Screen Recording permission: titles come from AX.
+- **Window model:** KVO on `NSWorkspace.runningApplications` for app launch and terminate (the launch and terminate notifications skip `LSUIElement` apps), plus one `AXObserver` per app for created, destroyed, moved, resized, title changed, minimized and focused. `CGWindowListCopyWindowInfo` is used only to cross-check what's on screen. No Screen Recording permission, except for opt-in previews (M6): titles come from AX.
+- **Preview capture (M6):** ScreenCaptureKit (`SCScreenshotManager` with `SCContentFilter(desktopIndependentWindow:)`), since `CGWindowListCreateImage` is unavailable in the macOS 15+ SDK. An entry's window is matched to an `SCWindow` by pid and bounds within 2pt, the same rule as the Space check, because public APIs cannot map an AX element to a `CGWindowID`.
 - **Display assignment:** the largest intersection between the window frame and `NSScreen.frame` (after converting AX top-left coordinates to Cocoa bottom-left).
 - **Push windows away:** when a window moves or resizes and its frame overlaps the bar's strip, set `kAXSize` and `kAXPosition` so it fits the screen's frame minus the bar.
 - **Dock handling:** `defaults` domain `com.apple.dock`, then `killall Dock` to apply. The original values are saved in the app's own prefs so a crash can be recovered on the next launch.
@@ -57,6 +69,9 @@ Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, wi
 | Push-away fights apps that enforce a minimum size or reposition themselves (Electron apps, games, fullscreen) | Windows jitter, or the bar gets covered | Debounce. Skip fullscreen windows. Keep a per-app opt-out list (post-MVP) |
 | AX latency or hangs with unresponsive apps | Bar freezes | Run AX calls off the main thread with `AXUIElementSetMessagingTimeout` |
 | macOS 27 changes behavior | Breakage | Use public APIs only. Pinning one OS version keeps the test surface small |
+| Preview (M6): same-app windows with the same frame can't be told apart | A thumbnail could show the wrong window | Show the header only when the match is ambiguous |
+| Preview (M6): `SCScreenshotManager` capture is async and can lag | The panel feels slow, or the bar stutters | Capture once per hover, not on every mouse move |
+| Preview (M6): the Screen Recording grant is probably lost on upgrade, like Accessibility (unverified) | Previews stop working after an update | Check during M6. Same fix as the Accessibility grant, see *Known issues* |
 
 ## Milestones
 1. **M0 – Bootstrap:** `LICENSE` (GPLv3), README, `docs/PRODUCT.md`, an empty SwiftPM app, CI build on GitHub Actions.
@@ -65,12 +80,14 @@ Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, wi
 4. **M3 – Dock replacement and launch at login:** save and restore the Dock, `SMAppService`, onboarding.
 5. **M4 – Push windows away.**
 6. **M5 – Release:** archive, zip, and a cask in `adericbourg/homebrew-tap`.
+7. **M6 – Window preview:** opt-in thumbnail panel on hover, after v1. Depends on the M2 entries and their hover state.
 
 ## Verification (per milestone, once implemented)
 - A check executable (`swift run IonizedBarChecks`) for the pure logic, because Command Line Tools have no working test framework (no `TestingMacros` plugin, no XCTest): screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation. CI runs it too. If it can't load on the runner's older macOS, lower the minimum from 27.2 to 27.0.
 - Manual checklist on 2 displays: open, close, move and minimize windows, then check each bar. Plug and unplug a display. Switch Spaces. Quit the app and check the Dock comes back. Kill it with `kill -9`, relaunch, and check the Dock comes back. Log out and in to check launch at login. Maximize a window to check it doesn't cover the bar.
 - `brew install --cask adericbourg/tap/ionized-bar` on a clean user account.
+- Manual checklist for M6: previews on and off, a minimized window, two same-app windows with the same frame, keyboard focus and Esc, and the Screen Recording grant being denied.
 
 ## Known issues (to fix later)
-- **The Accessibility grant is lost on every `brew upgrade`.** TCC ties the grant to the code signature, and an ad-hoc or unsigned build gets a new identity on each release. Accepted for v1. Candidate fixes to evaluate later: a Developer ID with a stable Team ID and notarization, or a stable self-signed certificate used for every release.
+- **The Accessibility grant is lost on every `brew upgrade`.** TCC ties the grant to the code signature, and an ad-hoc or unsigned build gets a new identity on each release. Accepted for v1. Candidate fixes to evaluate later: a Developer ID with a stable Team ID and notarization, or a stable self-signed certificate used for every release. Once M6 ships, the Screen Recording grant is probably affected too (unverified).
 - **Gatekeeper quarantine on install.** Same root cause, same fix. Until then, the cask `caveats` and the README document the workaround.

@@ -16,6 +16,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
+| M6 – Window preview | ⬜ | 0/6 |
 
 ## Requirements
 
@@ -84,6 +85,14 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] Cask in `adericbourg/homebrew-tap`
 - [ ] Clean-account install check (`brew install --cask adericbourg/tap/ionized-bar`)
 
+### M6 – Window preview
+- [ ] Spike: can `SCScreenshotManager` capture a minimized window? Record the result and whether a cache is needed
+- [ ] Opt-in setting and Screen Recording request (off by default, no prompt until enabled)
+- [ ] Match the entry's window to an `SCWindow` and capture a thumbnail, with a header-only fallback when ambiguous
+- [ ] Preview panel above the entry: hover delay, keyboard focus, Esc, stays open under the pointer
+- [ ] Minimized windows: live capture or in-memory last capture, per the spike
+- [ ] Reduce Motion, Reduce Transparency and contrast on the preview panel; manual pass
+
 ## Known issues (tracked)
 
 | Issue | Status |
@@ -122,3 +131,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — CI is green with the checks step on `main` (result reported by the user), so the macOS 27.0 fallback is not needed. M1 done, 5/5.
 - 2026-11-02 — M2 task 1: `BarManager` keeps one non-activating `NSPanel` (`BarPanel`, 36pt, `.statusBar`, frosted `NSVisualEffectView` with a one-pixel hairline) per `NSScreen`, synced at launch and on screen parameter changes; `barFrame` in `IonizedBarCore` has checks (non-zero origin). Build, checks and bundle pass; the app was not launched, so the panels, their placement and the screen add, remove and resize behaviour are unverified until the M2 manual pass. M2 at 1/6; R2 🚧.
 - 2026-11-02 — M2 task 2: `EntryView` (icon, title, active, hover and minimized states) and `BarContentView` (entries keyed by AX element and reused, laid out with `entryWidth` on backing-aligned frames) now show each display's windows in its panel. `TrackedWindow` carries its element and a stable `order`, assigned at first read and kept across re-reads, so focus changes do not move entries and a new window goes last. Build, checks and bundle pass. An offscreen scratch render of the views, in light and dark, showed the states and the hairline, and confirmed reuse, removal, order and aligned frames. The app was not launched, so live windows, stable order with real AX data, real hover and appearance switching are unverified until the M2 manual pass. M2 at 2/6; R1 and R5 🚧.
+- 2026-11-02 — Added M6 – Window preview, after M5 and out of v1 scope: an opt-in thumbnail panel on hover. PRODUCT.md no longer lists thumbnails as a non-goal, and Screen Recording is now allowed for opt-in previews only. Whether a minimized window can be captured is still open, so M6 starts with a spike that decides if a cache is needed. M6 at 0/6.
