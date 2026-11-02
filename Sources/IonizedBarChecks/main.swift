@@ -60,6 +60,35 @@ do {
           entryWidth(barWidth: 1000, entryCount: 0) == EntryWidth(width: 0, isIconOnly: false))
 }
 
+// isOnCurrentSpace
+do {
+    // Given a window of pid 1, and an on-screen list
+    let frame = CGRect(x: 100, y: 100, width: 300, height: 200)
+    func isListed(pid: Int32 = 1, isMinimized: Bool = false, isAppHidden: Bool = false, onScreen: [OnScreenWindow]) -> Bool {
+        // When filtering
+        isOnCurrentSpace(pid: pid, frame: frame, isMinimized: isMinimized, isAppHidden: isAppHidden, onScreen: onScreen)
+    }
+    // Then
+    check("isOnCurrentSpace_whenMinimized_returnsTrue", isListed(isMinimized: true, onScreen: []))
+    check("isOnCurrentSpace_whenAppHidden_returnsTrue", isListed(isAppHidden: true, onScreen: []))
+    check("isOnCurrentSpace_whenNotInList_returnsFalse", !isListed(onScreen: []))
+    check("isOnCurrentSpace_whenSameBounds_returnsTrue", isListed(onScreen: [OnScreenWindow(pid: 1, bounds: frame)]))
+    check("isOnCurrentSpace_whenOtherPidHasSameBounds_returnsFalse", !isListed(onScreen: [OnScreenWindow(pid: 2, bounds: frame)]))
+    check("isOnCurrentSpace_whenEveryEdgeOff2pt_returnsTrue",
+          isListed(onScreen: [OnScreenWindow(pid: 1, bounds: CGRect(x: 102, y: 98, width: 296, height: 204))]))
+    // The bounds below move one edge by 3pt, and keep the others in place.
+    check("isOnCurrentSpace_whenLeftEdgeOff3pt_returnsFalse",
+          !isListed(onScreen: [OnScreenWindow(pid: 1, bounds: CGRect(x: 103, y: 100, width: 297, height: 200))]))
+    check("isOnCurrentSpace_whenTopEdgeOff3pt_returnsFalse",
+          !isListed(onScreen: [OnScreenWindow(pid: 1, bounds: CGRect(x: 100, y: 103, width: 300, height: 197))]))
+    check("isOnCurrentSpace_whenRightEdgeOff3pt_returnsFalse",
+          !isListed(onScreen: [OnScreenWindow(pid: 1, bounds: CGRect(x: 100, y: 100, width: 303, height: 200))]))
+    check("isOnCurrentSpace_whenBottomEdgeOff3pt_returnsFalse",
+          !isListed(onScreen: [OnScreenWindow(pid: 1, bounds: CGRect(x: 100, y: 100, width: 300, height: 203))]))
+    check("isOnCurrentSpace_whenSecondEntryMatches_returnsTrue",
+          isListed(onScreen: [OnScreenWindow(pid: 1, bounds: .zero), OnScreenWindow(pid: 1, bounds: frame)]))
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

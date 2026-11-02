@@ -11,7 +11,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | Milestone | Status | Progress |
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
-| M1 – Window model (headless) | 🚧 | 3/5 |
+| M1 – Window model (headless) | 🚧 | 4/5 |
 | M2 – Bars | ⬜ | 0/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
@@ -24,11 +24,11 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | R1 | Taskbar | M2 | ⬜ |
 | R2 | One bar per display | M2 | ⬜ |
 | R3 | Per-display tasks | M1 | ⬜ |
-| R4 | Real windows only | M1 | ⬜ |
+| R4 | Real windows only | M1 | ✅ |
 | R5 | Equal width | M2 | ⬜ |
 | R6 | Replaces the Dock | M3 | ⬜ |
 | R7 | Launch at login | M3 | ⬜ |
-| R8 | Current Space only | M1 | ⬜ |
+| R8 | Current Space only | M1 | ✅ |
 | R9 | Push windows away | M4 | ⬜ |
 
 ## Milestones
@@ -43,7 +43,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 ### M1 – Window model (headless)
 - [x] App launch and terminate tracking (`NSWorkspace`)
 - [x] One `AXObserver` per app (created, destroyed, moved, resized, title, minimized, focused)
-- [ ] Standard-window filtering (R4) and current-Space filtering (R8)
+- [x] Standard-window filtering (R4) and current-Space filtering (R8)
 - [ ] Display assignment by largest intersection (R3)
 - [x] Checks (`swift run IonizedBarChecks`): coordinate conversion, display assignment, equal-width layout math
 
@@ -77,6 +77,9 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 |---|---|
 | Accessibility grant lost on every `brew upgrade` (unsigned build) | ⬜ open, accepted for v1 |
 | Gatekeeper quarantine on install | ⬜ open, accepted for v1 |
+| A minimized window on another Space cannot be told apart, so it is listed (public APIs cannot map an AX element to a `CGWindowID`) | ⬜ open, accepted for v1 |
+| Native tabs are listed as duplicates while minimized (one entry per tab, seen on TextEdit; not seen while hidden) | ⬜ open, accepted for v1 |
+| A hidden app's panels and dialogs can be listed: the subrole reads `AXDialog` for every window while minimized or hidden, on macOS 27.2 | ⬜ open, accepted for v1 |
 
 ## Log
 
@@ -91,3 +94,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M1 task 2: `AppTracker` (KVO on `runningApplications`) logs launch/terminate to stderr; `main.swift` prompts for Accessibility once and polls until trusted. M1 at 2/5.
 - 2026-11-02 — M1 task 3: `WindowTracker` hosts one `AXObserver` per app on a dedicated thread and publishes debounced window snapshots, logged to stderr. `kAXUIElementDestroyed` is registered on the app element and filtered to known windows, because it never fires on window elements on macOS 27.2. `setFrontmost` on activation is still to check by hand. M1 at 3/5.
 - 2026-11-02 — M1 task 3 fix: a failed window read keeps the cached windows and retries about once a second, so a busy app no longer loses an update and a hung app costs at most one 0.25s timeout per retry. Only `noValue`, `attributeUnsupported` and `invalidUIElement` count as no windows. M1 stays at 3/5.
+- 2026-11-02 — M1 task 4: only `AXStandardWindow` windows are listed, and only those on the active Space (AX frame matched to the CG on-screen list by pid and bounds within 2pt). Minimized and hidden windows skip both checks, because AppKit reports them as `AXDialog` on macOS 27.2. Windows that just moved, and apps whose read failed, skip the Space check, since their frames can be stale. Real mouse drags and Space switches are still to check by hand. M1 at 4/5.

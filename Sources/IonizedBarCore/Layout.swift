@@ -20,6 +20,16 @@ public struct EntryWidth: Equatable {
     }
 }
 
+public struct OnScreenWindow: Sendable {
+    public let pid: Int32
+    public let bounds: CGRect
+
+    public init(pid: Int32, bounds: CGRect) {
+        self.pid = pid
+        self.bounds = bounds
+    }
+}
+
 public func flipRect(_ rect: CGRect, primaryScreenHeight: CGFloat) -> CGRect {
     CGRect(x: rect.minX, y: primaryScreenHeight - rect.minY - rect.height, width: rect.width, height: rect.height)
 }
@@ -40,4 +50,15 @@ public func entryWidth(
     guard entryCount > 0 else { return EntryWidth(width: 0, isIconOnly: false) }
     let width = min(maxWidth, barWidth / CGFloat(entryCount))
     return EntryWidth(width: width, isIconOnly: width < iconOnlyBelow)
+}
+
+public func isOnCurrentSpace(pid: Int32, frame: CGRect, isMinimized: Bool, isAppHidden: Bool, onScreen: [OnScreenWindow]) -> Bool {
+    if isMinimized || isAppHidden { return true }
+    return onScreen.contains { window in
+        window.pid == pid
+            && abs(window.bounds.minX - frame.minX) <= 2
+            && abs(window.bounds.minY - frame.minY) <= 2
+            && abs(window.bounds.maxX - frame.maxX) <= 2
+            && abs(window.bounds.maxY - frame.maxY) <= 2
+    }
 }

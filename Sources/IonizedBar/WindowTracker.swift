@@ -1,5 +1,6 @@
 import AppKit
 @preconcurrency import ApplicationServices
+import IonizedBarCore
 
 struct TrackedWindow: Sendable {
     let pid: pid_t
@@ -19,21 +20,30 @@ final class WindowTracker: @unchecked Sendable {
         let observer: AXObserver
         var retry: Timer?
         /// `isFocused` here only means focused within the app; `publish()` applies the frontmost pid.
-        var windows: [(element: AXUIElement, window: TrackedWindow)] = []
+        var windows: [CachedWindow] = []
+    }
+
+    private struct CachedWindow {
+        let element: AXUIElement
+        let window: TrackedWindow
+        /// AppKit reports `AXDialog` while a window is minimized or its app hidden (macOS 27.2): test at publish, not at read.
+        let isStandard: Bool
     }
 
     private static let appNotifications = [
         kAXWindowCreatedNotification, kAXFocusedWindowChangedNotification, kAXWindowMovedNotification,
         kAXWindowResizedNotification, kAXWindowMiniaturizedNotification, kAXWindowDeminiaturizedNotification,
-        kAXTitleChangedNotification, kAXUIElementDestroyedNotification
+        kAXTitleChangedNotification, kAXUIElementDestroyedNotification, kAXApplicationShownNotification
     ]
-    private static let windowAttributes = [kAXTitleAttribute, kAXPositionAttribute, kAXSizeAttribute, kAXMinimizedAttribute]
+    private static let windowAttributes = [kAXTitleAttribute, kAXPositionAttribute, kAXSizeAttribute, kAXMinimizedAttribute, kAXSubroleAttribute]
     private static let maxAttachRetries = 10
 
     private let onChange: @Sendable ([TrackedWindow]) -> Void
     private var runLoop: CFRunLoop!
     private var apps: [pid_t: App] = [:]
     private var dirty: Set<pid_t> = []
+    /// Moved or resized since the last refresh: the AX frame and the CG bounds may disagree for now.
+    private var moving: Set<AXUIElement> = []
     private var frontmost: pid_t?
     private var debounce: Timer?
     private var refreshDeadline: Date?
@@ -109,6 +119,9 @@ final class WindowTracker: @unchecked Sendable {
            apps[pid]?.windows.contains(where: { CFEqual($0.element, element) }) != true {
             return
         }
+        if notification as String == kAXWindowMovedNotification || notification as String == kAXWindowResizedNotification {
+            moving.insert(element)
+        }
         markDirty(pid)
     }
 
@@ -163,6 +176,7 @@ final class WindowTracker: @unchecked Sendable {
         refreshDeadline = nil
         read(pids)
         publish()
+        moving = []
     }
 
     private func retryReads() {
@@ -190,17 +204,33 @@ final class WindowTracker: @unchecked Sendable {
     }
 
     private func publish() {
+        let onScreen = onScreenWindows()
         onChange(apps.keys.sorted().flatMap { pid in
-            apps[pid]!.windows.map { _, window in
-                var window = window
+            let isAppHidden = NSRunningApplication(processIdentifier: pid)?.isHidden ?? false
+            return apps[pid]!.windows.compactMap { cached -> TrackedWindow? in
+                var window = cached.window
+                guard cached.isStandard || window.isMinimized || isAppHidden else { return nil }
+                // A failed read leaves a stale frame, which happens on every minimize (the app is busy animating).
+                guard retrying.contains(pid) || moving.contains(cached.element) || isOnCurrentSpace(pid: pid, frame: window.frame, isMinimized: window.isMinimized, isAppHidden: isAppHidden, onScreen: onScreen) else { return nil }
                 window.isFocused = window.isFocused && pid == frontmost
                 return window
             }
         })
     }
 
+    /// Reads only the owner and the bounds: nothing here needs Screen Recording.
+    private func onScreenWindows() -> [OnScreenWindow] {
+        let infos = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[CFString: Any]] ?? []
+        return infos.compactMap { info in
+            guard let pid = info[kCGWindowOwnerPID] as? Int32,
+                  let boundsValue = info[kCGWindowBounds],
+                  let bounds = CGRect(dictionaryRepresentation: boundsValue as! CFDictionary) else { return nil }
+            return OnScreenWindow(pid: pid, bounds: bounds)
+        }
+    }
+
     /// Nil when the read failed, stopping at the first failure so a hung app stalls this thread once.
-    private func readWindows(pid: pid_t, app: App) -> [(element: AXUIElement, window: TrackedWindow)]? {
+    private func readWindows(pid: pid_t, app: App) -> [CachedWindow]? {
         var windowsValue: CFTypeRef?
         let windowsError = AXUIElementCopyAttributeValue(app.element, kAXWindowsAttribute as CFString, &windowsValue)
         guard windowsError == .success else {
@@ -217,7 +247,7 @@ final class WindowTracker: @unchecked Sendable {
         let focusedError = AXUIElementCopyAttributeValue(app.element, kAXFocusedWindowAttribute as CFString, &focusedValue)
         guard focusedError == .success || isAbsent(focusedError) else { return nil }
 
-        var windows: [(element: AXUIElement, window: TrackedWindow)] = []
+        var windows: [CachedWindow] = []
         for element in elements {
             var values: CFArray?
             let error = AXUIElementCopyMultipleAttributeValues(element, Self.windowAttributes as CFArray, AXCopyMultipleAttributeOptions(rawValue: 0), &values)
@@ -225,7 +255,7 @@ final class WindowTracker: @unchecked Sendable {
                 if isAbsent(error) { continue }
                 return nil
             }
-            guard let attributes = values as? [Any], attributes.count == 4 else { continue }
+            guard let attributes = values as? [Any], attributes.count == 5 else { continue }
             // Each attribute's own error comes back as an AXValue in the array.
             let hasFailedAttribute = attributes.contains { value in
                 axValue(value, .axError, AXError.success).map { !isAbsent($0) } ?? false
@@ -233,14 +263,14 @@ final class WindowTracker: @unchecked Sendable {
             guard !hasFailedAttribute else { return nil }
             guard let position = axValue(attributes[1], .cgPoint, CGPoint.zero),
                   let size = axValue(attributes[2], .cgSize, CGSize.zero) else { continue }
-            windows.append((element, TrackedWindow(
+            windows.append(CachedWindow(element: element, window: TrackedWindow(
                 pid: pid,
                 appName: app.name,
                 title: attributes[0] as? String ?? "",
                 frame: CGRect(origin: position, size: size),
                 isMinimized: attributes[3] as? Bool ?? false,
                 isFocused: focusedValue.map { CFEqual($0, element) } ?? false
-            )))
+            ), isStandard: attributes[4] as? String == kAXStandardWindowSubrole))
         }
         return windows
     }

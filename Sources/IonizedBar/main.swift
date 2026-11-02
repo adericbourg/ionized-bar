@@ -41,6 +41,9 @@ let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
         let pid = app.processIdentifier
         MainActor.assumeIsolated { windowTracker.setFrontmost(pid: pid) }
     }
+    NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { _ in
+        MainActor.assumeIsolated { windowTracker.markAllDirty() }
+    }
 }
 _ = timer
 
