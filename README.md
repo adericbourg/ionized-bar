@@ -67,6 +67,13 @@ Checks: `swift run IonizedBarChecks` runs the pure-logic checks (no XCTest on Co
 
 Apple silicon only. `./scripts/archive.sh` builds the bundle and zips it into `build/IonizedBar-<version>.zip`, printing the path and its sha256 (for the cask). To release: bump `CFBundleShortVersionString` and `CFBundleVersion` in `Support/Info.plist`, commit, then push a tag `v<version>`, for example `v0.1.0`. The Release workflow fails if the tag doesn't match the plist, runs the checks and attaches the zip to a GitHub release.
 
+Then publish the cask in `adericbourg/homebrew-tap` (a draft is on its `feature/ionized-bar-cask` branch, with `sha256 "TODO"`):
+
+1. Take the zip's sha256 from the release (or the `archive.sh` output).
+2. Set `version` and `sha256` in `Casks/ionized-bar.rb`, and add the cask to the tap README's table.
+3. Merge and push the tap.
+4. On a clean macOS account, run `brew install --cask adericbourg/tap/ionized-bar`, open the app, grant Accessibility, then uninstall and check the Dock is back.
+
 ## License
 
 [GPLv3](LICENSE)
