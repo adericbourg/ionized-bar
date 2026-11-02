@@ -8,10 +8,7 @@ if !AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary) {
 }
 
 let windowTracker = WindowTracker { windows in
-    log("snapshot: \(windows.count) windows")
-    for window in windows {
-        log("  pid=\(window.pid) \(window.appName) \"\(window.title)\" \(window.frame) minimized=\(window.isMinimized) focused=\(window.isFocused)")
-    }
+    Task { @MainActor in WindowModel.update(windows) }
 }
 
 let tracker = AppTracker(
@@ -46,5 +43,9 @@ let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
     }
 }
 _ = timer
+
+NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { _ in
+    windowTracker.markAllDirty()
+}
 
 NSApplication.shared.run()

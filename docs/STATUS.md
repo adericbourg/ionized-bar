@@ -11,7 +11,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | Milestone | Status | Progress |
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
-| M1 – Window model (headless) | 🚧 | 4/5 |
+| M1 – Window model (headless) | ✅ | 5/5 |
 | M2 – Bars | ⬜ | 0/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
@@ -23,7 +23,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 |---|---|---|---|
 | R1 | Taskbar | M2 | ⬜ |
 | R2 | One bar per display | M2 | ⬜ |
-| R3 | Per-display tasks | M1 | ⬜ |
+| R3 | Per-display tasks | M1 | ✅ |
 | R4 | Real windows only | M1 | ✅ |
 | R5 | Equal width | M2 | ⬜ |
 | R6 | Replaces the Dock | M3 | ⬜ |
@@ -44,7 +44,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] App launch and terminate tracking (`NSWorkspace`)
 - [x] One `AXObserver` per app (created, destroyed, moved, resized, title, minimized, focused)
 - [x] Standard-window filtering (R4) and current-Space filtering (R8)
-- [ ] Display assignment by largest intersection (R3)
+- [x] Display assignment by largest intersection (R3)
 - [x] Checks (`swift run IonizedBarChecks`): coordinate conversion, display assignment, equal-width layout math
 
 ### M2 – Bars
@@ -99,3 +99,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M1 task 3 fix: a failed window read keeps the cached windows and retries about once a second, so a busy app no longer loses an update and a hung app costs at most one 0.25s timeout per retry. Only `noValue`, `attributeUnsupported` and `invalidUIElement` count as no windows. M1 stays at 3/5.
 - 2026-11-02 — M1 task 4: only `AXStandardWindow` windows are listed, and only those on the active Space (AX frame matched to the CG on-screen list by pid and bounds within 2pt). Minimized and hidden windows skip both checks, because AppKit reports them as `AXDialog` on macOS 27.2. Windows that just moved, and apps whose read failed, skip the Space check, since their frames can be stale. Real mouse drags and Space switches are still to check by hand. M1 at 4/5.
 - 2026-11-02 — M1 task 4 fix: the state exception now admits only `AXDialog`, through `isRealWindow` in `IonizedBarCore` with checks, so hiding an app no longer lists its desktop or system windows. Measured on TextEdit: no window reads as `AXDialog` once it is neither minimized nor hidden. M1 stays at 4/5.
+- 2026-11-02 — M1 task 5: `WindowModel` (main actor) flips each AX frame with the primary screen height, assigns it to a display by largest intersection and logs windows per display; windows with no intersection are logged as unassigned. A screen parameter change marks every app dirty. Checked by hand on 3 displays: every window got a display, and a TextEdit window moved across displays changed entry within about 1s. M1 done, 5/5; R3 done.
