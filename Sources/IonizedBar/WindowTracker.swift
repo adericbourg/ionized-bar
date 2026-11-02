@@ -49,6 +49,7 @@ final class WindowTracker: @unchecked Sendable {
     private var refreshDeadline: Date?
     private var retrying: Set<pid_t> = []
     private var retryTimer: Timer?
+    private var trailingPublish: Timer?
     private var hasLoggedApiDisabled = false
 
     init(onChange: @escaping @Sendable ([TrackedWindow]) -> Void) {
@@ -177,6 +178,10 @@ final class WindowTracker: @unchecked Sendable {
         read(pids)
         publish()
         moving = []
+        // Re-evaluates the Space check on what the first publish let through or filtered too early:
+        // the CG list lags behind AX after a move, a Space switch or a deminiaturize.
+        trailingPublish?.invalidate()
+        trailingPublish = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [self] _ in publish() }
     }
 
     private func retryReads() {
