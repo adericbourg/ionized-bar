@@ -128,6 +128,48 @@ do {
     check("clickAction_whenMinimizedAndActive_restores", clickAction(isActive: true, isMinimized: true) == .restore)
 }
 
+// appsToGroup
+do {
+    // Given apps in bar order: pid 1 has 2 windows, pid 2 has 4, pid 3 has 2, pid 4 has 1 (9 entries)
+    let counts: [(pid: Int32, count: Int)] = [(1, 2), (2, 4), (3, 2), (4, 1)]
+    func grouped(barWidth: CGFloat, mode: GroupingMode) -> Set<Int32> {
+        // When deciding, with a 100pt minimum entry width
+        appsToGroup(windowCounts: counts, barWidth: barWidth, mode: mode, minEntryWidth: 100)
+    }
+    // Then
+    check("appsToGroup_whenNever_groupsNothing", grouped(barWidth: 10, mode: .never).isEmpty)
+    check("appsToGroup_whenAlways_groupsEveryMultiWindowApp", grouped(barWidth: 10_000, mode: .always) == [1, 2, 3])
+    check("appsToGroup_whenFullAndEntriesFit_groupsNothing", grouped(barWidth: 900, mode: .whenFull).isEmpty)
+    // 899pt / 9 entries is too narrow; merging pid 2 leaves 6 entries, which fit.
+    check("appsToGroup_whenFull_groupsLargestAppFirstAndStops", grouped(barWidth: 899, mode: .whenFull) == [2])
+    // 599pt / 6 entries is still too narrow; pids 1 and 3 tie, and the later one merges.
+    check("appsToGroup_whenFullAndTied_groupsLaterApp", grouped(barWidth: 599, mode: .whenFull) == [2, 3])
+    check("appsToGroup_whenFullAndNothingFits_groupsAllCandidates", grouped(barWidth: 10, mode: .whenFull) == [1, 2, 3])
+    check("appsToGroup_ofSingleWindowApps_groupsNothing",
+          appsToGroup(windowCounts: [(1, 1), (2, 1)], barWidth: 10, mode: .always, minEntryWidth: 100).isEmpty)
+}
+
+// barItems
+do {
+    // Given windows (pid, name) whose apps interleave on the bar
+    let windows: [(pid: Int32, name: String)] = [(1, "a"), (2, "b"), (1, "c"), (3, "d")]
+    func items(mode: GroupingMode) -> [BarItem<(pid: Int32, name: String)>] {
+        // When building the bar's items
+        barItems(windows, pid: \.pid, barWidth: 1000, mode: mode, minEntryWidth: 100)
+    }
+    func describe(_ items: [BarItem<(pid: Int32, name: String)>]) -> [String] {
+        items.map { item in
+            switch item {
+            case .window(let window): window.name
+            case .group(let pid, let windows): "\(pid):" + windows.map(\.name).joined()
+            }
+        }
+    }
+    // Then a group sits where its app's first window was, and keeps its windows in bar order
+    check("barItems_whenAlways_groupsAtFirstWindowPosition", describe(items(mode: .always)) == ["1:ac", "b", "d"])
+    check("barItems_whenNever_keepsEveryWindow", describe(items(mode: .never)) == ["a", "b", "c", "d"])
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

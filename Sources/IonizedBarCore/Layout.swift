@@ -80,3 +80,56 @@ public func clickAction(isActive: Bool, isMinimized: Bool) -> EntryClickAction {
     if isMinimized { return .restore }
     return isActive ? .minimize : .raise
 }
+
+public enum GroupingMode: String, CaseIterable, Sendable {
+    case never, whenFull, always
+}
+
+public enum BarItem<Window> {
+    case window(Window)
+    case group(pid: Int32, windows: [Window])
+
+    public var windows: [Window] {
+        switch self {
+        case .window(let window): [window]
+        case .group(_, let windows): windows
+        }
+    }
+}
+
+public func appsToGroup(
+    windowCounts: [(pid: Int32, count: Int)], barWidth: CGFloat, mode: GroupingMode, minEntryWidth: CGFloat
+) -> Set<Int32> {
+    let candidates = windowCounts.enumerated().filter { $0.element.count > 1 }
+    switch mode {
+    case .never:
+        return []
+    case .always:
+        return Set(candidates.map(\.element.pid))
+    case .whenFull:
+        var entryCount = windowCounts.reduce(0) { $0 + $1.count }
+        var grouped: Set<Int32> = []
+        // Most windows first; on a tie the later app, so the apps at the start of the bar stay put.
+        for candidate in candidates.sorted(by: { ($0.element.count, $0.offset) > ($1.element.count, $1.offset) }) {
+            guard barWidth / CGFloat(entryCount) < minEntryWidth else { break }
+            grouped.insert(candidate.element.pid)
+            entryCount -= candidate.element.count - 1
+        }
+        return grouped
+    }
+}
+
+public func barItems<Window>(
+    _ windows: [Window], pid: (Window) -> Int32, barWidth: CGFloat, mode: GroupingMode, minEntryWidth: CGFloat
+) -> [BarItem<Window>] {
+    let windowsByPid = Dictionary(grouping: windows, by: pid)
+    var counted: Set<Int32> = []
+    let counts = windows.map(pid).filter { counted.insert($0).inserted }.map { (pid: $0, count: windowsByPid[$0]!.count) }
+    let grouped = appsToGroup(windowCounts: counts, barWidth: barWidth, mode: mode, minEntryWidth: minEntryWidth)
+    var placed: Set<Int32> = []
+    return windows.compactMap { window in
+        let windowPid = pid(window)
+        guard grouped.contains(windowPid) else { return .window(window) }
+        return placed.insert(windowPid).inserted ? .group(pid: windowPid, windows: windowsByPid[windowPid]!) : nil
+    }
+}
