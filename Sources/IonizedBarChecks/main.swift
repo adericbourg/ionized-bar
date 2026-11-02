@@ -204,6 +204,7 @@ do {
         var current: DockPrefs
         var saved: DockPrefs?
         var calls: [String] = []
+        var logs: [String] = []
         var isReadOK = true
         var isWriteOK = true
         var isRelaunchOK = true
@@ -229,7 +230,8 @@ do {
                     if self.isSaveOK { self.saved = prefs }
                     return self.isSaveOK
                 },
-                clearSaved: { self.calls.append("clear"); self.saved = nil }
+                clearSaved: { self.calls.append("clear"); self.saved = nil },
+                log: { self.logs.append($0) }
             )
         }
     }
@@ -242,12 +244,39 @@ do {
     check("hideDock_whenFirstRun_savesBeforeWriting", firstRun.calls == ["read", "save", "write", "relaunch"])
     check("hideDock_whenFirstRun_savesOriginals", firstRun.saved == user)
     check("hideDock_whenFirstRun_writesHiddenValues", firstRun.current == .hidden)
+    check("hideDock_whenFirstRun_logsNothing", firstRun.logs.isEmpty)
+
+    // Given a delay left by another taskbar or a lost saved state, When hiding, Then both keys count as absent, so restoring shows the Dock
+    for (name, delay) in [("HiddenValue", DockPrefs.hidden.autohideDelay!), ("Threshold", DockPrefs.leftoverDelayThreshold)] {
+        let leftover = FakeDock(current: DockPrefs(autohide: true, autohideDelay: delay))
+        check("hideDock_ofDelayAt\(name)_returnsTrue", hideDock(leftover.store))
+        check("hideDock_ofDelayAt\(name)_savesAbsent", leftover.saved == absent)
+        check("hideDock_ofDelayAt\(name)_logsOnce", leftover.logs.count == 1)
+        restoreDock(leftover.store)
+        check("restoreDock_ofDelayAt\(name)_leavesKeysAbsent", leftover.current == absent && leftover.saved == nil)
+    }
+
+    // Given a large delay a person could have set, When hiding, Then it is kept as an original
+    let largeDelay = DockPrefs(autohide: true, autohideDelay: 59.5)
+    let largeButReal = FakeDock(current: largeDelay)
+    _ = hideDock(largeButReal.store)
+    check("hideDock_ofDelayBelowThreshold_keepsIt", largeButReal.saved == largeDelay && largeButReal.logs.isEmpty)
+
+    // Given autohide on with no delay set, When hiding, Then it is a real preference and is kept
+    let autohideOnly = DockPrefs(autohide: true, autohideDelay: nil)
+    let noDelay = FakeDock(current: autohideOnly)
+    _ = hideDock(noDelay.store)
+    check("hideDock_ofAbsentDelay_keepsAutohide", noDelay.saved == autohideOnly)
 
     // Given originals left by a crash and a Dock still hidden, When hiding, Then they are kept and the Dock is hidden again
     let crashed = FakeDock(current: .hidden, saved: user)
     check("hideDock_whenCrashed_returnsTrue", hideDock(crashed.store))
     check("hideDock_whenCrashed_keepsOriginals", crashed.saved == user && !crashed.calls.contains("save"))
     check("hideDock_whenCrashed_hidesAsNormal", crashed.calls == ["write", "relaunch"] && crashed.current == .hidden)
+    let crashedWithHugeSaved = DockPrefs(autohide: true, autohideDelay: 1000)
+    let oldState = FakeDock(current: .hidden, saved: crashedWithHugeSaved)
+    _ = hideDock(oldState.store)
+    check("hideDock_whenCrashed_leavesSavedStateAsIs", oldState.saved == crashedWithHugeSaved && oldState.logs.isEmpty)
 
     // Given absent keys, When a run crashes and the next one quits, Then saved "both absent" still counts and they end up absent
     let absentKeys = FakeDock(current: absent)

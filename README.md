@@ -21,7 +21,7 @@ Your original values are saved in the app's own prefs first, and a key that wasn
 
 `kill -9` or a crash can't restore anything, so the Dock stays hidden until the next launch. That launch treats the saved values as the truth and keeps them: it hides the Dock again and the next quit restores them. Without the permission, it restores them right away.
 
-Quit any other app that hides the Dock (boringBar, uBar) before the first launch, or its values are the ones saved and restored.
+An `autohide-delay` of 60 seconds or more is not taken for a preference: it means another taskbar or a lost saved state left the Dock hidden. In that case both keys are saved as not set, so quitting IonizedBar leaves the Dock visible. Running alongside another taskbar (boringBar, uBar) still fights over the Dock, and quitting IonizedBar shows it even if that other taskbar is still running.
 
 To get the Dock back by hand, for example after a crash followed by uninstalling the app:
 

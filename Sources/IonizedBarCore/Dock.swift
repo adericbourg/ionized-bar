@@ -12,6 +12,9 @@ public struct DockPrefs: Equatable, Sendable {
 
     public static let hidden = DockPrefs(autohide: true, autohideDelay: 1000)
 
+    /// Nobody picks a delay this long, so it was left by another taskbar or by a lost saved state. Well below `hidden`, well above a real preference.
+    public static let leftoverDelayThreshold: Double = 60
+
     public static let autohideKey = "autohide"
     public static let autohideDelayKey = "autohide-delay"
 
@@ -40,22 +43,31 @@ public struct DockStore {
     public var loadSaved: () -> DockPrefs?
     public var save: (DockPrefs) -> Bool
     public var clearSaved: () -> Void
+    public var log: (String) -> Void
 
     public init(read: @escaping () -> DockPrefs?, write: @escaping (DockPrefs) -> Bool, relaunchDock: @escaping () -> Bool,
-                loadSaved: @escaping () -> DockPrefs?, save: @escaping (DockPrefs) -> Bool, clearSaved: @escaping () -> Void) {
+                loadSaved: @escaping () -> DockPrefs?, save: @escaping (DockPrefs) -> Bool, clearSaved: @escaping () -> Void,
+                log: @escaping (String) -> Void) {
         self.read = read
         self.write = write
         self.relaunchDock = relaunchDock
         self.loadSaved = loadSaved
         self.save = save
         self.clearSaved = clearSaved
+        self.log = log
     }
 }
 
 public func hideDock(_ store: DockStore) -> Bool {
     // Saved originals here mean the last run crashed: the Dock still has the hidden values, so reading it again would lose the real ones.
     if store.loadSaved() == nil {
-        guard let originals = store.read(), store.save(originals) else { return false }
+        guard var originals = store.read() else { return false }
+        if let delay = originals.autohideDelay, delay >= DockPrefs.leftoverDelayThreshold {
+            // Saving these would make the restore keep the Dock hidden for good.
+            store.log("Dock autohide-delay of \(delay)s is a leftover, not a preference; the Dock will be left visible on quit")
+            originals = DockPrefs(autohide: nil, autohideDelay: nil)
+        }
+        guard store.save(originals) else { return false }
     }
     guard store.write(.hidden) else { return false }
     return store.relaunchDock()

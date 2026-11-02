@@ -67,7 +67,8 @@ func defaultsDockStore(domain: String, savedIn appDefaults: UserDefaults, relaun
         clearSaved: {
             appDefaults.removeObject(forKey: savedDockKey)
             appDefaults.synchronize()
-        }
+        },
+        log: log
     )
 }
 
