@@ -17,7 +17,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
 | M6 – Window preview | ⬜ | 0/6 |
-| M7 – Settings | 🚧 | 5/6 |
+| M7 – Settings | ✅ | 6/6 |
 
 ## Requirements
 
@@ -101,7 +101,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Task display modes: Icon only, App name, Content
 - [x] Group entries and their window list
 - [x] Settings window, and "Settings…" on entries and the empty bar
-- [ ] Manual pass
+- [x] Manual pass
 
 ## Known issues (tracked)
 
@@ -152,3 +152,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M7 task 4: the bar groups windows through `barItems`, and regroups when its width changes. A group shows the icon, app name and count (icon and count when icon-only); a click opens a native menu listing its windows, middle-click does nothing, and right-click offers Close All Windows and Quit. Entries are now VoiceOver buttons with a label for the window or group. Build and checks pass. An offscreen render showed grouping in every mode, including When full merging the largest apps first and stopping, and printed menus and labels were right. The app was not launched, so the menu's position above the entry, picking a window and VoiceOver are unverified until the manual pass. M7 at 4/6.
 - 2026-11-02 — M7 task 5: `SettingsWindow` (AppKit, two labelled pop-ups) opens with "Settings…" from an entry's or the empty bar's right-click menu; changes apply at once and are saved. Build and checks pass. The app was not launched, so the window itself, activation and Cmd-W are unverified until the manual pass. M7 at 5/6.
 - 2026-11-02 — M7 task 5 check: the real `SettingsWindow`, driven from a scratch harness, shows the saved selection, reports each change through `onChange`, closes on Cmd-W but not on a plain W, and reopens. Its layout frames are centered and unambiguous. An offscreen capture came out blank, so its look, activation and real pop-up use are still unverified until the manual pass. M7 stays at 5/6.
+- 2026-11-02 — M7 manual pass: the user reported "all good", with no per-item results recorded. M7 done, 6/6.
