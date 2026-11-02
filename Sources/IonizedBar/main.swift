@@ -7,6 +7,9 @@ if !AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary) {
     log("Accessibility permission required; waiting for it to be granted")
 }
 
+let barManager = BarManager()
+barManager.sync()
+
 let windowTracker = WindowTracker { windows in
     Task { @MainActor in WindowModel.update(windows) }
 }
@@ -45,6 +48,7 @@ let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
 _ = timer
 
 NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { _ in
+    MainActor.assumeIsolated { barManager.sync() }
     windowTracker.markAllDirty()
 }
 

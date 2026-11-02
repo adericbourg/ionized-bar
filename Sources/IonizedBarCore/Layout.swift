@@ -67,3 +67,7 @@ public func isOnCurrentSpace(pid: Int32, frame: CGRect, isMinimized: Bool, isApp
             && abs(window.bounds.maxY - frame.maxY) <= 2
     }
 }
+
+public func barFrame(screenFrame: CGRect, height: CGFloat = 36) -> CGRect {
+    CGRect(x: screenFrame.minX, y: screenFrame.minY, width: screenFrame.width, height: height)
+}

@@ -107,6 +107,17 @@ do {
           isListed(onScreen: [OnScreenWindow(pid: 1, bounds: .zero), OnScreenWindow(pid: 1, bounds: frame)]))
 }
 
+// barFrame
+do {
+    // Given a screen with a non-zero origin (secondary display above-left of the primary)
+    let screen = CGRect(x: -800, y: 1000, width: 800, height: 600)
+    // When computing the bar frame, Then it is full width, 36pt high and flush with the screen bottom
+    check("barFrame_ofOffsetScreen_isFullWidthAtBottom",
+          barFrame(screenFrame: screen) == CGRect(x: -800, y: 1000, width: 800, height: 36))
+    check("barFrame_ofCustomHeight_usesIt",
+          barFrame(screenFrame: screen, height: 20).height == 20)
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

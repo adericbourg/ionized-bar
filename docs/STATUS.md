@@ -12,7 +12,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ✅ | 5/5 |
-| M2 – Bars | ⬜ | 0/6 |
+| M2 – Bars | 🚧 | 1/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
@@ -22,7 +22,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | # | Requirement | Milestone | Status |
 |---|---|---|---|
 | R1 | Taskbar | M2 | ⬜ |
-| R2 | One bar per display | M2 | ⬜ |
+| R2 | One bar per display | M2 | 🚧 |
 | R3 | Per-display tasks | M1 | ✅ |
 | R4 | Real windows only | M1 | ✅ |
 | R5 | Equal width | M2 | ⬜ |
@@ -61,7 +61,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] First CI run of the checks step (fall back to macOS 27.0 per PRODUCT.md if it cannot load)
 
 ### M2 – Bars
-- [ ] One non-activating `NSPanel` per screen, following screen add, remove and resize (R2)
+- [x] One non-activating `NSPanel` per screen, following screen add, remove and resize (R2)
 - [ ] Entry view: icon, title, active, minimized and hover states (R1)
 - [ ] Equal-width layout with icon-only fallback (R5)
 - [ ] Interactions: click, click on active, middle-click, context menu
@@ -120,3 +120,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M1 manual pass: the user ran the checklist and reported "seems ok", with no per-item results recorded. R8 is ✅. M1 stays 🚧 until the checks step has a first CI run, which needs a push. The R8 limits under Known issues are still pending the user's decision.
 - 2026-11-02 — The user accepted the three R8 limits for v1. Recorded the lost-app case under Known issues.
 - 2026-11-02 — CI is green with the checks step on `main` (result reported by the user), so the macOS 27.0 fallback is not needed. M1 done, 5/5.
+- 2026-11-02 — M2 task 1: `BarManager` keeps one non-activating `NSPanel` (`BarPanel`, 36pt, `.statusBar`, frosted `NSVisualEffectView` with a one-pixel hairline) per `NSScreen`, synced at launch and on screen parameter changes; `barFrame` in `IonizedBarCore` has checks (non-zero origin). Build, checks and bundle pass; the app was not launched, so the panels, their placement and the screen add, remove and resize behaviour are unverified until the M2 manual pass. M2 at 1/6; R2 🚧.

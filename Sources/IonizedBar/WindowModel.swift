@@ -8,8 +8,8 @@ enum WindowModel {
         let screens = NSScreen.screens
         guard let primary = screens.first else { return }
         let displays = screens.compactMap { screen -> Display? in
-            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return nil }
-            return Display(id: number.uint32Value, frame: screen.frame)
+            guard let id = screen.displayID else { return nil }
+            return Display(id: id, frame: screen.frame)
         }
         var byDisplay: [UInt32: [TrackedWindow]] = [:]
         var unassigned: [TrackedWindow] = []
@@ -35,5 +35,11 @@ enum WindowModel {
 
     private static func logWindow(_ window: TrackedWindow) {
         log("    \(window.appName) \"\(window.title)\" minimized=\(window.isMinimized) focused=\(window.isFocused)")
+    }
+}
+
+extension NSScreen {
+    var displayID: UInt32? {
+        (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }
 }
