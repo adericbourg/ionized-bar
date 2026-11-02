@@ -1,0 +1,76 @@
+# ionized-bar — Product brief
+
+## Context
+uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macOS. It should list one entry per open window, have one bar per display that shows only that display's windows, use equal-width entries, and take the Dock's place. The repo is empty (`main`, no commits). License: **GPLv3**. Target: **macOS 27.2+ only**. Distribution: **Homebrew cask** in `github.com/adericbourg/homebrew-tap`.
+
+
+## Product vision
+> A taskbar that shows the windows you have open, on the screen where they are. Nothing more.
+
+## MVP scope (must-have)
+| # | Requirement | Acceptance criteria |
+|---|---|---|
+| 1 | Taskbar | Horizontal bar at the bottom of the screen. Each entry shows the app icon and the window title. The active window is highlighted. |
+| 2 | One bar per display | Connecting or disconnecting a display adds or removes its bar within about 1s. The bar follows changes to resolution and arrangement. |
+| 3 | Per-display tasks | A window shows on the bar of the display that holds most of its area. Moving a window to another screen moves its entry within about 1s. |
+| 4 | Real windows only | No pinned launchers and no windowless apps (for example, Finder with no windows shows nothing). Minimized windows **are** shown, dimmed, as in KDE. Panels, sheets and utility windows are excluded (`AXStandardWindow` only). |
+| 5 | Equal width | All entries share the bar's width equally, up to a max width. Titles get truncated. Below a minimum width only the icon shows (no wrapping). |
+| 6 | Replaces the Dock | On launch, the app saves your Dock prefs, then sets `autohide=true` and a very large `autohide-delay`. On a normal quit or crash, it restores them. |
+| 7 | Launch at login | `SMAppService.mainApp` toggle, on by default after onboarding. |
+| 8 | Current Space only | Only windows on the active Space are listed. The list updates when you switch Spaces. |
+| 9 | Push windows away | Any window that overlaps the bar gets resized or moved by AX so it stays above the bar. Maximize and zoom must not cover the bar. |
+
+**Interactions (KDE parity, MVP):** clicking an entry raises and focuses that window. Clicking the active entry minimizes it. Clicking a minimized entry restores it. Middle-click closes the window. Right-click opens a menu: Close, Minimize, Quit app.
+
+**Accessibility (app UI):** every entry is a VoiceOver element with the window title, the app name and its state (active or minimized). The bar can be reached from the keyboard. This follows the spirit of WCAG 2.2 AA (contrast, focus visible).
+
+## Look & feel
+- **Material:** frosted glass, using `NSVisualEffectView` with `blendingMode = .behindWindow`, `state = .active` and the `.hudWindow` material (or `.menu`, to be picked by eye). It follows the system light or dark appearance.
+  - Alternative: the native Liquid Glass (`NSGlassEffectView`, macOS 26+). It looks clearer and more refractive than frosted. Prototype both in M2 and keep one.
+- **Bar:** 36pt high with no rounded corners, flush with the bottom edge of each display. A 1px hairline separates it from the content above.
+- **Entry:** 16pt icon plus the window title in the system font (13pt), padded 8pt, with a 4pt corner radius on hover and active states.
+  - **Active:** tinted background in the system accent color.
+  - **Hover:** subtle highlight.
+  - **Minimized:** title and icon shown at about 50% opacity, title in italics.
+  - **Icon-only mode:** the icon is centered and the title moves to a tooltip.
+- **Max entry width:** about 220pt, so a few windows don't stretch across the whole screen. The shrink threshold below which only the icon shows is about 48pt.
+- **Accessibility:** honor *Reduce Transparency* (switch to an opaque background; `NSVisualEffectView` does this for you) and *Increase Contrast*. Text over the glass must keep a contrast ratio of at least 4.5:1 (WCAG AA), so it uses label colors that adapt to vibrancy, never hard-coded grey.
+- **Motion:** entries animate in, out and when resized in under 150ms. Animations are off when *Reduce Motion* is on.
+
+## Non-goals (v1)
+Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, window thumbnails on hover, drag to reorder, windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version.
+
+## Technical direction
+- **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. Xcode project with SwiftPM. Not sandboxed (the AX APIs require it).
+- **Bar window:** borderless, non-activating `NSPanel`, one per `NSScreen`, placed at `.statusBar` level. It joins all Spaces (`canJoinAllSpaces`, `stationary`) and does not show in Cmd-Tab (`LSUIElement`).
+- **Window model:** `NSWorkspace` app launch and terminate notifications, plus one `AXObserver` per app for created, destroyed, moved, resized, title changed, minimized and focused. `CGWindowListCopyWindowInfo` is used only to cross-check what's on screen. No Screen Recording permission: titles come from AX.
+- **Display assignment:** the largest intersection between the window frame and `NSScreen.frame` (after converting AX top-left coordinates to Cocoa bottom-left).
+- **Push windows away:** when a window moves or resizes and its frame overlaps the bar's strip, set `kAXSize` and `kAXPosition` so it fits the screen's frame minus the bar.
+- **Dock handling:** `defaults` domain `com.apple.dock`, then `killall Dock` to apply. The original values are saved in the app's own prefs so a crash can be recovered on the next launch.
+- **Permissions onboarding:** check `AXIsProcessTrusted()`. If it's false, show a single-window guide and poll until the grant is given.
+
+## Risks
+| Risk | Impact | Mitigation |
+|---|---|---|
+| The Dock can't truly be removed (it hosts Cmd-Tab, Mission Control, Spaces) | The Dock can still be glimpsed at the edge | Autohide plus a huge delay is the industry-standard hack. Document it. |
+| Unsigned cask: Gatekeeper quarantine, and the AX grant resets on every rebuild or upgrade | Bad experience on every update | Accepted for v1, see *Known issues*. Until fixed, document `xattr -d com.apple.quarantine` and re-granting Accessibility |
+| Push-away fights apps that enforce a minimum size or reposition themselves (Electron apps, games, fullscreen) | Windows jitter, or the bar gets covered | Debounce. Skip fullscreen windows. Keep a per-app opt-out list (post-MVP) |
+| AX latency or hangs with unresponsive apps | Bar freezes | Run AX calls off the main thread with `AXUIElementSetMessagingTimeout` |
+| macOS 27 changes behavior | Breakage | Use public APIs only. Pinning one OS version keeps the test surface small |
+
+## Milestones
+1. **M0 – Bootstrap:** `LICENSE` (GPLv3), README, `docs/PRODUCT.md`, an empty Xcode project, CI build with `xcodebuild` on GitHub Actions.
+2. **M1 – Window model (headless):** AX observers plus display assignment, with the output logged. Unit tests for display assignment, coordinate conversion and the equal-width layout math.
+3. **M2 – Bars:** one panel per screen, entries, click interactions.
+4. **M3 – Dock replacement and launch at login:** save and restore the Dock, `SMAppService`, onboarding.
+5. **M4 – Push windows away.**
+6. **M5 – Release:** archive, zip, and a cask in `adericbourg/homebrew-tap`.
+
+## Verification (per milestone, once implemented)
+- Unit tests (`xcodebuild test`) for the pure logic: screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation.
+- Manual checklist on 2 displays: open, close, move and minimize windows, then check each bar. Plug and unplug a display. Switch Spaces. Quit the app and check the Dock comes back. Kill it with `kill -9`, relaunch, and check the Dock comes back. Log out and in to check launch at login. Maximize a window to check it doesn't cover the bar.
+- `brew install --cask adericbourg/tap/ionized-bar` on a clean user account.
+
+## Known issues (to fix later)
+- **The Accessibility grant is lost on every `brew upgrade`.** TCC ties the grant to the code signature, and an ad-hoc or unsigned build gets a new identity on each release. Accepted for v1. Candidate fixes to evaluate later: a Developer ID with a stable Team ID and notarization, or a stable self-signed certificate used for every release.
+- **Gatekeeper quarantine on install.** Same root cause, same fix. Until then, the cask `caveats` and the README document the workaround.
