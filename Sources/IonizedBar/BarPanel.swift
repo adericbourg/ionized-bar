@@ -41,8 +41,15 @@ final class BarPanel: NSPanel {
         content.update(with: windows, settings: settings)
     }
 
+    // Losing key does not resign first responder, so the focus outline would stay drawn.
+    override func resignKey() {
+        super.resignKey()
+        makeFirstResponder(nil)
+    }
+
     func beginKeyboardMode() {
-        guard let entry = content.initialFocusEntry else { return }
+        // False on a fullscreen Space, where the bar is not shown.
+        guard isOnActiveSpace, let entry = content.initialFocusEntry else { return }
         makeKey()
         makeFirstResponder(entry)
     }

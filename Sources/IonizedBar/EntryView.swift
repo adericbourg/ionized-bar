@@ -110,6 +110,13 @@ final class EntryView: NSView {
         guard isActive || isHovered else { return }
         (isActive ? NSColor.controlAccentColor : NSColor.labelColor.withAlphaComponent(0.1)).setFill()
         NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4).fill()
+        // The system focus ring is accent-derived, so it does not show on the accent fill.
+        if isActive && window?.isKeyWindow == true && window?.firstResponder === self {
+            NSColor.alternateSelectedControlTextColor.setStroke()
+            let outline = focusRingPath
+            outline.lineWidth = 2
+            outline.stroke()
+        }
     }
 
     override func mouseEntered(with event: NSEvent) { isHovered = true }
@@ -144,24 +151,33 @@ final class EntryView: NSView {
     override var needsPanelToBecomeKey: Bool { false }
 
     // Inset: entries fill the bar, so a ring around the bounds would be clipped by the panel's edges.
-    override func drawFocusRingMask() {
-        NSBezierPath(roundedRect: bounds.insetBy(dx: Self.focusRingInset, dy: Self.focusRingInset), xRadius: 4, yRadius: 4).fill()
+    private var focusRingPath: NSBezierPath {
+        NSBezierPath(roundedRect: bounds.insetBy(dx: Self.focusRingInset, dy: Self.focusRingInset), xRadius: 4, yRadius: 4)
     }
+
+    override func drawFocusRingMask() { focusRingPath.fill() }
 
     override var focusRingMaskBounds: NSRect { bounds }
 
+    override func becomeFirstResponder() -> Bool {
+        needsDisplay = true
+        return super.becomeFirstResponder()
+    }
+
+    override func resignFirstResponder() -> Bool {
+        needsDisplay = true
+        return super.resignFirstResponder()
+    }
+
     override func keyDown(with event: NSEvent) {
         let content = superview as? BarContentView
-        let panel = window as? BarPanel
         switch Int(event.keyCode) {
         case kVK_Tab: content?.moveFocus(from: self, by: event.modifierFlags.contains(.shift) ? -1 : 1)
         case kVK_LeftArrow: content?.moveFocus(from: self, by: -1)
         case kVK_RightArrow: content?.moveFocus(from: self, by: 1)
-        case kVK_Return, kVK_Space:
-            performClickAction()
-            panel?.endKeyboardMode()
+        case kVK_Return, kVK_Space: performClickAction()
         case kVK_F10 where event.modifierFlags.contains(.shift): showContextMenu()
-        case kVK_Escape: panel?.endKeyboardMode()
+        case kVK_Escape: (window as? BarPanel)?.endKeyboardMode()
         default: super.keyDown(with: event)
         }
     }
@@ -195,6 +211,7 @@ final class EntryView: NSView {
         case .group(_, let windows):
             popUpAbove(windowList(windows))
         }
+        (window as? BarPanel)?.endKeyboardMode()
     }
 
     func windowList(_ windows: [TrackedWindow]) -> NSMenu {

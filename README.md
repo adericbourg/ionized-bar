@@ -7,7 +7,7 @@ A KDE Plasma–style taskbar for macOS that replaces the Dock.
 - Hides the Dock while running and restores it on quit
 - Starts at login
 
-> Status: the bars exist, with one entry per window. The Dock is not hidden yet and there is nothing to install. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
+> Status: the bars exist. The Dock is not hidden yet and there is nothing to install. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
 
 ## Requirements
 
@@ -33,8 +33,6 @@ Command Line Tools are enough, Xcode is not needed.
 ./scripts/bundle.sh
 open --stderr "$(tty)" build/IonizedBar.app
 ```
-
-Material comparison: add `--env IONIZED_BAR_MATERIAL=liquid` to the `open` command for Liquid Glass; frosted is the default.
 
 Checks: `swift run IonizedBarChecks` runs the pure-logic checks (no XCTest on Command Line Tools) and exits non-zero on failure.
 
