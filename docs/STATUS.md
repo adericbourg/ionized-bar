@@ -11,7 +11,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | Milestone | Status | Progress |
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
-| M1 – Window model (headless) | 🚧 | 5/5, first CI run pending |
+| M1 – Window model (headless) | ✅ | 5/5 |
 | M2 – Bars | ⬜ | 0/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
@@ -58,7 +58,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Chromium or Electron subrole while minimized and hidden
 - [x] An app whose AX frame might differ from CG bounds (Electron, Qt or Java)
 - [x] Window moved between Spaces in Mission Control
-- [ ] First CI run of the checks step (fall back to macOS 27.0 per PRODUCT.md if it cannot load)
+- [x] First CI run of the checks step (fall back to macOS 27.0 per PRODUCT.md if it cannot load)
 
 ### M2 – Bars
 - [ ] One non-activating `NSPanel` per screen, following screen add, remove and resize (R2)
@@ -119,3 +119,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M1 final review docs: M1 and R8 go back to 🚧 until the M1 manual pass checklist is done, and the R8 limits are open pending the user's decision. README status and `open --stderr` command, and the KVO note in PRODUCT.md, are corrected.
 - 2026-11-02 — M1 manual pass: the user ran the checklist and reported "seems ok", with no per-item results recorded. R8 is ✅. M1 stays 🚧 until the checks step has a first CI run, which needs a push. The R8 limits under Known issues are still pending the user's decision.
 - 2026-11-02 — The user accepted the three R8 limits for v1. Recorded the lost-app case under Known issues.
+- 2026-11-02 — CI is green with the checks step on `main` (result reported by the user), so the macOS 27.0 fallback is not needed. M1 done, 5/5.
