@@ -10,7 +10,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 | Milestone | Status | Progress |
 |---|---|---|
-| M0 – Bootstrap | 🚧 | 3/5 |
+| M0 – Bootstrap | 🚧 | 4/5 |
 | M1 – Window model (headless) | ⬜ | 0/5 |
 | M2 – Bars | ⬜ | 0/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
@@ -37,8 +37,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] `LICENSE` (GPLv3)
 - [x] `README.md`
 - [x] `docs/PRODUCT.md`
-- [ ] Empty Xcode project (Swift 6, AppKit, `LSUIElement`, not sandboxed)
-- [ ] CI build (`xcodebuild` on GitHub Actions)
+- [x] Empty SwiftPM app (Swift 6, AppKit, `LSUIElement`, not sandboxed)
+- [ ] CI build (GitHub Actions)
 
 ### M1 – Window model (headless)
 - [ ] App launch and terminate tracking (`NSWorkspace`)
@@ -82,3 +82,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 - 2026-11-02 — Product framing done, license, README and product brief committed.
 - 2026-11-02 — Added this status document and the project `CLAUDE.md` rule to keep it updated after every task.
+- 2026-11-02 — Empty SwiftPM app (`Package.swift`, `Info.plist`, `scripts/bundle.sh`) builds into a signed `.app` that runs as an agent app. M0 at 4/5.

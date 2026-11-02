@@ -41,7 +41,7 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, window thumbnails on hover, drag to reorder, windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version.
 
 ## Technical direction
-- **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. Xcode project with SwiftPM. Not sandboxed (the AX APIs require it).
+- **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
 - **Bar window:** borderless, non-activating `NSPanel`, one per `NSScreen`, placed at `.statusBar` level. It joins all Spaces (`canJoinAllSpaces`, `stationary`) and does not show in Cmd-Tab (`LSUIElement`).
 - **Window model:** `NSWorkspace` app launch and terminate notifications, plus one `AXObserver` per app for created, destroyed, moved, resized, title changed, minimized and focused. `CGWindowListCopyWindowInfo` is used only to cross-check what's on screen. No Screen Recording permission: titles come from AX.
 - **Display assignment:** the largest intersection between the window frame and `NSScreen.frame` (after converting AX top-left coordinates to Cocoa bottom-left).
@@ -59,7 +59,7 @@ Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, wi
 | macOS 27 changes behavior | Breakage | Use public APIs only. Pinning one OS version keeps the test surface small |
 
 ## Milestones
-1. **M0 – Bootstrap:** `LICENSE` (GPLv3), README, `docs/PRODUCT.md`, an empty Xcode project, CI build with `xcodebuild` on GitHub Actions.
+1. **M0 – Bootstrap:** `LICENSE` (GPLv3), README, `docs/PRODUCT.md`, an empty SwiftPM app, CI build on GitHub Actions.
 2. **M1 – Window model (headless):** AX observers plus display assignment, with the output logged. Unit tests for display assignment, coordinate conversion and the equal-width layout math.
 3. **M2 – Bars:** one panel per screen, entries, click interactions.
 4. **M3 – Dock replacement and launch at login:** save and restore the Dock, `SMAppService`, onboarding.
@@ -67,7 +67,7 @@ Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, wi
 6. **M5 – Release:** archive, zip, and a cask in `adericbourg/homebrew-tap`.
 
 ## Verification (per milestone, once implemented)
-- Unit tests (`xcodebuild test`) for the pure logic: screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation.
+- Unit tests (`swift test`) for the pure logic: screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation.
 - Manual checklist on 2 displays: open, close, move and minimize windows, then check each bar. Plug and unplug a display. Switch Spaces. Quit the app and check the Dock comes back. Kill it with `kill -9`, relaunch, and check the Dock comes back. Log out and in to check launch at login. Maximize a window to check it doesn't cover the bar.
 - `brew install --cask adericbourg/tap/ionized-bar` on a clean user account.
 

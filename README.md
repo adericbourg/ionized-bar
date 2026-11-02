@@ -21,6 +21,15 @@ brew install --cask adericbourg/tap/ionized-bar
 
 Known issue: releases are not signed yet, so you have to grant the Accessibility permission again after each upgrade. See [Known issues](docs/PRODUCT.md#known-issues-to-fix-later).
 
+## Build
+
+Command Line Tools are enough, Xcode is not needed.
+
+```sh
+./scripts/bundle.sh
+open build/IonizedBar.app
+```
+
 ## License
 
 [GPLv3](LICENSE)
