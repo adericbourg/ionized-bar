@@ -11,7 +11,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | Milestone | Status | Progress |
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
-| M1 – Window model (headless) | 🚧 | 1/5 |
+| M1 – Window model (headless) | 🚧 | 2/5 |
 | M2 – Bars | ⬜ | 0/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
@@ -41,7 +41,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] CI build (GitHub Actions)
 
 ### M1 – Window model (headless)
-- [ ] App launch and terminate tracking (`NSWorkspace`)
+- [x] App launch and terminate tracking (`NSWorkspace`)
 - [ ] One `AXObserver` per app (created, destroyed, moved, resized, title, minimized, focused)
 - [ ] Standard-window filtering (R4) and current-Space filtering (R8)
 - [ ] Display assignment by largest intersection (R3)
@@ -88,3 +88,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — CI build is green on `main` with Xcode 27.2 (result reported by the user). M0 done, 5/5.
 - 2026-11-02 — Testing approach decided: a `swift run` check executable, because Command Line Tools have no working test framework. Minimum drops to macOS 27.0 only if CI needs it.
 - 2026-11-02 — M1 task 1: added `IonizedBarCore` (`flipRect`, `assignDisplay`, `entryWidth`) and the `IonizedBarChecks` executable, run in CI. M1 at 1/5.
+- 2026-11-02 — M1 task 2: `AppTracker` (KVO on `runningApplications`) logs launch/terminate to stderr; `main.swift` prompts for Accessibility once and polls until trusted. M1 at 2/5.
