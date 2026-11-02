@@ -11,7 +11,7 @@ let barManager = BarManager()
 barManager.sync()
 
 let windowTracker = WindowTracker { windows in
-    Task { @MainActor in WindowModel.update(windows) }
+    Task { @MainActor in WindowModel.update(windows, barManager: barManager) }
 }
 
 let tracker = AppTracker(

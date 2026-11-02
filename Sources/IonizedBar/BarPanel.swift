@@ -1,6 +1,8 @@
 import AppKit
 
 final class BarPanel: NSPanel {
+    private let content = BarContentView()
+
     init(frame: CGRect) {
         super.init(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         level = .statusBar
@@ -12,18 +14,25 @@ final class BarPanel: NSPanel {
         isMovable = false
         becomesKeyOnlyIfNeeded = true
         isReleasedWhenClosed = false
-        contentView = BarBackground()
+        contentView = BarBackground(content: content)
+    }
+
+    func update(with windows: [TrackedWindow]) {
+        content.update(with: windows)
     }
 }
 
 private final class BarBackground: NSVisualEffectView {
+    private let content: NSView
     private let hairline = HairlineView()
 
-    init() {
+    init(content: NSView) {
+        self.content = content
         super.init(frame: .zero)
         blendingMode = .behindWindow
         state = .active
         material = .hudWindow
+        addSubview(content)
         addSubview(hairline)
     }
 
@@ -34,6 +43,7 @@ private final class BarBackground: NSVisualEffectView {
         super.layout()
         let thickness = 1 / (window?.backingScaleFactor ?? 1)
         hairline.frame = CGRect(x: 0, y: bounds.height - thickness, width: bounds.width, height: thickness)
+        content.frame = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height - thickness)
     }
 
     // One device pixel changes with the backing scale (e.g. moving between displays).

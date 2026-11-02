@@ -12,7 +12,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ✅ | 5/5 |
-| M2 – Bars | 🚧 | 1/6 |
+| M2 – Bars | 🚧 | 2/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
@@ -21,11 +21,11 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 | # | Requirement | Milestone | Status |
 |---|---|---|---|
-| R1 | Taskbar | M2 | ⬜ |
+| R1 | Taskbar | M2 | 🚧 |
 | R2 | One bar per display | M2 | 🚧 |
 | R3 | Per-display tasks | M1 | ✅ |
 | R4 | Real windows only | M1 | ✅ |
-| R5 | Equal width | M2 | ⬜ |
+| R5 | Equal width | M2 | 🚧 |
 | R6 | Replaces the Dock | M3 | ⬜ |
 | R7 | Launch at login | M3 | ⬜ |
 | R8 | Current Space only | M1 | ✅ |
@@ -62,7 +62,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 ### M2 – Bars
 - [x] One non-activating `NSPanel` per screen, following screen add, remove and resize (R2)
-- [ ] Entry view: icon, title, active, minimized and hover states (R1)
+- [x] Entry view: icon, title, active, minimized and hover states (R1)
 - [ ] Equal-width layout with icon-only fallback (R5)
 - [ ] Interactions: click, click on active, middle-click, context menu
 - [ ] Frosted glass vs Liquid Glass prototype, pick one
@@ -121,3 +121,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — The user accepted the three R8 limits for v1. Recorded the lost-app case under Known issues.
 - 2026-11-02 — CI is green with the checks step on `main` (result reported by the user), so the macOS 27.0 fallback is not needed. M1 done, 5/5.
 - 2026-11-02 — M2 task 1: `BarManager` keeps one non-activating `NSPanel` (`BarPanel`, 36pt, `.statusBar`, frosted `NSVisualEffectView` with a one-pixel hairline) per `NSScreen`, synced at launch and on screen parameter changes; `barFrame` in `IonizedBarCore` has checks (non-zero origin). Build, checks and bundle pass; the app was not launched, so the panels, their placement and the screen add, remove and resize behaviour are unverified until the M2 manual pass. M2 at 1/6; R2 🚧.
+- 2026-11-02 — M2 task 2: `EntryView` (icon, title, active, hover and minimized states) and `BarContentView` (entries keyed by AX element and reused, laid out with `entryWidth` on backing-aligned frames) now show each display's windows in its panel. `TrackedWindow` carries its element and a stable `order`, assigned at first read and kept across re-reads, so focus changes do not move entries and a new window goes last. Build, checks and bundle pass. An offscreen scratch render of the views, in light and dark, showed the states and the hairline, and confirmed reuse, removal, order and aligned frames. The app was not launched, so live windows, stable order with real AX data, real hover and appearance switching are unverified until the M2 manual pass. M2 at 2/6; R1 and R5 🚧.

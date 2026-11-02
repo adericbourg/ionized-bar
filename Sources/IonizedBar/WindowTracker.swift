@@ -3,6 +3,9 @@ import AppKit
 import IonizedBarCore
 
 struct TrackedWindow: Sendable {
+    let element: AXUIElement
+    /// Assigned at first read and kept: AX lists windows front to back, which changes with focus.
+    let order: Int
     let pid: pid_t
     let appName: String
     let title: String
@@ -24,7 +27,6 @@ final class WindowTracker: @unchecked Sendable {
     }
 
     private struct CachedWindow {
-        let element: AXUIElement
         let window: TrackedWindow
         /// Tested at publish, not at read: it depends on the hidden state, and hiding fires no read.
         let subrole: String?
@@ -41,6 +43,7 @@ final class WindowTracker: @unchecked Sendable {
     private let onChange: @Sendable ([TrackedWindow]) -> Void
     private var runLoop: CFRunLoop!
     private var apps: [pid_t: App] = [:]
+    private var nextOrder = 0
     private var dirty: Set<pid_t> = []
     /// Moved or resized since the last refresh: the AX frame and the CG bounds may disagree for now.
     private var moving: Set<AXUIElement> = []
@@ -118,7 +121,7 @@ final class WindowTracker: @unchecked Sendable {
         // On a window element this notification never fires (macOS 27.2). On the app element it
         // fires for every destroyed descendant, so keep only the windows.
         if notification as String == kAXUIElementDestroyedNotification,
-           apps[pid]?.windows.contains(where: { CFEqual($0.element, element) }) != true {
+           apps[pid]?.windows.contains(where: { CFEqual($0.window.element, element) }) != true {
             return
         }
         if notification as String == kAXWindowMovedNotification || notification as String == kAXWindowResizedNotification {
@@ -214,17 +217,17 @@ final class WindowTracker: @unchecked Sendable {
 
     private func publish() {
         let onScreen = onScreenWindows()
-        onChange(apps.keys.sorted().flatMap { pid in
+        onChange(apps.keys.flatMap { pid in
             let isAppHidden = NSRunningApplication(processIdentifier: pid)?.isHidden ?? false
             return apps[pid]!.windows.compactMap { cached -> TrackedWindow? in
                 var window = cached.window
                 guard isRealWindow(subrole: cached.subrole, isMinimized: window.isMinimized, isAppHidden: isAppHidden) else { return nil }
                 // A failed read leaves a stale frame. Measured on TextEdit: the first read after a minimize fails.
-                guard retrying.contains(pid) || moving.contains(cached.element) || isOnCurrentSpace(pid: pid, frame: window.frame, isMinimized: window.isMinimized, isAppHidden: isAppHidden, onScreen: onScreen) else { return nil }
+                guard retrying.contains(pid) || moving.contains(window.element) || isOnCurrentSpace(pid: pid, frame: window.frame, isMinimized: window.isMinimized, isAppHidden: isAppHidden, onScreen: onScreen) else { return nil }
                 window.isFocused = window.isFocused && pid == frontmost
                 return window
             }
-        })
+        }.sorted { $0.order < $1.order })
     }
 
     /// Reads only the owner and the bounds: nothing here needs Screen Recording.
@@ -272,7 +275,16 @@ final class WindowTracker: @unchecked Sendable {
             guard !hasFailedAttribute else { return nil }
             guard let position = axValue(attributes[1], .cgPoint, CGPoint.zero),
                   let size = axValue(attributes[2], .cgSize, CGSize.zero) else { continue }
-            windows.append(CachedWindow(element: element, window: TrackedWindow(
+            let order: Int
+            if let known = app.windows.first(where: { CFEqual($0.window.element, element) }) {
+                order = known.window.order
+            } else {
+                order = nextOrder
+                nextOrder += 1
+            }
+            windows.append(CachedWindow(window: TrackedWindow(
+                element: element,
+                order: order,
                 pid: pid,
                 appName: app.name,
                 title: attributes[0] as? String ?? "",

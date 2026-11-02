@@ -4,7 +4,7 @@ import IonizedBarCore
 /// NSScreen belongs to the main actor, so snapshots from the tracker thread land here.
 @MainActor
 enum WindowModel {
-    static func update(_ windows: [TrackedWindow]) {
+    static func update(_ windows: [TrackedWindow], barManager: BarManager) {
         let screens = NSScreen.screens
         guard let primary = screens.first else { return }
         let displays = screens.compactMap { screen -> Display? in
@@ -31,6 +31,7 @@ enum WindowModel {
             log("  unassigned: \(unassigned.count) windows")
             unassigned.forEach(logWindow)
         }
+        barManager.update(windowsByDisplay: byDisplay)
     }
 
     private static func logWindow(_ window: TrackedWindow) {

@@ -24,4 +24,10 @@ final class BarManager {
             }
         }
     }
+
+    func update(windowsByDisplay: [UInt32: [TrackedWindow]]) {
+        for (id, panel) in panels {
+            panel.update(with: windowsByDisplay[id] ?? [])
+        }
+    }
 }
