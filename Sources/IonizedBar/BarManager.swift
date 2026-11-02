@@ -12,9 +12,11 @@ final class BarManager {
             newSettings.showsPreviews = $0
             apply(newSettings)
         },
+        // Preflight never prompts, and the setting comes first so that with previews off it isn't called.
+        canPreview: { [unowned self] in settings.showsPreviews && CGPreflightScreenCaptureAccess() },
         preview: preview
     )
-    // The one place a capture is asked for, always after the setting is checked (`EntryView.previewWindow`).
+    // The one place a capture is asked for, always after `EntryView.previewWindow` checks the setting and the grant.
     private let preview = PreviewController { await PreviewCapture.thumbnail(pid: $0.pid, frame: $0.frame) }
     private let windowTracker: WindowTracker
     private let settingsWindow: SettingsWindow

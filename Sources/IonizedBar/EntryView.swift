@@ -10,6 +10,8 @@ struct EntryActions {
     let openSettings: @MainActor () -> Void
     let showsPreviews: @MainActor () -> Bool
     let setShowsPreviews: @MainActor (Bool) -> Void
+    /// Previews are on and Screen Recording is granted. Asked afresh each time: the grant can change while the app runs.
+    let canPreview: @MainActor () -> Bool
     let preview: PreviewController
 }
 
@@ -61,7 +63,7 @@ final class EntryView: NSView {
             title.stringValue = display == .content ? window.title : window.appName
             title.isHidden = isIconOnly
             // The preview panel shows the title, so a tooltip would stack with it.
-            let newToolTip = isTitleShown || actions.showsPreviews() ? nil : window.title
+            let newToolTip = isTitleShown || actions.canPreview() ? nil : window.title
             if toolTip != newToolTip { toolTip = newToolTip }
         case .group(_, let windows):
             let label = "\(windows[0].appName) (\(windows.count))"
@@ -72,9 +74,9 @@ final class EntryView: NSView {
         }
     }
 
-    /// The window a preview would show: none on a group, or with previews off.
+    /// The window a preview would show: none on a group, with previews off or without Screen Recording.
     var previewWindow: TrackedWindow? {
-        guard actions.showsPreviews(), case .window(let window) = item else { return nil }
+        guard actions.canPreview(), case .window(let window) = item else { return nil }
         return window
     }
 
@@ -135,6 +137,8 @@ final class EntryView: NSView {
 
     override func mouseEntered(with event: NSEvent) {
         isHovered = true
+        // The grant can have changed since the last snapshot, and the tooltip depends on it.
+        updateText()
         showPreview()
     }
 
