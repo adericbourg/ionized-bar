@@ -11,13 +11,8 @@ final class BarContentView: NSView {
     private var isMotionReduced: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
     private func animate(_ changes: () -> Void, completion: (@Sendable () -> Void)? = nil) {
-        guard !isMotionReduced else {
-            changes()
-            completion?()
-            return
-        }
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = Self.duration
+            context.duration = isMotionReduced ? 0 : Self.duration
             changes()
         }, completionHandler: completion)
     }
