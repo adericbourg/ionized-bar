@@ -13,7 +13,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ✅ | 5/5 |
 | M2 – Bars | 🚧 | 5/6 |
-| M3 – Dock replacement and launch at login | ⬜ | 0/4 |
+| M3 – Dock replacement and launch at login | 🚧 | 1/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
 | M6 – Window preview | ⬜ | 0/6 |
@@ -120,7 +120,10 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] Save the Dock prefs, then autohide with a huge delay (R6)
 - [ ] Restore on quit, and recover after a crash on the next launch (R6)
 - [ ] Launch at login via `SMAppService` (R7)
-- [ ] Accessibility permission onboarding
+- [x] Accessibility permission onboarding
+
+### M3 manual pass
+- [ ] Onboarding window: shows only when untrusted, button opens the Accessibility pane, grant closes it and starts tracking, Cmd-W closes it without quitting and polling goes on, Tab/Return and VoiceOver reach the button
 
 ### M4 – Push windows away
 - [ ] Detect windows that overlap the bar (R9)
@@ -203,3 +206,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M2 task 6 fix: the active entry draws an outline in `alternateSelectedControlTextColor` while focused, because the system ring does not show on the accent fill; a panel losing key clears its first responder so the outline goes away. Every click action now ends keyboard mode, whether from the mouse, the keyboard or VoiceOver, so key no longer stays on the panel when no other app takes it. ⌃⌥B does nothing when the panel is not on the active Space, such as a fullscreen Space. README drops the material line. Build, checks and bundle pass. A scratch run with a recording panel covered each case, with the outline checked in rendered pixels, but with faked key and Space state. The app was not launched, so these are unverified with real input until the M2 manual pass.
 - 2026-11-02 — M2 final-review fixes: `BarPanel.becomeKey` redraws the first responder so the focus outline shows after a click then ⌃⌥B; `kAXWindowDeminiaturizedNotification` is treated like moved and resized so a restored window is not filtered by the lagging CG list (no blink); `EntryView` only assigns a tooltip when it changes; README says entries are per app when grouped and lists login as not yet there; the M2 manual pass gains the missing checks. M7's tick predates keyboard access, whose group-list check is on the M2 manual pass. Build, checks and bundle pass; the app was not launched, so the fixes are unverified until the manual pass. M2 stays 5/6.
 - 2026-11-02 — Window titles are no longer logged, per the user: the per-snapshot window listing in `WindowModel` is gone, since the bars show it, and failed-action logs name the app and pid instead. M2 stays 5/6.
+- 2026-11-02 — M3 task 1: `OnboardingWindow` (AppKit, explanation plus a default "Open Accessibility Settings" button, Cmd-W closes) replaces the stopgap prompt; `main.swift` shows it only when `AXIsProcessTrusted()` is false, keeps the 1s poll, and on grant closes it and runs `onAccessibilityTrusted()`, the main-thread path later M3 and M4 steps hook into (also called directly when already trusted). Build, checks and bundle pass. A scratch run of the real window showed its size, the button as initial first responder and Cmd-W handled. The app was not launched, so the window's look, the Settings pane opening, the grant closing it and tracking starting, and VoiceOver are unverified until the M3 manual pass. M3 at 1/4.

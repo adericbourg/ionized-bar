@@ -1,12 +1,6 @@
 import AppKit
 @preconcurrency import ApplicationServices
 
-// Stopgap until the M3 onboarding window: prompt once, then poll until trusted.
-let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-if !AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary) {
-    log("Accessibility permission required; waiting for it to be granted")
-}
-
 let windowTracker = WindowTracker { windows in
     Task { @MainActor in WindowModel.update(windows, barManager: barManager) }
 }
@@ -28,15 +22,12 @@ let tracker = AppTracker(
     }
 )
 
-let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
-    guard AXIsProcessTrusted() else { return }
-    timer.invalidate()
+// The one place that runs once Accessibility is granted, on the main thread; later M3 and M4 steps hook in here.
+@MainActor func onAccessibilityTrusted() {
     log("Accessibility trusted; tracking apps")
-    MainActor.assumeIsolated {
-        tracker.start()
-        if let frontmost = NSWorkspace.shared.frontmostApplication {
-            windowTracker.setFrontmost(pid: frontmost.processIdentifier)
-        }
+    tracker.start()
+    if let frontmost = NSWorkspace.shared.frontmostApplication {
+        windowTracker.setFrontmost(pid: frontmost.processIdentifier)
     }
     NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { notification in
         guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
@@ -47,7 +38,23 @@ let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
         MainActor.assumeIsolated { windowTracker.markAllDirty() }
     }
 }
-_ = timer
+
+let onboardingWindow = OnboardingWindow()
+if AXIsProcessTrusted() {
+    onAccessibilityTrusted()
+} else {
+    log("Accessibility permission required; waiting for it to be granted")
+    onboardingWindow.show()
+    let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
+        guard AXIsProcessTrusted() else { return }
+        timer.invalidate()
+        MainActor.assumeIsolated {
+            onboardingWindow.close()
+            onAccessibilityTrusted()
+        }
+    }
+    _ = timer
+}
 
 NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { _ in
     MainActor.assumeIsolated { barManager.sync() }

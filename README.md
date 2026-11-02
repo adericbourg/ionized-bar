@@ -11,7 +11,7 @@ A KDE Plasma–style taskbar for macOS that replaces the Dock.
 
 ## Requirements
 
-macOS 27.2 or later. The app needs the Accessibility permission to list, raise and move windows.
+macOS 27.2 or later. The app needs the Accessibility permission to list, raise and move windows; a small window explains it and opens the right System Settings pane.
 
 ## Installation (planned)
 
