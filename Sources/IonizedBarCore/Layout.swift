@@ -31,6 +31,29 @@ public struct OnScreenWindow: Sendable {
     }
 }
 
+public struct CaptureCandidate: Sendable {
+    public let id: UInt32
+    public let pid: Int32
+    public let bounds: CGRect
+
+    public init(id: UInt32, pid: Int32, bounds: CGRect) {
+        self.id = id
+        self.pid = pid
+        self.bounds = bounds
+    }
+}
+
+/// The window id of the only candidate of `pid` whose bounds are within 2pt of `frame`; nil when none or several match.
+public func matchWindow(pid: Int32, frame: CGRect, candidates: [CaptureCandidate]) -> UInt32? {
+    let matches = candidates.filter { $0.pid == pid && framesMatch($0.bounds, frame) }
+    return matches.count == 1 ? matches[0].id : nil
+}
+
+/// Both frames are in top-left-origin coordinates (AX and CG/ScreenCaptureKit agree).
+func framesMatch(_ a: CGRect, _ b: CGRect) -> Bool {
+    abs(a.minX - b.minX) <= 2 && abs(a.minY - b.minY) <= 2 && abs(a.maxX - b.maxX) <= 2 && abs(a.maxY - b.maxY) <= 2
+}
+
 public func flipRect(_ rect: CGRect, primaryScreenHeight: CGFloat) -> CGRect {
     CGRect(x: rect.minX, y: primaryScreenHeight - rect.minY - rect.height, width: rect.width, height: rect.height)
 }
@@ -61,11 +84,7 @@ public func isRealWindow(subrole: String?, isMinimized: Bool, isAppHidden: Bool)
 public func isOnCurrentSpace(pid: Int32, frame: CGRect, isMinimized: Bool, isAppHidden: Bool, onScreen: [OnScreenWindow]) -> Bool {
     if isMinimized || isAppHidden { return true }
     return onScreen.contains { window in
-        window.pid == pid
-            && abs(window.bounds.minX - frame.minX) <= 2
-            && abs(window.bounds.minY - frame.minY) <= 2
-            && abs(window.bounds.maxX - frame.maxX) <= 2
-            && abs(window.bounds.maxY - frame.maxY) <= 2
+        window.pid == pid && framesMatch(window.bounds, frame)
     }
 }
 

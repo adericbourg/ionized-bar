@@ -490,6 +490,23 @@ do {
     check("lastSeen_followsLastStep", fullScreen.lastSeen == 5)
 }
 
+// matchWindow
+do {
+    let frame = CGRect(x: 100, y: 100, width: 400, height: 300)
+    let mine = CaptureCandidate(id: 1, pid: 7, bounds: frame.insetBy(dx: 1, dy: 1))
+    // Given one candidate of the pid within 2pt, Then it matches
+    check("matchWindow_ofOneCandidateWithin2pt_returnsItsId", matchWindow(pid: 7, frame: frame, candidates: [mine]) == 1)
+    // Given other pids and frames around it, Then it still matches
+    let otherPid = CaptureCandidate(id: 2, pid: 8, bounds: frame)
+    let otherFrame = CaptureCandidate(id: 3, pid: 7, bounds: frame.offsetBy(dx: 50, dy: 0))
+    check("matchWindow_amongUnrelatedCandidates_returnsTheOne", matchWindow(pid: 7, frame: frame, candidates: [otherPid, otherFrame, mine]) == 1)
+    // Given a candidate 3pt off, Then no match
+    check("matchWindow_of3ptOff_returnsNil", matchWindow(pid: 7, frame: frame, candidates: [CaptureCandidate(id: 4, pid: 7, bounds: frame.offsetBy(dx: 3, dy: 0))]) == nil)
+    // Given two same-pid candidates with the same frame (another Space, hidden), Then ambiguous
+    check("matchWindow_ofTwoMatches_returnsNil", matchWindow(pid: 7, frame: frame, candidates: [mine, CaptureCandidate(id: 5, pid: 7, bounds: frame)]) == nil)
+    check("matchWindow_ofNoCandidates_returnsNil", matchWindow(pid: 7, frame: frame, candidates: []) == nil)
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)
