@@ -58,6 +58,7 @@ A settings window, opened with "Settings…" from the right-click menu of an ent
   - **When full:** apps merge when entries would drop below about 120pt (48pt in Icon only mode). The app with the most windows merges first, and merging stops once entries fit. On a tie, the later app on the bar merges first. If merging every app isn't enough, entries shrink as usual.
 - **Show tasks as:** Icon only, App name or Content (default, the window title). When the title isn't shown, it moves to a tooltip. VoiceOver reads it in every mode.
   - **Icon only:** compact entries of about 48pt, packed from the left. This is the one exception to R5's equal share of the bar's width.
+- **Start at login:** the R7 toggle. It shows the real `SMAppService` status and applies at once; it is not saved in `UserDefaults`. The app registers itself once when Accessibility is first granted, and never again after that.
 - **Group entry:** all of an app's windows on that bar (2 or more), placed where the app's first window was. It shows the icon, app name and window count, or the icon and count in Icon only mode. It's highlighted if any of its windows has focus, and dimmed only if all of them are minimized.
 - **Group interactions:** a click opens a native menu above the entry that lists the windows. The focused window has a checkmark, and minimized windows say so. Picking a window raises or restores it. Middle-click does nothing, so a stray click can't close several windows. Right-click offers Close all windows, Quit, Settings… and Quit IonizedBar.
 

@@ -42,6 +42,7 @@ restoreDockOnTermination { restoreDock(dock) }
         MainActor.assumeIsolated { windowTracker.markAllDirty() }
     }
     log(hideDock(dock) ? "Dock hidden" : "Dock not hidden")
+    LoginItem.registerOnce()
 }
 
 let onboardingWindow = OnboardingWindow()

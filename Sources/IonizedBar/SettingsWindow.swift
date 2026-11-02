@@ -5,9 +5,10 @@ final class SettingsWindow: NSWindow {
     var onChange: ((Settings) -> Void)?
     private let groupingPopUp = NSPopUpButton()
     private let displayPopUp = NSPopUpButton()
+    private let loginCheckbox = NSButton(checkboxWithTitle: "Start at login", target: nil, action: nil)
 
     init(settings: Settings) {
-        super.init(contentRect: CGRect(x: 0, y: 0, width: 320, height: 100), styleMask: [.titled, .closable], backing: .buffered, defer: true)
+        super.init(contentRect: CGRect(x: 0, y: 0, width: 320, height: 130), styleMask: [.titled, .closable], backing: .buffered, defer: true)
         title = "Settings"
         isReleasedWhenClosed = false
 
@@ -22,9 +23,14 @@ final class SettingsWindow: NSWindow {
             popUp.action = #selector(selectionChanged)
         }
 
+        loginCheckbox.target = self
+        loginCheckbox.action = #selector(loginChanged)
+        loginCheckbox.setAccessibilityLabel("Start at login")
+
         let grid = NSGridView(views: [
             [NSTextField(labelWithString: "Group windows:"), groupingPopUp],
-            [NSTextField(labelWithString: "Show tasks as:"), displayPopUp]
+            [NSTextField(labelWithString: "Show tasks as:"), displayPopUp],
+            [NSGridCell.emptyContentView, loginCheckbox]
         ])
         grid.translatesAutoresizingMaskIntoConstraints = false
         grid.rowSpacing = 12
@@ -56,6 +62,7 @@ final class SettingsWindow: NSWindow {
     }
 
     func show() {
+        loginCheckbox.state = LoginItem.isEnabled ? .on : .off
         center()
         // The app has no Dock icon or menu bar, so nothing else brings this window forward.
         NSApp.activate()
@@ -76,5 +83,11 @@ final class SettingsWindow: NSWindow {
             grouping: GroupingMode.allCases[groupingPopUp.indexOfSelectedItem],
             taskDisplay: TaskDisplay.allCases[displayPopUp.indexOfSelectedItem]
         ))
+    }
+
+    // Applies at once; on failure the checkbox goes back to the real status.
+    @objc private func loginChanged() {
+        LoginItem.set(loginCheckbox.state == .on)
+        loginCheckbox.state = LoginItem.isEnabled ? .on : .off
     }
 }

@@ -7,11 +7,15 @@ A KDE Plasma–style taskbar for macOS that replaces the Dock.
 - Hides the Dock while running and restores it on quit
 - Starts at login
 
-> Status: the bars exist and the Dock is hidden while the app runs. There is no login item and nothing to install yet. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
+> Status: the bars exist and the Dock is hidden while the app runs. Nothing to install yet. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
 
 ## Requirements
 
 macOS 27.2 or later. The app needs the Accessibility permission to list, raise and move windows; a small window explains it and opens the right System Settings pane.
+
+## Start at login
+
+The first time it has the Accessibility permission, the app adds itself to the login items (`SMAppService`). Turn it off with "Start at login" in Settings; it is not turned back on.
 
 ## Dock
 
