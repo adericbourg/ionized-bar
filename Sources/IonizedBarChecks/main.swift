@@ -394,6 +394,102 @@ do {
           pushedFrame(below, screenFrame: screen, visibleFrame: visible, barHeight: 36) == CGRect(x: -700, y: 1036, width: 300, height: 300))
 }
 
+// pushTarget
+do {
+    // Given a screen with a 25pt menu bar and a 36pt bar at the bottom
+    let screen = CGRect(x: 0, y: 0, width: 800, height: 600)
+    let visible = CGRect(x: 0, y: 0, width: 800, height: 575)
+    let over = CGRect(x: 100, y: 10, width: 300, height: 200)
+    func target(_ window: CGRect, isMinimized: Bool = false, isFullScreen: Bool = false, visibleFrame: CGRect = visible) -> CGRect? {
+        pushTarget(window, isMinimized: isMinimized, isFullScreen: isFullScreen, screenFrame: screen, visibleFrame: visibleFrame)
+    }
+    check("pushTarget_ofOverlappingWindow_isItsPushedFrame", target(over) == CGRect(x: 100, y: 36, width: 300, height: 200))
+    // Given a window clear of the bar but taller than the room, Then pushedFrame must not get to shrink it
+    check("pushTarget_ofTallWindowClearOfBar_isNil", target(CGRect(x: 100, y: 36, width: 300, height: 564)) == nil)
+    check("pushTarget_ofMinimizedWindow_isNil", target(over, isMinimized: true) == nil)
+    check("pushTarget_ofFullScreenWindow_isNil", target(screen, isFullScreen: true) == nil)
+    // Given no room above the bar (a negative room would give a negative height), Then no push
+    check("pushTarget_whenVisibleTopIsBelowBarTop_isNil", target(over, visibleFrame: CGRect(x: 0, y: 0, width: 800, height: 20)) == nil)
+    check("pushTarget_whenVisibleTopIsAtBarTop_isNil", target(over, visibleFrame: CGRect(x: 0, y: 0, width: 800, height: 36)) == nil)
+}
+
+// PushMemory
+do {
+    let frame = CGRect(x: 100, y: 900, width: 300, height: 200)
+    let other = CGRect(x: 100, y: 920, width: 300, height: 180)
+    let pushed = CGRect(x: 100, y: 700, width: 300, height: 200)
+
+    // Given a window just seen over the bar, When its frame holds, Then it waits and then pushes
+    var settling = PushMemory(now: 0)
+    check("step_whenFrameJustSeen_waits", settling.step(frame: frame, wantsPush: true, isMouseDown: false, now: 0) == .wait)
+    check("step_beforeSettleTime_waits", settling.step(frame: frame, wantsPush: true, isMouseDown: false, now: PushMemory.settleTime - 0.01) == .wait)
+    // Given a frame that changes just before the settle time, Then the wait restarts
+    check("step_whenFrameChanges_restartsWait", settling.step(frame: other, wantsPush: true, isMouseDown: false, now: PushMemory.settleTime) == .wait)
+    check("step_afterFrameChange_stillWaits", settling.step(frame: other, wantsPush: true, isMouseDown: false, now: PushMemory.settleTime * 1.5) == .wait)
+    check("step_whenFrameHolds_pushes", settling.step(frame: other, wantsPush: true, isMouseDown: false, now: PushMemory.settleTime * 2 + 0.01) == .push)
+
+    // Given a window that doesn't need a push, Then nothing is pending, mouse or not
+    var clear = PushMemory(now: 0)
+    check("step_withoutTarget_isIdle", clear.step(frame: frame, wantsPush: false, isMouseDown: false, now: 0) == .idle)
+    check("step_withoutTargetAndMouseDown_isIdle", clear.step(frame: frame, wantsPush: false, isMouseDown: true, now: 10) == .idle)
+
+    // Given a settled frame under a held mouse button (a drag), Then it waits for the release
+    var dragged = PushMemory(now: 0)
+    _ = dragged.step(frame: frame, wantsPush: true, isMouseDown: true, now: 0)
+    check("step_whenMouseDown_waits", dragged.step(frame: frame, wantsPush: true, isMouseDown: true, now: 10) == .wait)
+    check("step_afterMouseUp_pushes", dragged.step(frame: frame, wantsPush: true, isMouseDown: false, now: 10.1) == .push)
+
+    // Given a push that leaves the window where it was (minimum size, failed AX call)
+    var stuck = PushMemory(now: 0)
+    _ = stuck.step(frame: frame, wantsPush: true, isMouseDown: false, now: 0)
+    check("step_stuck_firstPush", stuck.step(frame: frame, wantsPush: true, isMouseDown: false, now: 1) == .push)
+    // Then the result is awaited, and that frame is not pushed again however long it stays
+    check("step_afterPush_awaitsResult", stuck.step(frame: frame, wantsPush: true, isMouseDown: false, now: 1 + PushMemory.settleTime + 0.01) == .wait)
+    check("step_whenResultSettles_doesNotPushAgain", stuck.step(frame: frame, wantsPush: true, isMouseDown: false, now: 1 + PushMemory.resultSettleTime + 0.01) == .idle)
+    check("step_onEndedFrame_staysIdle", stuck.step(frame: frame, wantsPush: true, isMouseDown: false, now: 100) == .idle)
+    // When its frame changes to another one, Then it may be pushed again, even back on the frame it ended at
+    check("step_whenEndedFrameChanges_waits", stuck.step(frame: other, wantsPush: true, isMouseDown: false, now: 101) == .wait)
+    check("step_afterEndedFrameChange_pushes", stuck.step(frame: other, wantsPush: true, isMouseDown: false, now: 102) == .push)
+    _ = stuck.step(frame: other, wantsPush: true, isMouseDown: false, now: 104)
+    check("step_onOtherEndedFrame_staysIdle", stuck.step(frame: other, wantsPush: true, isMouseDown: false, now: 105) == .idle)
+    _ = stuck.step(frame: frame, wantsPush: false, isMouseDown: false, now: 106)
+    _ = stuck.step(frame: other, wantsPush: true, isMouseDown: false, now: 107)
+    check("step_whenBackOnFormerEndedFrame_pushes", stuck.step(frame: other, wantsPush: true, isMouseDown: false, now: 108) == .push)
+
+    // Given an app that repositions itself over the bar right after the push, Then that frame is where it ended
+    var fighter = PushMemory(now: 0)
+    _ = fighter.step(frame: frame, wantsPush: true, isMouseDown: false, now: 0)
+    _ = fighter.step(frame: frame, wantsPush: true, isMouseDown: false, now: 1)
+    check("step_whenAppMovesAfterPush_waits", fighter.step(frame: pushed, wantsPush: false, isMouseDown: false, now: 1.1) == .wait)
+    check("step_whenAppMovesBack_waits", fighter.step(frame: frame, wantsPush: true, isMouseDown: false, now: 1.2) == .wait)
+    check("step_whenAppSettlesOverBar_doesNotPush", fighter.step(frame: frame, wantsPush: true, isMouseDown: false, now: 1.2 + PushMemory.resultSettleTime + 0.01) == .idle)
+
+    // Given a user grabbing the window while the result is awaited, Then the frame under the mouse is no result
+    var grabbed = PushMemory(now: 0)
+    _ = grabbed.step(frame: frame, wantsPush: true, isMouseDown: false, now: 0)
+    _ = grabbed.step(frame: frame, wantsPush: true, isMouseDown: false, now: 1)
+    check("step_whenMouseDownOnResult_waits", grabbed.step(frame: other, wantsPush: true, isMouseDown: true, now: 5) == .wait)
+    _ = grabbed.step(frame: other, wantsPush: true, isMouseDown: true, now: 10)
+    check("step_afterMouseUpOnResult_recordsIt", grabbed.step(frame: other, wantsPush: true, isMouseDown: false, now: 10.1) == .idle)
+
+    // Given a push skipped because the snapshot was stale, Then it isn't taken for a result and is retried once settled
+    var stale = PushMemory(now: 0)
+    _ = stale.step(frame: frame, wantsPush: true, isMouseDown: false, now: 0)
+    _ = stale.step(frame: frame, wantsPush: true, isMouseDown: false, now: 1)
+    stale.pushWasStale()
+    check("step_afterStalePush_waits", stale.step(frame: other, wantsPush: true, isMouseDown: false, now: 1.1) == .wait)
+    check("step_afterStalePush_pushes", stale.step(frame: other, wantsPush: true, isMouseDown: false, now: 1.1 + PushMemory.settleTime + 0.01) == .push)
+
+    // Given a window that goes fullscreen while the result is awaited, Then it ends idle and pushes nothing
+    var fullScreen = PushMemory(now: 0)
+    _ = fullScreen.step(frame: frame, wantsPush: true, isMouseDown: false, now: 0)
+    _ = fullScreen.step(frame: frame, wantsPush: true, isMouseDown: false, now: 1)
+    check("step_whenTargetGoneWhileAwaiting_waits", fullScreen.step(frame: other, wantsPush: false, isMouseDown: false, now: 1.1) == .wait)
+    check("step_whenTargetGoneAndSettled_isIdle", fullScreen.step(frame: other, wantsPush: false, isMouseDown: false, now: 5) == .idle)
+
+    check("lastSeen_followsLastStep", fullScreen.lastSeen == 5)
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

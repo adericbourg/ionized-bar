@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 
 public struct Display: Sendable, Equatable {
     public let id: UInt32
@@ -85,6 +86,62 @@ public func pushedFrame(_ window: CGRect, screenFrame: CGRect, visibleFrame: CGR
     let height = min(window.height, room)
     let y = min(max(window.minY, bottom), visibleFrame.maxY - height)
     return CGRect(x: window.minX, y: y, width: window.width, height: height)
+}
+
+/// Cocoa coordinates. Nil when the window must not be pushed, including when there is no room above the bar.
+public func pushTarget(
+    _ window: CGRect, isMinimized: Bool, isFullScreen: Bool, screenFrame: CGRect, visibleFrame: CGRect, barHeight: CGFloat = 36
+) -> CGRect? {
+    let bar = barFrame(screenFrame: screenFrame, height: barHeight)
+    guard !isMinimized, !isFullScreen, overlapsBar(window, bar: bar), visibleFrame.maxY > bar.maxY else { return nil }
+    return pushedFrame(window, screenFrame: screenFrame, visibleFrame: visibleFrame, barHeight: barHeight)
+}
+
+public enum PushVerdict: Equatable {
+    case idle, wait, push
+}
+
+/// One window's push state, stepped on each snapshot and timer tick.
+public struct PushMemory: Sendable {
+    public static let settleTime: TimeInterval = 0.3
+    /// How long the frame must hold after a push before it counts as where the push ended.
+    /// ponytail: an app repositioning itself later than this fights back at this period; add a per-window backoff if one shows up.
+    public static let resultSettleTime: TimeInterval = 1
+
+    public private(set) var lastSeen: TimeInterval
+    public private(set) var isAwaitingResult = false
+    private var frame: CGRect?
+    private var frameSince: TimeInterval
+    private var endedAt: CGRect?
+
+    public init(now: TimeInterval) {
+        lastSeen = now
+        frameSince = now
+    }
+
+    public mutating func step(frame: CGRect, wantsPush: Bool, isMouseDown: Bool, now: TimeInterval) -> PushVerdict {
+        lastSeen = now
+        if frame != self.frame {
+            self.frame = frame
+            frameSince = now
+            endedAt = nil
+        }
+        if !isAwaitingResult && (!wantsPush || endedAt == frame) { return .idle }
+        if isMouseDown || now - frameSince < (isAwaitingResult ? Self.resultSettleTime : Self.settleTime) { return .wait }
+        if isAwaitingResult {
+            isAwaitingResult = false
+            endedAt = frame
+            return .idle
+        }
+        isAwaitingResult = true
+        frameSince = now
+        return .push
+    }
+
+    /// The push never happened, so whatever frame comes next is not its result.
+    public mutating func pushWasStale() {
+        isAwaitingResult = false
+    }
 }
 
 public enum EntryClickAction {

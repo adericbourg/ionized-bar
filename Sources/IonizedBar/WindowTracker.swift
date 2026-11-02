@@ -12,6 +12,7 @@ struct TrackedWindow: Sendable {
     /// AX coordinates: origin at the primary display's top-left.
     let frame: CGRect
     let isMinimized: Bool
+    let isFullScreen: Bool
     var isFocused: Bool
 }
 
@@ -39,7 +40,8 @@ final class WindowTracker: @unchecked Sendable {
         kAXWindowResizedNotification, kAXWindowMiniaturizedNotification, kAXWindowDeminiaturizedNotification,
         kAXTitleChangedNotification, kAXUIElementDestroyedNotification, kAXApplicationShownNotification
     ]
-    private static let windowAttributes = [kAXTitleAttribute, kAXPositionAttribute, kAXSizeAttribute, kAXMinimizedAttribute, kAXSubroleAttribute]
+    private static let fullScreenAttribute = "AXFullScreen"
+    private static let windowAttributes = [kAXTitleAttribute, kAXPositionAttribute, kAXSizeAttribute, kAXMinimizedAttribute, kAXSubroleAttribute, fullScreenAttribute]
     private static let fastAttachRetries = 10
 
     private let onChange: @Sendable ([TrackedWindow]) -> Void
@@ -141,6 +143,38 @@ final class WindowTracker: @unchecked Sendable {
         }
     }
 
+    /// `target` is in AX coordinates. `onStale` runs when the frame has moved on from `window.frame`, so nothing was written.
+    func push(_ window: TrackedWindow, to target: CGRect, onStale: @escaping @Sendable () -> Void) {
+        onThread { [self] in
+            var values: CFArray?
+            let attributes = [kAXPositionAttribute, kAXSizeAttribute, Self.fullScreenAttribute] as CFArray
+            let error = AXUIElementCopyMultipleAttributeValues(window.element, attributes, AXCopyMultipleAttributeOptions(rawValue: 0), &values)
+            guard error == .success, let current = values as? [Any], current.count == 3,
+                  let position = axValue(current[0], .cgPoint, CGPoint.zero),
+                  let size = axValue(current[1], .cgSize, CGSize.zero) else {
+                log("reading the frame to push failed for \(window.appName) pid=\(window.pid): AX error \(error.rawValue)")
+                return
+            }
+            guard current[2] as? Bool != true else { return }
+            guard CGRect(origin: position, size: size) == window.frame else {
+                onStale()
+                return
+            }
+            // Size first: the window then fits on screen when it moves, so nothing clamps the move.
+            if target.size != size {
+                var value = target.size
+                set(kAXSizeAttribute, to: AXValueCreate(.cgSize, &value)!, on: window.element, of: window)
+            }
+            if target.origin != position {
+                var value = target.origin
+                set(kAXPositionAttribute, to: AXValueCreate(.cgPoint, &value)!, on: window.element, of: window)
+            }
+            // Not every app posts moved and resized for an AX write, and the push's result comes from the next read.
+            moving.insert(window.element)
+            markDirty(window.pid)
+        }
+    }
+
     private func performRaise(_ window: TrackedWindow) {
         if let app = NSRunningApplication(processIdentifier: window.pid), app.isHidden, !app.unhide() {
             log("unhide failed for \(window.appName) pid=\(window.pid)")
@@ -152,7 +186,11 @@ final class WindowTracker: @unchecked Sendable {
     }
 
     private func set(_ attribute: String, to value: Bool, on element: AXUIElement, of window: TrackedWindow) {
-        let error = AXUIElementSetAttributeValue(element, attribute as CFString, value as CFBoolean)
+        set(attribute, to: value as CFBoolean, on: element, of: window)
+    }
+
+    private func set(_ attribute: String, to value: CFTypeRef, on element: AXUIElement, of window: TrackedWindow) {
+        let error = AXUIElementSetAttributeValue(element, attribute as CFString, value)
         if error != .success {
             log("setting \(attribute) failed for \(window.appName) pid=\(window.pid): AX error \(error.rawValue)")
         }
@@ -324,9 +362,10 @@ final class WindowTracker: @unchecked Sendable {
                 if isAbsent(error) { continue }
                 return nil
             }
-            guard let attributes = values as? [Any], attributes.count == 5 else { continue }
+            guard let attributes = values as? [Any], attributes.count == 6 else { continue }
             // Each attribute's own error comes back as an AXValue in the array.
-            let hasFailedAttribute = attributes.contains { value in
+            // Not for AXFullScreen: an app failing on that alone must not freeze its windows in the bar.
+            let hasFailedAttribute = attributes.prefix(5).contains { value in
                 axValue(value, .axError, AXError.success).map { !isAbsent($0) } ?? false
             }
             guard !hasFailedAttribute else { return nil }
@@ -348,6 +387,7 @@ final class WindowTracker: @unchecked Sendable {
                 title: attributes[0] as? String ?? "",
                 frame: CGRect(origin: position, size: size),
                 isMinimized: attributes[3] as? Bool ?? false,
+                isFullScreen: attributes[5] as? Bool ?? false,
                 isFocused: focusedValue.map { CFEqual($0, element) } ?? false
             ), subrole: attributes[4] as? String))
         }

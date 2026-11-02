@@ -5,9 +5,10 @@ A KDE Plasma–style taskbar for macOS that replaces the Dock.
 - One bar per display, showing only the windows on that display
 - One entry per open window, or per app if you group them, all with the same width
 - Hides the Dock while running and restores it on quit
+- Moves or resizes windows that overlap the bar, so maximizing doesn't cover it
 - Starts at login
 
-> Status: the bars exist and the Dock is hidden while the app runs. Nothing to install yet. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
+> Status: the bars exist, the Dock is hidden while the app runs, and windows are pushed off the bar. Nothing to install yet. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
 
 ## Requirements
 
@@ -16,6 +17,10 @@ macOS 27.2 or later. The app needs the Accessibility permission to list, raise a
 ## Start at login
 
 The first time it has the Accessibility permission, the app adds itself to the login items (`SMAppService`). Turn it off with "Start at login" in Settings; it is not turned back on.
+
+## Windows over the bar
+
+A window that ends up over the bar is moved up, and shrunk if it doesn't fit below the menu bar. This waits until the mouse button is released and the frame has held for a moment. Fullscreen windows are left alone. If a push leaves a window over the bar, because of its minimum size or because the app puts it back, it stays there until its frame changes.
 
 ## Dock
 

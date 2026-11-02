@@ -14,7 +14,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M1 – Window model (headless) | ✅ | 5/5 |
 | M2 – Bars | 🚧 | 5/6 |
 | M3 – Dock replacement and launch at login | 🚧 | 4/4 |
-| M4 – Push windows away | 🚧 | 1/3 |
+| M4 – Push windows away | 🚧 | 3/3 |
 | M5 – Release | ⬜ | 0/3 |
 | M6 – Window preview | ⬜ | 0/6 |
 | M7 – Settings | ✅ | 6/6 |
@@ -139,8 +139,18 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 ### M4 – Push windows away
 - [x] Detect windows that overlap the bar (R9)
-- [ ] Resize or move them through AX, with debounce
-- [ ] Skip fullscreen windows
+- [x] Resize or move them through AX, with debounce
+- [x] Skip fullscreen windows
+
+### M4 manual pass
+- [ ] Maximize and zoom: the window ends above the bar, below the menu bar; zooming a pushed window back and forth doesn't jitter
+- [ ] Drag a window down over the bar: nothing moves until the mouse button is released, then it is pushed; holding it still over the bar doesn't push either
+- [ ] Min-size app shrunk over the bar on a short display: one push, one "still over the bar" log line, no jitter; moving it pushes again
+- [ ] Electron app (repositions itself, may animate AX writes): it lands in place with no fight loop
+- [ ] Fullscreen: entering and leaving moves nothing while fullscreen, and the window's frame after leaving is pushed if it overlaps
+- [ ] Two displays: a window is pushed on its own display, including one with a non-zero origin or above the primary, and only against its assigned display's bar
+- [ ] Shrink-and-move lands exactly: a too-tall window ends at the bar's top and `visibleFrame`'s top, with size set before position
+- [ ] An app rejecting the AX write: the failure is logged once per frame, not on every snapshot
 
 ### M5 – Release
 - [ ] Archive and zip the build
@@ -223,3 +233,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M3 task 2 fix: when saving originals, an `autohide-delay` of 60s or more (`leftoverDelayThreshold`) means another taskbar or a lost saved state left the Dock hidden, so both keys are saved as absent, logged once, and the restore leaves the Dock visible. This replaces the two limits noted in the previous line: boringBar's values are no longer saved as originals, and a lost saved state no longer keeps the Dock hidden. A real `autohide` on with such a delay is lost, on purpose. Saved state found at launch is still kept as it is. Running alongside another taskbar still fights over the Dock. Build, checks and bundle pass, and the scratch app on a scratch domain restored to absent keys from a leftover delay, with the real `com.apple.dock` and Dock pid unchanged. The app was not launched, so this is unverified on the real Dock until the M3 manual pass. M3 stays 3/4.
 - 2026-11-02 — M3 task 3: `LoginItem` wraps `SMAppService.mainApp`. A "Start at login" checkbox in the settings window applies at once, is refreshed from the real status each time the window opens, and falls back to it if register or unregister throws (logged). `onAccessibilityTrusted()` registers once, tracked by the saved flag `loginItemRegisteredOnce` (set before the attempt, so a failure is not retried and a user who turns it off is never overridden). README no longer says there is no login item. Build, checks and bundle pass. The login item was never registered and the app was not launched, so registration, the checkbox, the Login Items entry and the flag are unverified until the M3 manual pass (5 checks added). M3 at 4/4; R6 and R7 stay 🚧 until that pass.
 - 2026-11-02 — M4 task 1: `overlapsBar` and `pushedFrame` in `IonizedBarCore` (Cocoa coordinates, like `barFrame`): a window that fits moves up and keeps its size, a taller one shrinks to the room between the bar's top and `visibleFrame`'s top (so never under the menu bar), x and width never change. `WindowModel` logs, per snapshot, the non-minimized windows overlapping the bar of their assigned display (app and pid, no title); a window straddling two displays is only checked against that bar (noted in PRODUCT.md). Nothing is written through AX yet. 7 checks added (overlap, move, shrink, non-zero origin, hanging below the screen); build, checks and bundle pass. The log line was not seen in a running app since it can't be launched here. M4 at 1/3, R9 🚧. M3 now reads 🚧 4/4 like M1, as its manual pass is open.
+- 2026-11-02 — M4 task 2: `WindowPusher` (main thread) steps a `PushMemory` per window on each snapshot and on a 0.1s tick while anything is pending, since a mouse release posts nothing; the tracker writes on its AX thread under the existing messaging timeout. `pushTarget` in `IonizedBarCore` is the one way to `pushedFrame`: nil unless the window overlaps its bar, isn't minimized or fullscreen, and there is room above the bar. `PushMemory` waits for no mouse button held and a frame held 0.3s, then awaits the result for 1s after the push; the frame it settles on is remembered and not pushed again until the frame changes, whether it overlaps or not. The write re-reads position, size and `AXFullScreen` first and skips if the frame moved on from the snapshot, so a stale frame is never pushed; size goes before position, and only what changes is set. The per-snapshot overlap log is gone: one line per push, one when a push leaves the window over the bar. Own windows never get here: `AppTracker` excludes this process. Entries go 60s after the last snapshot showing the window, not on the first absent one, because the Space filter can drop a window for one snapshot. README and PRODUCT.md updated. Checks added (`pushTarget`, including no room and a tall window clear of the bar, and the `PushMemory` sequences); build, checks and bundle pass. The app was not launched, so no window has been pushed: every AX path, the debounce with a real drag, the write order and `AXFullScreen` are unverified until the M4 manual pass (8 checks). An app repositioning itself more than 1s after a push would still fight at about that period (marked `ponytail:`). M4 at 3/3, R9 stays 🚧.

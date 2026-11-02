@@ -3,11 +3,12 @@ import AppKit
 import IonizedBarCore
 
 let windowTracker = WindowTracker { windows in
-    Task { @MainActor in WindowModel.update(windows, barManager: barManager) }
+    Task { @MainActor in WindowModel.update(windows, barManager: barManager, pusher: windowPusher) }
 }
 
 // Annotated: the tracker's closure uses barManager, which would make type inference circular.
 let barManager: BarManager = BarManager(windowTracker: windowTracker)
+let windowPusher: WindowPusher = WindowPusher(tracker: windowTracker)
 barManager.sync()
 BarHotKey.register { barManager.beginKeyboardMode() }
 
