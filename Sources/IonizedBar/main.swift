@@ -17,12 +17,12 @@ let tracker = AppTracker(
         windowTracker.addApp(pid: pid)
     },
     onTerminate: { pid in
+        // Terminated apps are gone from NSRunningApplication, hence no name on terminate.
         log("terminate pid=\(pid)")
         windowTracker.removeApp(pid: pid)
     }
 )
 
-// Terminated apps are gone from NSRunningApplication, hence no name on terminate.
 let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
     guard AXIsProcessTrusted() else { return }
     timer.invalidate()

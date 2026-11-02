@@ -26,10 +26,12 @@ do {
 
 // assignDisplay
 do {
+    // Given two side-by-side displays
     let left = Display(id: 1, frame: CGRect(x: 0, y: 0, width: 1000, height: 1000))
     let right = Display(id: 2, frame: CGRect(x: 1000, y: 0, width: 1000, height: 1000))
     let displays = [left, right]
 
+    // When assigning, Then the largest intersection wins
     check("assignDisplay_ofWindowInsideSecond_returnsSecond",
           assignDisplay(windowFrame: CGRect(x: 1100, y: 100, width: 200, height: 200), displays: displays) == right)
     check("assignDisplay_ofWindowMostlyOnSecond_returnsSecond",
@@ -41,6 +43,7 @@ do {
     check("assignDisplay_whenNothingIntersects_returnsNil",
           assignDisplay(windowFrame: CGRect(x: 5000, y: 5000, width: 10, height: 10), displays: displays) == nil)
 
+    // Given a display with a negative origin, When assigning, Then it can be picked
     let negative = Display(id: 3, frame: CGRect(x: -800, y: 0, width: 800, height: 600))
     check("assignDisplay_ofNegativeOriginDisplay_returnsIt",
           assignDisplay(windowFrame: CGRect(x: -500, y: 100, width: 200, height: 200), displays: [left, negative]) == negative)
@@ -48,6 +51,8 @@ do {
 
 // entryWidth
 do {
+    // Given a bar width and an entry count, When computing the width, Then it is capped at 220pt,
+    // and below 48pt it goes icon-only.
     check("entryWidth_ofFewEntries_capsAtMax",
           entryWidth(barWidth: 1000, entryCount: 2) == EntryWidth(width: 220, isIconOnly: false))
     check("entryWidth_ofManyEntries_shrinks",
