@@ -157,6 +157,9 @@ final class WindowTracker: @unchecked Sendable {
             }
             guard current[2] as? Bool != true else { return }
             guard CGRect(origin: position, size: size) == window.frame else {
+                // Its move may have posted nothing, and the cached frame would stay stale.
+                moving.insert(window.element)
+                markDirty(window.pid)
                 onStale()
                 return
             }
