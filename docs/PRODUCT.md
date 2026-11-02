@@ -38,10 +38,10 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 - **Motion:** entries animate in, out and when resized in under 150ms. Animations are off when *Reduce Motion* is on.
 
 ## Non-goals (v1)
-Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, drag to reorder, windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover are planned after v1, see below.
+Widgets (tray, clock, start menu), pinned launchers, drag to reorder, windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover and grouping windows by app are planned after v1, see below.
 
 ## After v1: window preview (M6)
-Hovering an entry shows a panel above it with the app icon and name, the window title and a thumbnail of that window. Entries aren't grouped by app, so a preview always shows one window.
+Hovering an entry shows a panel above it with the app icon and name, the window title and a thumbnail of that window. A preview always shows one window, so a group entry (M7) has no preview: its window list takes that place.
 
 - **Opt-in:** off by default, toggled by a "Show window previews" item in the entry's right-click menu. The bar works fully without Screen Recording, and macOS only prompts when previews are turned on. With previews off, nothing appears and the icon-only tooltip stays as it is. If the permission is denied, no preview appears.
 - **Showing and dismissing:** the panel appears after about 300ms of hover, and also on keyboard focus. Esc dismisses it, and it stays open while the pointer is over it (WCAG 1.4.13).
@@ -50,6 +50,16 @@ Hovering an entry shows a panel above it with the app icon and name, the window 
 - **Cache, if needed:** in memory only, never written to disk. It's filled on hover and drops an image when its window closes, so a window minimized with its yellow button and never hovered shows the header only.
 - **Ambiguous match:** if the window can't be identified with certainty, the panel shows the header only. Showing another window's content is worse than showing none.
 - **Accessibility:** the panel honors *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*, like the bar.
+
+## After v1: settings (M7)
+A settings window, opened with "Settings…" from the right-click menu of an entry or of the empty bar. Settings are global, apply immediately and are saved in `UserDefaults`. The defaults keep the behavior of v1.
+
+- **Group windows:** Never (default), When full or Always. Each bar decides for itself, because bars differ in width.
+  - **When full:** apps merge when entries would drop below about 120pt (48pt in Icon only mode). The app with the most windows merges first, and merging stops once entries fit. On a tie, the later app on the bar merges first. If merging every app isn't enough, entries shrink as usual.
+- **Show tasks as:** Icon only, App name or Content (default, the window title). When the title isn't shown, it moves to a tooltip. VoiceOver reads it in every mode.
+  - **Icon only:** compact entries of about 48pt, packed from the left. This is the one exception to R5's equal share of the bar's width.
+- **Group entry:** all of an app's windows on that bar (2 or more), placed where the app's first window was. It shows the icon, app name and window count, or the icon and count in Icon only mode. It's highlighted if any of its windows has focus, and dimmed only if all of them are minimized.
+- **Group interactions:** a click opens a native menu above the entry that lists the windows. The focused window has a checkmark, and minimized windows say so. Picking a window raises or restores it. Middle-click does nothing, so a stray click can't close several windows. Right-click offers Close all windows, Quit and Settings….
 
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
@@ -81,12 +91,14 @@ Hovering an entry shows a panel above it with the app icon and name, the window 
 5. **M4 – Push windows away.**
 6. **M5 – Release:** archive, zip, and a cask in `adericbourg/homebrew-tap`.
 7. **M6 – Window preview:** opt-in thumbnail panel on hover, after v1. Depends on the M2 entries and their hover state.
+8. **M7 – Settings:** window grouping and task display, after v1. Depends on the M2 interactions.
 
 ## Verification (per milestone, once implemented)
 - A check executable (`swift run IonizedBarChecks`) for the pure logic, because Command Line Tools have no working test framework (no `TestingMacros` plugin, no XCTest): screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation. CI runs it too. If it can't load on the runner's older macOS, lower the minimum from 27.2 to 27.0.
 - Manual checklist on 2 displays: open, close, move and minimize windows, then check each bar. Plug and unplug a display. Switch Spaces. Quit the app and check the Dock comes back. Kill it with `kill -9`, relaunch, and check the Dock comes back. Log out and in to check launch at login. Maximize a window to check it doesn't cover the bar.
 - `brew install --cask adericbourg/tap/ionized-bar` on a clean user account.
 - Manual checklist for M6: previews on and off, a minimized window, two same-app windows with the same frame, keyboard focus and Esc, and the Screen Recording grant being denied.
+- Manual checklist for M7: every display mode with every grouping mode, and settings surviving a relaunch. Going past and back under the When full threshold, with each bar deciding on its own. Picking and restoring from a group's list, by mouse and keyboard. Opening settings with no windows open, closing with Cmd-W, and using them with VoiceOver.
 
 ## Known issues (to fix later)
 - **The Accessibility grant is lost on every `brew upgrade`.** TCC ties the grant to the code signature, and an ad-hoc or unsigned build gets a new identity on each release. Accepted for v1. Candidate fixes to evaluate later: a Developer ID with a stable Team ID and notarization, or a stable self-signed certificate used for every release. Once M6 ships, the Screen Recording grant is probably affected too (unverified).

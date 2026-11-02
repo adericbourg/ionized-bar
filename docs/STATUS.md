@@ -17,6 +17,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
 | M6 – Window preview | ⬜ | 0/6 |
+| M7 – Settings | ⬜ | 0/6 |
 
 ## Requirements
 
@@ -94,6 +95,14 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] Minimized windows: live capture or in-memory last capture, per the spike
 - [ ] Reduce Motion, Reduce Transparency and contrast on the preview panel; manual pass
 
+### M7 – Settings
+- [ ] Grouping decision with checks (`appsToGroup`, `barItems`)
+- [ ] Saved settings, re-applied to the bars without waiting for a window event
+- [ ] Task display modes: Icon only, App name, Content
+- [ ] Group entries and their window list
+- [ ] Settings window, and "Settings…" on entries and the empty bar
+- [ ] Manual pass
+
 ## Known issues (tracked)
 
 | Issue | Status |
@@ -137,3 +146,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M2 task 2 fix: each app now keeps its windows' order in a map that outlives the window cache, so a window missing from a read keeps its place when it returns, released when the window is destroyed or the app quits. First reads go through apps in pid order, so the order across apps no longer varies between launches. Build, checks and bundle pass; the app was not launched, so this is unverified with real AX data until the M2 manual pass.
 - 2026-11-02 — M2 task 3: entries below 48pt hide the title, center the icon and show the title as tooltip (kept current on title changes); entries fade in and out and animate frame changes through `NSAnimationContext` (0.12s), applied immediately with Reduce Motion. A window returning during its fade reuses the fading view. `entryWidth` checks already cover the 48pt boundary and the 220pt cap, so none added. Build, checks and bundle pass; an offscreen scratch run of `BarContentView` confirmed icon-only switch with tooltips, no duplicate on return during a fade, and removal after the fade. The app was not launched, so the animation's look and timing, Reduce Motion and real-window behaviour are unverified until the M2 manual pass. M2 at 3/6.
 - 2026-11-02 — M2 task 4: entries act on windows. A left click on mouse-up raises, minimizes an active window or restores a minimized one (`clickAction` in `IonizedBarCore`, with checks); a middle click closes; the context menu has Close, Minimize and Quit. `WindowTracker` gains `raise`, `minimize`, `restore` and `close`, on its thread, logging AX failures. Build, checks and bundle pass. A scratch run sent synthetic mouse events through a real off-screen `BarPanel`, with recording closures in place of the tracker: click decisions, mouse-up outside, middle and other buttons, menu items and their disabled state, right-click and control-click menus, and the panel staying non-key with the app inactive. The app was not launched and the scratch run made no AX calls, so the AX actions on real windows, focus staying with the raised app and real mouse input are unverified until the M2 manual pass. M2 at 4/6.
+- 2026-11-02 — Added M7 – Settings, after v1: window grouping (Never, When full, Always) and task display (Icon only, App name, Content), set in a settings window. PRODUCT.md no longer lists grouping as a non-goal, and a group entry has no M6 preview. M7 at 0/6.
