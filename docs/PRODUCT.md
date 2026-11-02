@@ -22,7 +22,7 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 
 **Interactions (KDE parity, MVP):** clicking an entry raises and focuses that window. Clicking the active entry minimizes it. Clicking a minimized entry restores it. Middle-click closes the window. Right-click opens a menu: Close, Minimize, Quit app. The right-click menu of an entry or of the empty bar also has "Quit IonizedBar", under "Settings…".
 
-**Accessibility (app UI):** every entry is a VoiceOver element with the window title, the app name and its state (active or minimized). The bar can be reached from the keyboard. This follows the spirit of WCAG 2.2 AA (contrast, focus visible).
+**Accessibility (app UI):** every entry is a VoiceOver element with the window title, the app name and its state (active or minimized). The bar can be reached from the keyboard with ⌃⌥B. This follows the spirit of WCAG 2.2 AA (contrast, focus visible).
 
 ## Look & feel
 - **Material:** frosted glass, using `NSVisualEffectView` with `blendingMode = .behindWindow`, `state = .active` and the `.hudWindow` material (or `.menu`, to be picked by eye). It follows the system light or dark appearance.

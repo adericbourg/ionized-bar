@@ -35,8 +35,23 @@ final class BarPanel: NSPanel {
         }
     }
 
+    override var canBecomeKey: Bool { true }
+
     func update(with windows: [TrackedWindow], settings: Settings) {
         content.update(with: windows, settings: settings)
+    }
+
+    func beginKeyboardMode() {
+        guard let entry = content.initialFocusEntry else { return }
+        makeKey()
+        makeFirstResponder(entry)
+    }
+
+    func endKeyboardMode() {
+        guard isKeyWindow else { return }
+        // resignKey() alone does not hand key back to the frontmost app.
+        orderOut(nil)
+        orderFrontRegardless()
     }
 }
 

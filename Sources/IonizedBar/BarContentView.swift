@@ -30,6 +30,9 @@ final class BarContentView: NSView {
     init(actions: EntryActions) {
         self.actions = actions
         super.init(frame: .zero)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel("Taskbar")
     }
 
     @available(*, unavailable)
@@ -60,6 +63,8 @@ final class BarContentView: NSView {
             windows, pid: \.pid, barWidth: bounds.width, mode: settings.grouping,
             minEntryWidth: settings.taskDisplay == .iconOnly ? Self.iconOnlyWidth : Self.groupWhenFullBelow
         )
+        let maybeFocused = window?.firstResponder as? EntryView
+        let focusedIndex = ordered.firstIndex { $0 === maybeFocused }
         var gone = entries
         ordered = items.map { item in
             let key = EntryKey(item)
@@ -76,8 +81,25 @@ final class BarContentView: NSView {
                 MainActor.assumeIsolated { self?.finishLeaving(entry) }
             }
         }
+        if let maybeFocused, let focusedIndex, !ordered.contains(maybeFocused) {
+            if ordered.isEmpty {
+                (window as? BarPanel)?.endKeyboardMode()
+            } else {
+                window?.makeFirstResponder(ordered[min(focusedIndex, ordered.count - 1)])
+            }
+        }
         needsLayout = true
     }
+
+    var initialFocusEntry: EntryView? { ordered.first(where: \.isActive) ?? ordered.first }
+
+    func moveFocus(from entry: EntryView, by offset: Int) {
+        guard let index = ordered.firstIndex(of: entry) else { return }
+        window?.makeFirstResponder(ordered[(index + offset + ordered.count) % ordered.count])
+    }
+
+    // In visual order, without the entries fading out.
+    override func accessibilityChildren() -> [Any]? { ordered }
 
     private func addEntry(_ item: BarItem<TrackedWindow>) -> EntryView {
         let entry = EntryView(item: item, actions: actions)

@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import IonizedBarCore
 
 struct EntryActions {
@@ -13,12 +14,13 @@ final class EntryView: NSView {
     private static let padding: CGFloat = 8
     private static let iconSize: CGFloat = 16
     private static let countGap: CGFloat = 2
+    private static let focusRingInset: CGFloat = 3
 
     private let actions: EntryActions
     private var item: BarItem<TrackedWindow>
     private let icon = NSImageView()
     private let title = NSTextField(labelWithString: "")
-    private var isActive = false { didSet { needsDisplay = true } }
+    private(set) var isActive = false { didSet { needsDisplay = true } }
     private var isHovered = false { didSet { needsDisplay = true } }
     private var display = TaskDisplay.content
     var isIconOnly = false {
@@ -41,6 +43,7 @@ final class EntryView: NSView {
         setAccessibilityRole(.button)
         icon.setAccessibilityElement(false)
         title.setAccessibilityElement(false)
+        focusRingType = .exterior
         // activeAlways: this app is never the active one, and inVisibleRect follows resizes.
         addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
     }
@@ -64,13 +67,12 @@ final class EntryView: NSView {
     }
 
     private var accessibilityText: String {
-        let windows = item.windows
-        let name = switch item {
-        case .window(let window): "\(window.appName), \(window.title)"
-        case .group: "\(windows[0].appName), \(windows.count) windows"
+        switch item {
+        case .window(let window):
+            entryAccessibilityLabel(title: window.title, appName: window.appName, isActive: window.isFocused, isMinimized: window.isMinimized)
+        case .group(_, let windows):
+            groupAccessibilityLabel(appName: windows[0].appName, windowCount: windows.count, isActive: isActive, isMinimized: windows.allSatisfy(\.isMinimized))
         }
-        if isActive { return "\(name), active" }
-        return windows.allSatisfy(\.isMinimized) ? "\(name), minimized" : name
     }
 
     func update(with item: BarItem<TrackedWindow>, display: TaskDisplay) {
@@ -101,6 +103,7 @@ final class EntryView: NSView {
         let titleSize = title.intrinsicContentSize
         let titleWidth = isCountShown ? titleSize.width : max(0, bounds.width - titleX - Self.padding)
         title.frame = CGRect(x: titleX, y: ((bounds.height - titleSize.height) / 2).rounded(), width: titleWidth, height: titleSize.height)
+        noteFocusRingMaskChanged()
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -129,15 +132,56 @@ final class EntryView: NSView {
         if event.buttonNumber == 2 && isInside(event), case .window(let window) = item { actions.close(window) }
     }
 
-    override func accessibilityPerformPress() -> Bool {
-        performClickAction()
-        return true
-    }
-
     override func menu(for event: NSEvent) -> NSMenu? { contextMenu() }
 
     private func isInside(_ event: NSEvent) -> Bool {
         bounds.contains(convert(event.locationInWindow, from: nil))
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+
+    // Follows acceptsFirstResponder by default, which would make every click take key from the frontmost app.
+    override var needsPanelToBecomeKey: Bool { false }
+
+    // Inset: entries fill the bar, so a ring around the bounds would be clipped by the panel's edges.
+    override func drawFocusRingMask() {
+        NSBezierPath(roundedRect: bounds.insetBy(dx: Self.focusRingInset, dy: Self.focusRingInset), xRadius: 4, yRadius: 4).fill()
+    }
+
+    override var focusRingMaskBounds: NSRect { bounds }
+
+    override func keyDown(with event: NSEvent) {
+        let content = superview as? BarContentView
+        let panel = window as? BarPanel
+        switch Int(event.keyCode) {
+        case kVK_Tab: content?.moveFocus(from: self, by: event.modifierFlags.contains(.shift) ? -1 : 1)
+        case kVK_LeftArrow: content?.moveFocus(from: self, by: -1)
+        case kVK_RightArrow: content?.moveFocus(from: self, by: 1)
+        case kVK_Return, kVK_Space:
+            performClickAction()
+            panel?.endKeyboardMode()
+        case kVK_F10 where event.modifierFlags.contains(.shift): showContextMenu()
+        case kVK_Escape: panel?.endKeyboardMode()
+        default: super.keyDown(with: event)
+        }
+    }
+
+    // Deferred: a menu's tracking would otherwise hold the accessibility reply until the menu closes.
+    override func accessibilityPerformPress() -> Bool {
+        Task { @MainActor in performClickAction() }
+        return true
+    }
+
+    override func accessibilityPerformShowMenu() -> Bool {
+        Task { @MainActor in showContextMenu() }
+        return true
+    }
+
+    private func showContextMenu() { popUpAbove(contextMenu()) }
+
+    private func popUpAbove(_ menu: NSMenu) {
+        // popUp places the menu's top-left at this point, so this puts the whole menu above the entry.
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: bounds.height + menu.size.height), in: self)
     }
 
     func performClickAction() {
@@ -149,9 +193,7 @@ final class EntryView: NSView {
             case .restore: actions.restore(window)
             }
         case .group(_, let windows):
-            let menu = windowList(windows)
-            // popUp places the menu's top-left at this point, so this puts the whole menu above the entry.
-            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: bounds.height + menu.size.height), in: self)
+            popUpAbove(windowList(windows))
         }
     }
 

@@ -12,7 +12,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ✅ | 5/5 |
-| M2 – Bars | 🚧 | 4/6 |
+| M2 – Bars | 🚧 | 5/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
@@ -69,7 +69,38 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Interactions: click, click on active, middle-click, context menu
 - [ ] Frosted glass vs Liquid Glass prototype, pick one
   - Compare: `open --env IONIZED_BAR_MATERIAL=liquid --stderr "$(tty)" build/IonizedBar.app` (Liquid Glass); without the env, frosted (default).
-- [ ] VoiceOver labels, keyboard access, Reduce Transparency and Reduce Motion
+- [x] VoiceOver labels, keyboard access, Reduce Transparency and Reduce Motion
+
+### M2 manual pass
+- [ ] Add and remove a display
+- [ ] Resolution change
+- [ ] Display arrangement change
+- [ ] Each entry state in light and dark: normal, hover, active, minimized
+- [ ] Equal width and icon-only with many windows
+- [ ] Click an entry
+- [ ] Click the active entry
+- [ ] Click a minimized entry
+- [ ] Middle-click
+- [ ] Each menu item: Close, Minimize, Quit
+- [ ] No focus steal on click
+- [ ] VoiceOver reads an entry
+- [ ] VoiceOver and keyboard on a group entry: its label, press and Return open the window list, and the list works with the keyboard
+- [ ] ⌃⌥B, arrows, Return and Escape; the focus ring is visible, also on the active entry, and focus returns to the frontmost app
+- [ ] Reduce Transparency
+- [ ] Increase Contrast
+- [ ] Reduce Motion
+- [ ] Minimized title contrast: PRODUCT.md asks for both about 50% opacity and 4.5:1
+- [ ] Entry order across a Space round trip: a window AX stops listing while on another Space goes last when it returns
+- [ ] Adjacent highlights touching: entries fill the bar height with no inset
+- [ ] Active-entry text contrast on the accent color, across accent colors: `alternateSelectedControlTextColor` on `controlAccentColor` may be under 4.5:1
+- [ ] Hover highlight after entries reflow under a still cursor
+- [ ] First click on the never-key panel, over the title and under `IONIZED_BAR_MATERIAL=liquid`
+- [ ] Focus lands on the raised window
+- [ ] A quick second click on an entry
+- [ ] Middle press on one entry and release on another
+- [ ] Tooltips while the app is inactive
+- [ ] Accent color change redraws live
+- [ ] Material pick
 
 ### M3 – Dock replacement and launch at login
 - [ ] Save the Dock prefs, then autohide with a huge delay (R6)
@@ -154,3 +185,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M7 task 5 check: the real `SettingsWindow`, driven from a scratch harness, shows the saved selection, reports each change through `onChange`, closes on Cmd-W but not on a plain W, and reopens. Its layout frames are centered and unambiguous. An offscreen capture came out blank, so its look, activation and real pop-up use are still unverified until the manual pass. M7 stays at 5/6.
 - 2026-11-02 — M7 manual pass: the user reported "all good", with no per-item results recorded. M7 done, 6/6.
 - 2026-11-02 — Added "Quit IonizedBar" under "Settings…" in the right-click menu of entries and of the empty bar, through `NSApplication.terminate`. No milestone change.
+- 2026-11-02 — M2 task 6: entries are VoiceOver buttons labelled by `entryAccessibilityLabel` (in `IonizedBarCore`, with checks), with press and show-menu actions, in a "Taskbar" group. ⌃⌥B (Carbon `RegisterEventHotKey`, `BarHotKey`) makes the panel under the mouse key and focuses the active entry, else the first; Tab, Shift-Tab, Left and Right wrap, Return and Space click and end keyboard mode, Shift-F10 opens the menu, Escape ends it. A focused entry that goes away passes focus to its neighbour, and an emptied bar ends keyboard mode. `EntryView` sets `needsPanelToBecomeKey` to false: it follows `acceptsFirstResponder` by default, and a scratch run showed clicks then making the panel key. No code added for Reduce Transparency or Increase Contrast, which are expected to adapt on their own. Build, checks and bundle pass. A scratch run with a recording panel covered focus, wrap, visual order, fading entries, removal, each key, the accessibility values and actions, and a synthetic click on an off-screen panel staying non-key. The app was not launched, and the hotkey, real key status, handing key back to the frontmost app, the focus ring's look, the context menu popping up from the keyboard, VoiceOver itself and the accessibility settings are unverified until the M2 manual pass. Rebased onto M7: a group entry reads "<app>, <n> windows" plus its state (`groupAccessibilityLabel`, with checks), keyboard mode moves through groups, Return and Space open its native window list, and every display mode keeps the full label. VoiceOver presses are deferred so a menu does not hold the accessibility reply. A scratch run covered these too, with the menus replaced by counters, so the list's keyboard handling while the panel is key is unverified until the manual pass. M2 at 5/6, the material box stays open until the user picks.

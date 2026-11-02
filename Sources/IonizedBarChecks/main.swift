@@ -128,6 +128,34 @@ do {
     check("clickAction_whenMinimizedAndActive_restores", clickAction(isActive: true, isMinimized: true) == .restore)
 }
 
+// entryAccessibilityLabel
+do {
+    // Given an entry's title, app and state, When building its label
+    func label(title: String = "Notes", isActive: Bool = false, isMinimized: Bool = false) -> String {
+        entryAccessibilityLabel(title: title, appName: "TextEdit", isActive: isActive, isMinimized: isMinimized)
+    }
+    // Then it reads title, app, then state; minimized wins over active, as in clickAction
+    check("entryAccessibilityLabel_whenInactive_readsTitleAndApp", label() == "Notes, TextEdit")
+    check("entryAccessibilityLabel_whenActive_endsWithActive", label(isActive: true) == "Notes, TextEdit, active")
+    check("entryAccessibilityLabel_whenMinimized_endsWithMinimized", label(isMinimized: true) == "Notes, TextEdit, minimized")
+    check("entryAccessibilityLabel_whenMinimizedAndActive_endsWithMinimized", label(isActive: true, isMinimized: true) == "Notes, TextEdit, minimized")
+    check("entryAccessibilityLabel_ofEmptyTitle_startsWithApp", label(title: "") == "TextEdit")
+    check("entryAccessibilityLabel_ofEmptyTitleWhenActive_startsWithApp", label(title: "", isActive: true) == "TextEdit, active")
+}
+
+// groupAccessibilityLabel
+do {
+    // Given a group of 3 windows, When building its label
+    func label(isActive: Bool = false, isMinimized: Bool = false) -> String {
+        groupAccessibilityLabel(appName: "TextEdit", windowCount: 3, isActive: isActive, isMinimized: isMinimized)
+    }
+    // Then it names the app and the count, then the state; minimized wins over active
+    check("groupAccessibilityLabel_whenInactive_readsAppAndCount", label() == "TextEdit, 3 windows")
+    check("groupAccessibilityLabel_whenActive_endsWithActive", label(isActive: true) == "TextEdit, 3 windows, active")
+    check("groupAccessibilityLabel_whenMinimized_endsWithMinimized", label(isMinimized: true) == "TextEdit, 3 windows, minimized")
+    check("groupAccessibilityLabel_whenMinimizedAndActive_endsWithMinimized", label(isActive: true, isMinimized: true) == "TextEdit, 3 windows, minimized")
+}
+
 // appsToGroup
 do {
     // Given apps in bar order: pid 1 has 2 windows, pid 2 has 4, pid 3 has 2, pid 4 has 1 (9 entries)

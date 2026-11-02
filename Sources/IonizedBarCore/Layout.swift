@@ -81,6 +81,16 @@ public func clickAction(isActive: Bool, isMinimized: Bool) -> EntryClickAction {
     return isActive ? .minimize : .raise
 }
 
+public func entryAccessibilityLabel(title: String, appName: String, isActive: Bool, isMinimized: Bool) -> String {
+    let name = title.isEmpty ? appName : "\(title), \(appName)"
+    if isMinimized { return "\(name), minimized" }
+    return isActive ? "\(name), active" : name
+}
+
+public func groupAccessibilityLabel(appName: String, windowCount: Int, isActive: Bool, isMinimized: Bool) -> String {
+    entryAccessibilityLabel(title: "", appName: "\(appName), \(windowCount) windows", isActive: isActive, isMinimized: isMinimized)
+}
+
 public enum GroupingMode: String, CaseIterable, Sendable {
     case never, whenFull, always
 }

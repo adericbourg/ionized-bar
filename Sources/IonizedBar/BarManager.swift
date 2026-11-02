@@ -36,6 +36,12 @@ final class BarManager {
         }
     }
 
+    func beginKeyboardMode() {
+        let mouse = NSEvent.mouseLocation
+        guard let id = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) })?.displayID else { return }
+        panels[id]?.beginKeyboardMode()
+    }
+
     func update(windowsByDisplay: [UInt32: [TrackedWindow]]) {
         latestWindowsByDisplay = windowsByDisplay
         for (id, panel) in panels {

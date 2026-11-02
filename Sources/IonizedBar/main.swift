@@ -14,6 +14,7 @@ let windowTracker = WindowTracker { windows in
 // Annotated: the tracker's closure uses barManager, which would make type inference circular.
 let barManager: BarManager = BarManager(windowTracker: windowTracker)
 barManager.sync()
+BarHotKey.register { barManager.beginKeyboardMode() }
 
 let tracker = AppTracker(
     onLaunch: { pid in
