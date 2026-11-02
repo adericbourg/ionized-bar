@@ -79,7 +79,10 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | Gatekeeper quarantine on install | ⬜ open, accepted for v1 |
 | A minimized window on another Space cannot be told apart, so it is listed (public APIs cannot map an AX element to a `CGWindowID`) | ⬜ open, accepted for v1 |
 | Native tabs are listed as duplicates while minimized (one entry per tab, seen on TextEdit; not seen while hidden) | ⬜ open, accepted for v1 |
-| A hidden app's panels and dialogs can be listed: the subrole reads `AXDialog` for every window while minimized or hidden, on macOS 27.2 | ⬜ open, accepted for v1 |
+| A hidden app's dialogs, and minimized dialogs, can be listed: real windows read as `AXDialog` in those states on macOS 27.2, so they cannot be told apart. An app reporting another subrole in those states is not listed | ⬜ open, accepted for v1 |
+| Two same-app windows with the same frame on different Spaces cannot be told apart (both are listed if AX lists both), and a hidden app's other-Space windows are listed too | ⬜ open, accepted for v1 |
+| A hung or retrying app's windows skip the Space check, so they stay listed across a Space switch while it hangs (an `.apiDisabled` state turns off Space filtering for every app) | ⬜ open, accepted for v1 |
+| The minimized flag can show about 1.6s late, because the first read during the animation fails and waits for the retry | ⬜ open, accepted for v1 |
 
 ## Log
 
@@ -95,3 +98,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M1 task 3: `WindowTracker` hosts one `AXObserver` per app on a dedicated thread and publishes debounced window snapshots, logged to stderr. `kAXUIElementDestroyed` is registered on the app element and filtered to known windows, because it never fires on window elements on macOS 27.2. `setFrontmost` on activation is still to check by hand. M1 at 3/5.
 - 2026-11-02 — M1 task 3 fix: a failed window read keeps the cached windows and retries about once a second, so a busy app no longer loses an update and a hung app costs at most one 0.25s timeout per retry. Only `noValue`, `attributeUnsupported` and `invalidUIElement` count as no windows. M1 stays at 3/5.
 - 2026-11-02 — M1 task 4: only `AXStandardWindow` windows are listed, and only those on the active Space (AX frame matched to the CG on-screen list by pid and bounds within 2pt). Minimized and hidden windows skip both checks, because AppKit reports them as `AXDialog` on macOS 27.2. Windows that just moved, and apps whose read failed, skip the Space check, since their frames can be stale. Real mouse drags and Space switches are still to check by hand. M1 at 4/5.
+- 2026-11-02 — M1 task 4 fix: the state exception now admits only `AXDialog`, through `isRealWindow` in `IonizedBarCore` with checks, so hiding an app no longer lists its desktop or system windows. Measured on TextEdit: no window reads as `AXDialog` once it is neither minimized nor hidden. M1 stays at 4/5.

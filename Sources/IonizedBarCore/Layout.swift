@@ -52,6 +52,11 @@ public func entryWidth(
     return EntryWidth(width: width, isIconOnly: width < iconOnlyBelow)
 }
 
+public func isRealWindow(subrole: String?, isMinimized: Bool, isAppHidden: Bool) -> Bool {
+    // AppKit reports AXDialog for a standard window while it is minimized or its app hidden (macOS 27.2).
+    subrole == "AXStandardWindow" || ((isMinimized || isAppHidden) && subrole == "AXDialog")
+}
+
 public func isOnCurrentSpace(pid: Int32, frame: CGRect, isMinimized: Bool, isAppHidden: Bool, onScreen: [OnScreenWindow]) -> Bool {
     if isMinimized || isAppHidden { return true }
     return onScreen.contains { window in

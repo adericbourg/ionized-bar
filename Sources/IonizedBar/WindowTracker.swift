@@ -26,8 +26,8 @@ final class WindowTracker: @unchecked Sendable {
     private struct CachedWindow {
         let element: AXUIElement
         let window: TrackedWindow
-        /// AppKit reports `AXDialog` while a window is minimized or its app hidden (macOS 27.2): test at publish, not at read.
-        let isStandard: Bool
+        /// Tested at publish, not at read: it depends on the hidden state, and hiding fires no read.
+        let subrole: String?
     }
 
     private static let appNotifications = [
@@ -209,8 +209,8 @@ final class WindowTracker: @unchecked Sendable {
             let isAppHidden = NSRunningApplication(processIdentifier: pid)?.isHidden ?? false
             return apps[pid]!.windows.compactMap { cached -> TrackedWindow? in
                 var window = cached.window
-                guard cached.isStandard || window.isMinimized || isAppHidden else { return nil }
-                // A failed read leaves a stale frame, which happens on every minimize (the app is busy animating).
+                guard isRealWindow(subrole: cached.subrole, isMinimized: window.isMinimized, isAppHidden: isAppHidden) else { return nil }
+                // A failed read leaves a stale frame. Measured on TextEdit: the first read after a minimize fails.
                 guard retrying.contains(pid) || moving.contains(cached.element) || isOnCurrentSpace(pid: pid, frame: window.frame, isMinimized: window.isMinimized, isAppHidden: isAppHidden, onScreen: onScreen) else { return nil }
                 window.isFocused = window.isFocused && pid == frontmost
                 return window
@@ -270,7 +270,7 @@ final class WindowTracker: @unchecked Sendable {
                 frame: CGRect(origin: position, size: size),
                 isMinimized: attributes[3] as? Bool ?? false,
                 isFocused: focusedValue.map { CFEqual($0, element) } ?? false
-            ), isStandard: attributes[4] as? String == kAXStandardWindowSubrole))
+            ), subrole: attributes[4] as? String))
         }
         return windows
     }
