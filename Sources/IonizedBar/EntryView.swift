@@ -1,9 +1,19 @@
 import AppKit
+import IonizedBarCore
+
+struct EntryActions {
+    let raise: (TrackedWindow) -> Void
+    let minimize: (TrackedWindow) -> Void
+    let restore: (TrackedWindow) -> Void
+    let close: (TrackedWindow) -> Void
+}
 
 final class EntryView: NSView {
     private static let padding: CGFloat = 8
     private static let iconSize: CGFloat = 16
 
+    private let actions: EntryActions
+    private var tracked: TrackedWindow
     private let icon = NSImageView()
     private let title = NSTextField(labelWithString: "")
     private var isActive = false { didSet { needsDisplay = true } }
@@ -17,9 +27,11 @@ final class EntryView: NSView {
         }
     }
 
-    init(pid: pid_t) {
+    init(window: TrackedWindow, actions: EntryActions) {
+        tracked = window
+        self.actions = actions
         super.init(frame: .zero)
-        icon.image = NSRunningApplication(processIdentifier: pid)?.icon
+        icon.image = NSRunningApplication(processIdentifier: window.pid)?.icon
         title.lineBreakMode = .byTruncatingTail
         addSubview(icon)
         addSubview(title)
@@ -31,6 +43,7 @@ final class EntryView: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     func update(with window: TrackedWindow) {
+        tracked = window
         isActive = window.isFocused
         icon.alphaValue = window.isMinimized ? 0.5 : 1
         title.stringValue = window.title
@@ -58,4 +71,48 @@ final class EntryView: NSView {
 
     override func mouseEntered(with event: NSEvent) { isHovered = true }
     override func mouseExited(with event: NSEvent) { isHovered = false }
+
+    // Keeps the icon and title out of event dispatch: a control-click on the title opens no menu otherwise.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        super.hitTest(point) == nil ? nil : self
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseUp(with event: NSEvent) {
+        // A control-click opens the menu: its mouse-up is not a click.
+        if isInside(event) && !event.modifierFlags.contains(.control) { performClickAction() }
+    }
+
+    override func otherMouseUp(with event: NSEvent) {
+        if event.buttonNumber == 2 && isInside(event) { actions.close(tracked) }
+    }
+
+    override func menu(for event: NSEvent) -> NSMenu? { contextMenu() }
+
+    private func isInside(_ event: NSEvent) -> Bool {
+        bounds.contains(convert(event.locationInWindow, from: nil))
+    }
+
+    func performClickAction() {
+        switch clickAction(isActive: tracked.isFocused, isMinimized: tracked.isMinimized) {
+        case .raise: actions.raise(tracked)
+        case .minimize: actions.minimize(tracked)
+        case .restore: actions.restore(tracked)
+        }
+    }
+
+    func contextMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.addItem(withTitle: "Close", action: #selector(closeWindow), keyEquivalent: "")
+        menu.addItem(withTitle: "Minimize", action: #selector(minimizeWindow), keyEquivalent: "").isEnabled = !tracked.isMinimized
+        menu.addItem(withTitle: "Quit \(tracked.appName)", action: #selector(quitApp), keyEquivalent: "")
+        menu.items.forEach { $0.target = self }
+        return menu
+    }
+
+    @objc private func closeWindow() { actions.close(tracked) }
+    @objc private func minimizeWindow() { actions.minimize(tracked) }
+    @objc private func quitApp() { NSRunningApplication(processIdentifier: tracked.pid)?.terminate() }
 }

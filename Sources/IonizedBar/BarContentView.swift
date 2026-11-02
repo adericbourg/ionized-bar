@@ -2,6 +2,7 @@ import AppKit
 import IonizedBarCore
 
 final class BarContentView: NSView {
+    private let actions: EntryActions
     private var entries: [AXUIElement: EntryView] = [:]
     private var ordered: [EntryView] = []
     // Entries fading out; one is revived if its window returns before the fade ends.
@@ -9,6 +10,14 @@ final class BarContentView: NSView {
 
     private static let duration: TimeInterval = 0.12
     private var isMotionReduced: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+
+    init(actions: EntryActions) {
+        self.actions = actions
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
 
     private func animate(_ changes: () -> Void, completion: (@Sendable () -> Void)? = nil) {
         NSAnimationContext.runAnimationGroup({ context in
@@ -20,7 +29,7 @@ final class BarContentView: NSView {
     func update(with windows: [TrackedWindow]) {
         var gone = entries
         ordered = windows.map { window in
-            let entry = entries[window.element] ?? revive(window.element) ?? addEntry(pid: window.pid)
+            let entry = entries[window.element] ?? revive(window.element) ?? addEntry(window)
             entries[window.element] = entry
             gone[window.element] = nil
             entry.update(with: window)
@@ -36,8 +45,8 @@ final class BarContentView: NSView {
         needsLayout = true
     }
 
-    private func addEntry(pid: pid_t) -> EntryView {
-        let entry = EntryView(pid: pid)
+    private func addEntry(_ window: TrackedWindow) -> EntryView {
+        let entry = EntryView(window: window, actions: actions)
         entry.alphaValue = 0
         addSubview(entry)
         animate { entry.animator().alphaValue = 1 }

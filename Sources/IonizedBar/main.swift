@@ -7,12 +7,13 @@ if !AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary) {
     log("Accessibility permission required; waiting for it to be granted")
 }
 
-let barManager = BarManager()
-barManager.sync()
-
 let windowTracker = WindowTracker { windows in
     Task { @MainActor in WindowModel.update(windows, barManager: barManager) }
 }
+
+// Annotated: the tracker's closure uses barManager, which would make type inference circular.
+let barManager: BarManager = BarManager(windowTracker: windowTracker)
+barManager.sync()
 
 let tracker = AppTracker(
     onLaunch: { pid in

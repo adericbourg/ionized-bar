@@ -118,6 +118,16 @@ do {
           barFrame(screenFrame: screen, height: 20).height == 20)
 }
 
+// clickAction
+do {
+    // Given an entry's state, When clicking, Then minimized restores (even if flagged active),
+    // active minimizes, and anything else raises.
+    check("clickAction_whenInactive_raises", clickAction(isActive: false, isMinimized: false) == .raise)
+    check("clickAction_whenActive_minimizes", clickAction(isActive: true, isMinimized: false) == .minimize)
+    check("clickAction_whenMinimized_restores", clickAction(isActive: false, isMinimized: true) == .restore)
+    check("clickAction_whenMinimizedAndActive_restores", clickAction(isActive: true, isMinimized: true) == .restore)
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

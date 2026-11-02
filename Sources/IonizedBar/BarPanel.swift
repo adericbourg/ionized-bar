@@ -1,9 +1,10 @@
 import AppKit
 
 final class BarPanel: NSPanel {
-    private let content = BarContentView()
+    private let content: BarContentView
 
-    init(frame: CGRect) {
+    init(frame: CGRect, actions: EntryActions) {
+        content = BarContentView(actions: actions)
         super.init(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         level = .statusBar
         collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]

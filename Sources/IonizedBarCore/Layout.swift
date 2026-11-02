@@ -71,3 +71,12 @@ public func isOnCurrentSpace(pid: Int32, frame: CGRect, isMinimized: Bool, isApp
 public func barFrame(screenFrame: CGRect, height: CGFloat = 36) -> CGRect {
     CGRect(x: screenFrame.minX, y: screenFrame.minY, width: screenFrame.width, height: height)
 }
+
+public enum EntryClickAction {
+    case raise, minimize, restore
+}
+
+public func clickAction(isActive: Bool, isMinimized: Bool) -> EntryClickAction {
+    if isMinimized { return .restore }
+    return isActive ? .minimize : .raise
+}

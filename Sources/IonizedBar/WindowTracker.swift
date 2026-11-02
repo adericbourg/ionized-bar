@@ -112,6 +112,59 @@ final class WindowTracker: @unchecked Sendable {
         }
     }
 
+    func raise(_ window: TrackedWindow) {
+        onThread { [self] in performRaise(window) }
+    }
+
+    func minimize(_ window: TrackedWindow) {
+        onThread { [self] in
+            set(kAXMinimizedAttribute, to: true, on: window.element, of: window)
+        }
+    }
+
+    func restore(_ window: TrackedWindow) {
+        onThread { [self] in
+            set(kAXMinimizedAttribute, to: false, on: window.element, of: window)
+            performRaise(window)
+        }
+    }
+
+    func close(_ window: TrackedWindow) {
+        onThread { [self] in
+            var button: CFTypeRef?
+            let error = AXUIElementCopyAttributeValue(window.element, kAXCloseButtonAttribute as CFString, &button)
+            guard error == .success, let button else {
+                log("no close button on \(window.appName) \"\(window.title)\": AX error \(error.rawValue)")
+                return
+            }
+            perform(kAXPressAction, on: button as! AXUIElement, of: window)
+        }
+    }
+
+    private func performRaise(_ window: TrackedWindow) {
+        if let app = NSRunningApplication(processIdentifier: window.pid), app.isHidden, !app.unhide() {
+            log("unhide failed for \(window.appName) pid=\(window.pid)")
+        }
+        // Not NSRunningApplication.activate: unreliable from a background app since macOS 14's cooperative activation.
+        set(kAXFrontmostAttribute, to: true, on: AXUIElementCreateApplication(window.pid), of: window)
+        set(kAXMainAttribute, to: true, on: window.element, of: window)
+        perform(kAXRaiseAction, on: window.element, of: window)
+    }
+
+    private func set(_ attribute: String, to value: Bool, on element: AXUIElement, of window: TrackedWindow) {
+        let error = AXUIElementSetAttributeValue(element, attribute as CFString, value as CFBoolean)
+        if error != .success {
+            log("setting \(attribute) failed for \(window.appName) \"\(window.title)\": AX error \(error.rawValue)")
+        }
+    }
+
+    private func perform(_ action: String, on element: AXUIElement, of window: TrackedWindow) {
+        let error = AXUIElementPerformAction(element, action as CFString)
+        if error != .success {
+            log("\(action) failed for \(window.appName) \"\(window.title)\": AX error \(error.rawValue)")
+        }
+    }
+
     private func onThread(_ block: @escaping @Sendable () -> Void) {
         CFRunLoopPerformBlock(runLoop, CFRunLoopMode.defaultMode.rawValue, block)
         CFRunLoopWakeUp(runLoop)
