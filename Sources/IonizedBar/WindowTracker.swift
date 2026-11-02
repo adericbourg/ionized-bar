@@ -134,7 +134,7 @@ final class WindowTracker: @unchecked Sendable {
             var button: CFTypeRef?
             let error = AXUIElementCopyAttributeValue(window.element, kAXCloseButtonAttribute as CFString, &button)
             guard error == .success, let button else {
-                log("no close button on \(window.appName) \"\(window.title)\": AX error \(error.rawValue)")
+                log("no close button on \(window.appName) pid=\(window.pid): AX error \(error.rawValue)")
                 return
             }
             perform(kAXPressAction, on: button as! AXUIElement, of: window)
@@ -154,14 +154,14 @@ final class WindowTracker: @unchecked Sendable {
     private func set(_ attribute: String, to value: Bool, on element: AXUIElement, of window: TrackedWindow) {
         let error = AXUIElementSetAttributeValue(element, attribute as CFString, value as CFBoolean)
         if error != .success {
-            log("setting \(attribute) failed for \(window.appName) \"\(window.title)\": AX error \(error.rawValue)")
+            log("setting \(attribute) failed for \(window.appName) pid=\(window.pid): AX error \(error.rawValue)")
         }
     }
 
     private func perform(_ action: String, on element: AXUIElement, of window: TrackedWindow) {
         let error = AXUIElementPerformAction(element, action as CFString)
         if error != .success {
-            log("\(action) failed for \(window.appName) \"\(window.title)\": AX error \(error.rawValue)")
+            log("\(action) failed for \(window.appName) pid=\(window.pid): AX error \(error.rawValue)")
         }
     }
 

@@ -12,30 +12,13 @@ enum WindowModel {
             return Display(id: id, frame: screen.frame)
         }
         var byDisplay: [UInt32: [TrackedWindow]] = [:]
-        var unassigned: [TrackedWindow] = []
         for window in windows {
             let frame = flipRect(window.frame, primaryScreenHeight: primary.frame.height)
             if let display = assignDisplay(windowFrame: frame, displays: displays) {
                 byDisplay[display.id, default: []].append(window)
-            } else {
-                unassigned.append(window)
             }
         }
-        log("snapshot: \(windows.count) windows on \(displays.count) displays")
-        for display in displays {
-            let assigned = byDisplay[display.id] ?? []
-            log("  display \(display.id): \(assigned.count) windows")
-            assigned.forEach(logWindow)
-        }
-        if !unassigned.isEmpty {
-            log("  unassigned: \(unassigned.count) windows")
-            unassigned.forEach(logWindow)
-        }
         barManager.update(windowsByDisplay: byDisplay)
-    }
-
-    private static func logWindow(_ window: TrackedWindow) {
-        log("    \(window.appName) \"\(window.title)\" minimized=\(window.isMinimized) focused=\(window.isFocused)")
     }
 }
 
