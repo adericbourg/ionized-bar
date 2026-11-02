@@ -63,6 +63,10 @@ open --stderr "$(tty)" build/IonizedBar.app
 
 Checks: `swift run IonizedBarChecks` runs the pure-logic checks (no XCTest on Command Line Tools) and exits non-zero on failure.
 
+## Releasing
+
+Apple silicon only. `./scripts/archive.sh` builds the bundle and zips it into `build/IonizedBar-<version>.zip`, printing the path and its sha256 (for the cask). To release: bump `CFBundleShortVersionString` and `CFBundleVersion` in `Support/Info.plist`, commit, then push a tag `v<version>`, for example `v0.1.0`. The Release workflow fails if the tag doesn't match the plist, runs the checks and attaches the zip to a GitHub release.
+
 ## License
 
 [GPLv3](LICENSE)
