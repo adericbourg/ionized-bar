@@ -14,7 +14,24 @@ final class BarPanel: NSPanel {
         isMovable = false
         becomesKeyOnlyIfNeeded = true
         isReleasedWhenClosed = false
-        contentView = BarBackground(content: content)
+        let surface = BarSurface(content: content)
+        // ponytail: temporary switch to compare materials by eye; delete it and the losing branch once the user picks.
+        if ProcessInfo.processInfo.environment["IONIZED_BAR_MATERIAL"] == "liquid" {
+            let glass = NSGlassEffectView()
+            glass.style = .regular
+            glass.cornerRadius = 0
+            glass.contentView = surface
+            contentView = glass
+        } else {
+            let frosted = NSVisualEffectView()
+            frosted.blendingMode = .behindWindow
+            frosted.state = .active
+            frosted.material = .hudWindow
+            surface.frame = frosted.bounds
+            surface.autoresizingMask = [.width, .height]
+            frosted.addSubview(surface)
+            contentView = frosted
+        }
     }
 
     func update(with windows: [TrackedWindow]) {
@@ -22,16 +39,13 @@ final class BarPanel: NSPanel {
     }
 }
 
-private final class BarBackground: NSVisualEffectView {
+private final class BarSurface: NSView {
     private let content: NSView
     private let hairline = HairlineView()
 
     init(content: NSView) {
         self.content = content
         super.init(frame: .zero)
-        blendingMode = .behindWindow
-        state = .active
-        material = .hudWindow
         addSubview(content)
         addSubview(hairline)
     }
