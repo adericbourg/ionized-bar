@@ -36,7 +36,7 @@ final class WindowTracker: @unchecked Sendable {
         kAXTitleChangedNotification, kAXUIElementDestroyedNotification, kAXApplicationShownNotification
     ]
     private static let windowAttributes = [kAXTitleAttribute, kAXPositionAttribute, kAXSizeAttribute, kAXMinimizedAttribute, kAXSubroleAttribute]
-    private static let maxAttachRetries = 10
+    private static let fastAttachRetries = 10
 
     private let onChange: @Sendable ([TrackedWindow]) -> Void
     private var runLoop: CFRunLoop!
@@ -80,7 +80,7 @@ final class WindowTracker: @unchecked Sendable {
             }
             CFRunLoopAddSource(runLoop, AXObserverGetRunLoopSource(observer), .defaultMode)
             apps[pid] = App(name: name, element: AXUIElementCreateApplication(pid), observer: observer)
-            attach(pid, retriesLeft: Self.maxAttachRetries)
+            attach(pid, fastRetriesLeft: Self.fastAttachRetries)
         }
     }
 
@@ -94,7 +94,8 @@ final class WindowTracker: @unchecked Sendable {
 
     func markAllDirty() {
         onThread { [self] in
-            dirty.formUnion(Set(apps.keys).subtracting(retrying))
+            // An app still attaching may never answer, and gets read once its attach succeeds.
+            dirty.formUnion(Set(apps.filter { $0.value.retry == nil }.keys).subtracting(retrying))
             scheduleRefresh()
         }
     }
@@ -126,7 +127,7 @@ final class WindowTracker: @unchecked Sendable {
         markDirty(pid)
     }
 
-    private func attach(_ pid: pid_t, retriesLeft: Int) {
+    private func attach(_ pid: pid_t, fastRetriesLeft: Int) {
         guard let app = apps[pid] else { return }
         // Unretained: the tracker lives as long as the process.
         let refcon = Unmanaged.passUnretained(self).toOpaque()
@@ -134,9 +135,11 @@ final class WindowTracker: @unchecked Sendable {
             switch AXObserverAddNotification(app.observer, app.element, name as CFString, refcon) {
             case .success, .notificationAlreadyRegistered, .notificationUnsupported:
                 continue
-            case .cannotComplete where retriesLeft > 0:
-                apps[pid]?.retry = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [self] _ in
-                    attach(pid, retriesLeft: retriesLeft - 1)
+            case .cannotComplete:
+                // Keeps going until removeApp: knownPids still holds the pid, so it would never come back.
+                if fastRetriesLeft == 0 { log("\(app.name) pid=\(pid) not answering; retrying attach every 5s") }
+                apps[pid]?.retry = Timer.scheduledTimer(withTimeInterval: fastRetriesLeft > 0 ? 0.5 : 5, repeats: false) { [self] _ in
+                    attach(pid, fastRetriesLeft: fastRetriesLeft - 1)
                 }
                 return
             case let error:
@@ -145,6 +148,7 @@ final class WindowTracker: @unchecked Sendable {
                 return
             }
         }
+        apps[pid]?.retry = nil
         markDirty(pid)
     }
 
@@ -199,8 +203,8 @@ final class WindowTracker: @unchecked Sendable {
             if let windows = readWindows(pid: pid, app: app) {
                 apps[pid]?.windows = windows
                 retrying.remove(pid)
-            } else {
-                retrying.insert(pid)
+            } else if retrying.insert(pid).inserted {
+                log("read failed for \(app.name) pid=\(pid); retrying")
             }
         }
         if !retrying.isEmpty && retryTimer == nil {
