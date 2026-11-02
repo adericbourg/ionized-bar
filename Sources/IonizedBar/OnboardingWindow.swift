@@ -1,4 +1,5 @@
 import AppKit
+@preconcurrency import ApplicationServices
 
 final class OnboardingWindow: NSWindow {
     private static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
@@ -48,6 +49,8 @@ final class OnboardingWindow: NSWindow {
     }
 
     @objc private func openSettings() {
+        // Registers the app in the Accessibility list; only the prompt call is known to do that.
+        _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
         NSWorkspace.shared.open(Self.settingsURL)
     }
 }
