@@ -12,11 +12,19 @@ enum WindowModel {
             return Display(id: id, frame: screen.frame)
         }
         var byDisplay: [UInt32: [TrackedWindow]] = [:]
+        var overlapping: [TrackedWindow] = []
         for window in windows {
             let frame = flipRect(window.frame, primaryScreenHeight: primary.frame.height)
             if let display = assignDisplay(windowFrame: frame, displays: displays) {
                 byDisplay[display.id, default: []].append(window)
+                // A window straddling two displays is only checked against its assigned display's bar.
+                if !window.isMinimized, overlapsBar(frame, bar: barFrame(screenFrame: display.frame)) {
+                    overlapping.append(window)
+                }
             }
+        }
+        if !overlapping.isEmpty {
+            log("overlapping the bar: " + overlapping.map { "\($0.appName) (pid \($0.pid))" }.joined(separator: ", "))
         }
         barManager.update(windowsByDisplay: byDisplay)
     }

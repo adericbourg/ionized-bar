@@ -368,6 +368,32 @@ do {
     check("dockPrefs_dictionary_ofAbsentKeys_isEmpty", DockPrefs(autohide: nil, autohideDelay: nil).dictionary.isEmpty)
 }
 
+// overlapsBar / pushedFrame
+do {
+    // Given a screen at a non-zero origin with a 25pt menu bar (Cocoa coordinates, bar 36pt at the bottom)
+    let screen = CGRect(x: -800, y: 1000, width: 800, height: 600)
+    let visible = CGRect(x: -800, y: 1000, width: 800, height: 575)
+    let bar = barFrame(screenFrame: screen)
+    let above = CGRect(x: -700, y: 1100, width: 300, height: 200)
+    let over = CGRect(x: -700, y: 1010, width: 300, height: 200)
+    check("overlapsBar_ofWindowAbove_isFalse", !overlapsBar(above, bar: bar))
+    check("overlapsBar_ofWindowTouchingTop_isFalse", !overlapsBar(CGRect(x: -700, y: 1036, width: 300, height: 200), bar: bar))
+    check("overlapsBar_ofWindowOverBar_isTrue", overlapsBar(over, bar: bar))
+    // Given a window that fits, When pushing, Then it moves up and keeps its size, x and width
+    check("pushedFrame_ofOverlappingWindow_movesUp",
+          pushedFrame(over, screenFrame: screen, visibleFrame: visible, barHeight: 36) == CGRect(x: -700, y: 1036, width: 300, height: 200))
+    check("pushedFrame_ofWindowAbove_isUnchanged",
+          pushedFrame(above, screenFrame: screen, visibleFrame: visible, barHeight: 36) == above)
+    // Given a window taller than the space between bar and menu bar, Then it shrinks to it
+    let tall = CGRect(x: -700, y: 1000, width: 300, height: 600)
+    check("pushedFrame_ofTooTallWindow_shrinksToAvailableArea",
+          pushedFrame(tall, screenFrame: screen, visibleFrame: visible, barHeight: 36) == CGRect(x: -700, y: 1036, width: 300, height: 539))
+    // Given a window hanging below the screen, Then it ends above the bar
+    let below = CGRect(x: -700, y: 900, width: 300, height: 300)
+    check("pushedFrame_ofWindowBelowScreen_endsAboveBar",
+          pushedFrame(below, screenFrame: screen, visibleFrame: visible, barHeight: 36) == CGRect(x: -700, y: 1036, width: 300, height: 300))
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

@@ -72,6 +72,21 @@ public func barFrame(screenFrame: CGRect, height: CGFloat = 36) -> CGRect {
     CGRect(x: screenFrame.minX, y: screenFrame.minY, width: screenFrame.width, height: height)
 }
 
+/// Cocoa coordinates (bottom-left origin), like `barFrame`.
+public func overlapsBar(_ window: CGRect, bar: CGRect) -> Bool {
+    let overlap = window.intersection(bar)
+    return !overlap.isNull && overlap.width > 0 && overlap.height > 0
+}
+
+/// Cocoa coordinates. The room is from the bar's top to `visibleFrame`'s top (below the menu bar); x and width never change.
+public func pushedFrame(_ window: CGRect, screenFrame: CGRect, visibleFrame: CGRect, barHeight: CGFloat) -> CGRect {
+    let bottom = screenFrame.minY + barHeight
+    let room = visibleFrame.maxY - bottom
+    let height = min(window.height, room)
+    let y = min(max(window.minY, bottom), visibleFrame.maxY - height)
+    return CGRect(x: window.minX, y: y, width: window.width, height: height)
+}
+
 public enum EntryClickAction {
     case raise, minimize, restore
 }

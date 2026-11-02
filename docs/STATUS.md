@@ -13,8 +13,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ✅ | 5/5 |
 | M2 – Bars | 🚧 | 5/6 |
-| M3 – Dock replacement and launch at login | ✅ | 4/4 |
-| M4 – Push windows away | ⬜ | 0/3 |
+| M3 – Dock replacement and launch at login | 🚧 | 4/4 |
+| M4 – Push windows away | 🚧 | 1/3 |
 | M5 – Release | ⬜ | 0/3 |
 | M6 – Window preview | ⬜ | 0/6 |
 | M7 – Settings | ✅ | 6/6 |
@@ -31,7 +31,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | R6 | Replaces the Dock | M3 | 🚧 |
 | R7 | Launch at login | M3 | 🚧 |
 | R8 | Current Space only | M1 | ✅ |
-| R9 | Push windows away | M4 | ⬜ |
+| R9 | Push windows away | M4 | 🚧 |
 
 ## Milestones
 
@@ -138,7 +138,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] A failed register or unregister (e.g. login item disabled in System Settings) is logged and the checkbox falls back to the real status
 
 ### M4 – Push windows away
-- [ ] Detect windows that overlap the bar (R9)
+- [x] Detect windows that overlap the bar (R9)
 - [ ] Resize or move them through AX, with debounce
 - [ ] Skip fullscreen windows
 
@@ -222,3 +222,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M3 task 2: the app saves `autohide` and `autohide-delay` in its own prefs (absent keys stay absent, flushed to disk before any write; if that fails the Dock is left alone), then hides the Dock from the trusted path with a delay of 1000 and `killall Dock`. Quit, `SIGTERM` and `SIGINT` restore it; saved values found at launch mean a crash and are kept. The decisions (`hideDock`, `restoreDock`, `parseDockPrefs`) are in `IonizedBarCore`, with checks. Reads use `defaults export`, because `defaults` error messages can't reliably tell an absent key from a failure. Not in the brief: without the permission, a launch that finds saved values restores them right away, since the bar is empty and each upgrade loses the permission. Build, checks and bundle pass. A scratch app with the real `defaults` code on a scratch domain and a fake Dock relaunch went through `SIGTERM`, `SIGINT`, terminate and `kill -9` then relaunch, with set and absent keys: values and saved state were right each time, and the real `com.apple.dock` and Dock pid did not change. The app was not launched and the Dock was never written, so the real hide and restore, the Dock's reaction, the untrusted restore and logout are unverified until the M3 manual pass. boringBar was running here with the same values (autohide on, delay 1000): it must be quit before testing, or those are the originals saved. If the saved state is lost while the Dock is hidden, the hidden values become the originals; the README has the manual recovery. M3 at 3/4, R6 🚧.
 - 2026-11-02 — M3 task 2 fix: when saving originals, an `autohide-delay` of 60s or more (`leftoverDelayThreshold`) means another taskbar or a lost saved state left the Dock hidden, so both keys are saved as absent, logged once, and the restore leaves the Dock visible. This replaces the two limits noted in the previous line: boringBar's values are no longer saved as originals, and a lost saved state no longer keeps the Dock hidden. A real `autohide` on with such a delay is lost, on purpose. Saved state found at launch is still kept as it is. Running alongside another taskbar still fights over the Dock. Build, checks and bundle pass, and the scratch app on a scratch domain restored to absent keys from a leftover delay, with the real `com.apple.dock` and Dock pid unchanged. The app was not launched, so this is unverified on the real Dock until the M3 manual pass. M3 stays 3/4.
 - 2026-11-02 — M3 task 3: `LoginItem` wraps `SMAppService.mainApp`. A "Start at login" checkbox in the settings window applies at once, is refreshed from the real status each time the window opens, and falls back to it if register or unregister throws (logged). `onAccessibilityTrusted()` registers once, tracked by the saved flag `loginItemRegisteredOnce` (set before the attempt, so a failure is not retried and a user who turns it off is never overridden). README no longer says there is no login item. Build, checks and bundle pass. The login item was never registered and the app was not launched, so registration, the checkbox, the Login Items entry and the flag are unverified until the M3 manual pass (5 checks added). M3 at 4/4; R6 and R7 stay 🚧 until that pass.
+- 2026-11-02 — M4 task 1: `overlapsBar` and `pushedFrame` in `IonizedBarCore` (Cocoa coordinates, like `barFrame`): a window that fits moves up and keeps its size, a taller one shrinks to the room between the bar's top and `visibleFrame`'s top (so never under the menu bar), x and width never change. `WindowModel` logs, per snapshot, the non-minimized windows overlapping the bar of their assigned display (app and pid, no title); a window straddling two displays is only checked against that bar (noted in PRODUCT.md). Nothing is written through AX yet. 7 checks added (overlap, move, shrink, non-zero origin, hanging below the screen); build, checks and bundle pass. The log line was not seen in a running app since it can't be launched here. M4 at 1/3, R9 🚧. M3 now reads 🚧 4/4 like M1, as its manual pass is open.
