@@ -3,11 +3,11 @@
 A KDE Plasma–style taskbar for macOS that replaces the Dock.
 
 - One bar per display, showing only the windows on that display
-- One entry per open window, all with the same width
+- One entry per open window, or per app if you group them, all with the same width
 - Hides the Dock while running and restores it on quit
 - Starts at login
 
-> Status: the bars exist. The Dock is not hidden yet and there is nothing to install. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
+> Status: the bars exist. The Dock is not hidden yet, there is no login item and nothing to install. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
 
 ## Requirements
 

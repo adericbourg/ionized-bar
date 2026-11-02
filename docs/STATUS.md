@@ -72,6 +72,15 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] VoiceOver labels, keyboard access, Reduce Transparency and Reduce Motion
 
 ### M2 manual pass
+- [ ] On 2 displays: open, close, move and minimize windows and check each bar; a window dragged across displays moves its entry within about 1s (R3)
+- [ ] Switch Spaces: entries update (R8), and the bar stays visible on every normal Space
+- [ ] Default motion: entries animate in, out and on resize with no visible glitch
+- [ ] Long titles truncate at the tail; the 220pt cap holds with few windows
+- [ ] Bar geometry: flush with the bottom, 36pt, hairline visible, no Cmd-Tab entry
+- [ ] Unplug a display while in keyboard mode
+- [ ] After closing Settings, the active highlight returns and keys reach an app
+- [ ] Click an entry, then ⌃⌥B: the outline shows
+- [ ] Tooltips on icon-only entries while a terminal spinner is running in another app
 - [ ] Add and remove a display
 - [ ] Resolution change
 - [ ] Display arrangement change
@@ -79,9 +88,9 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] Equal width and icon-only with many windows
 - [ ] Click an entry
 - [ ] Click the active entry
-- [ ] Click a minimized entry
+- [ ] Click a minimized entry: it restores, stays in place and does not blink
 - [ ] Middle-click
-- [ ] Each menu item: Close, Minimize, Quit
+- [ ] Each menu item: Close, Minimize, Quit, Quit IonizedBar
 - [ ] No focus steal on click
 - [ ] VoiceOver reads an entry
 - [ ] VoiceOver and keyboard on a group entry: its label, press and Return open the window list, and the list works with the keyboard
@@ -192,3 +201,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — Added "Quit IonizedBar" under "Settings…" in the right-click menu of entries and of the empty bar, through `NSApplication.terminate`. No milestone change.
 - 2026-11-02 — M2 task 6: entries are VoiceOver buttons labelled by `entryAccessibilityLabel` (in `IonizedBarCore`, with checks), with press and show-menu actions, in a "Taskbar" group. ⌃⌥B (Carbon `RegisterEventHotKey`, `BarHotKey`) makes the panel under the mouse key and focuses the active entry, else the first; Tab, Shift-Tab, Left and Right wrap, Return and Space click and end keyboard mode, Shift-F10 opens the menu, Escape ends it. A focused entry that goes away passes focus to its neighbour, and an emptied bar ends keyboard mode. `EntryView` sets `needsPanelToBecomeKey` to false: it follows `acceptsFirstResponder` by default, and a scratch run showed clicks then making the panel key. No code added for Reduce Transparency or Increase Contrast, which are expected to adapt on their own. Build, checks and bundle pass. A scratch run with a recording panel covered focus, wrap, visual order, fading entries, removal, each key, the accessibility values and actions, and a synthetic click on an off-screen panel staying non-key. The app was not launched, and the hotkey, real key status, handing key back to the frontmost app, the focus ring's look, the context menu popping up from the keyboard, VoiceOver itself and the accessibility settings are unverified until the M2 manual pass. Rebased onto M7: a group entry reads "<app>, <n> windows" plus its state (`groupAccessibilityLabel`, with checks), keyboard mode moves through groups, Return and Space open its native window list, and every display mode keeps the full label. VoiceOver presses are deferred so a menu does not hold the accessibility reply. A scratch run covered these too, with the menus replaced by counters, so the list's keyboard handling while the panel is key is unverified until the manual pass. M2 at 5/6, the material box stays open until the user picks.
 - 2026-11-02 — M2 task 6 fix: the active entry draws an outline in `alternateSelectedControlTextColor` while focused, because the system ring does not show on the accent fill; a panel losing key clears its first responder so the outline goes away. Every click action now ends keyboard mode, whether from the mouse, the keyboard or VoiceOver, so key no longer stays on the panel when no other app takes it. ⌃⌥B does nothing when the panel is not on the active Space, such as a fullscreen Space. README drops the material line. Build, checks and bundle pass. A scratch run with a recording panel covered each case, with the outline checked in rendered pixels, but with faked key and Space state. The app was not launched, so these are unverified with real input until the M2 manual pass.
+- 2026-11-02 — M2 final-review fixes: `BarPanel.becomeKey` redraws the first responder so the focus outline shows after a click then ⌃⌥B; `kAXWindowDeminiaturizedNotification` is treated like moved and resized so a restored window is not filtered by the lagging CG list (no blink); `EntryView` only assigns a tooltip when it changes; README says entries are per app when grouped and lists login as not yet there; the M2 manual pass gains the missing checks. M7's tick predates keyboard access, whose group-list check is on the M2 manual pass. Build, checks and bundle pass; the app was not launched, so the fixes are unverified until the manual pass. M2 stays 5/6.
