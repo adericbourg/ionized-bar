@@ -60,14 +60,14 @@ Widgets (tray, clock, start menu), grouping windows by app, pinned launchers, wi
 
 ## Milestones
 1. **M0 – Bootstrap:** `LICENSE` (GPLv3), README, `docs/PRODUCT.md`, an empty SwiftPM app, CI build on GitHub Actions.
-2. **M1 – Window model (headless):** AX observers plus display assignment, with the output logged. Unit tests for display assignment, coordinate conversion and the equal-width layout math.
+2. **M1 – Window model (headless):** AX observers plus display assignment, with the output logged. Checks for display assignment, coordinate conversion and the equal-width layout math.
 3. **M2 – Bars:** one panel per screen, entries, click interactions.
 4. **M3 – Dock replacement and launch at login:** save and restore the Dock, `SMAppService`, onboarding.
 5. **M4 – Push windows away.**
 6. **M5 – Release:** archive, zip, and a cask in `adericbourg/homebrew-tap`.
 
 ## Verification (per milestone, once implemented)
-- Unit tests (`swift test`) for the pure logic: screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation.
+- A check executable (`swift run IonizedBarChecks`) for the pure logic, because Command Line Tools have no working test framework (no `TestingMacros` plugin, no XCTest): screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation. CI runs it too. If it can't load on the runner's older macOS, lower the minimum from 27.2 to 27.0.
 - Manual checklist on 2 displays: open, close, move and minimize windows, then check each bar. Plug and unplug a display. Switch Spaces. Quit the app and check the Dock comes back. Kill it with `kill -9`, relaunch, and check the Dock comes back. Log out and in to check launch at login. Maximize a window to check it doesn't cover the bar.
 - `brew install --cask adericbourg/tap/ionized-bar` on a clean user account.
 

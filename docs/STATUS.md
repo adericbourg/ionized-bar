@@ -45,7 +45,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] One `AXObserver` per app (created, destroyed, moved, resized, title, minimized, focused)
 - [ ] Standard-window filtering (R4) and current-Space filtering (R8)
 - [ ] Display assignment by largest intersection (R3)
-- [ ] Unit tests: coordinate conversion, display assignment, equal-width layout math
+- [ ] Checks (`swift run IonizedBarChecks`): coordinate conversion, display assignment, equal-width layout math
 
 ### M2 – Bars
 - [ ] One non-activating `NSPanel` per screen, following screen add, remove and resize (R2)
@@ -86,3 +86,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — Added the `Build` GitHub Actions workflow (`.github/workflows/build.yml`, runs `scripts/bundle.sh` on `xcode-27`). First run pending, so the CI box stays unticked. M0 at 4/5.
 - 2026-11-02 — First CI run failed: the runner's default Xcode 27.1 ships only the macOS 27.0 SDK. The workflow now selects Xcode 27.2; its first run is pending.
 - 2026-11-02 — CI build is green on `main` with Xcode 27.2 (result reported by the user). M0 done, 5/5.
+- 2026-11-02 — Testing approach decided: a `swift run` check executable, because Command Line Tools have no working test framework. Minimum drops to macOS 27.0 only if CI needs it.
