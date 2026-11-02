@@ -47,6 +47,13 @@ final class BarPanel: NSPanel {
         makeFirstResponder(nil)
     }
 
+    // A clicked entry stays first responder on the non-key panel, so makeFirstResponder is a no-op
+    // and nothing redraws the focus outline.
+    override func becomeKey() {
+        super.becomeKey()
+        (firstResponder as? NSView)?.needsDisplay = true
+    }
+
     func beginKeyboardMode() {
         // False on a fullscreen Space, where the bar is not shown.
         guard isOnActiveSpace, let entry = content.initialFocusEntry else { return }

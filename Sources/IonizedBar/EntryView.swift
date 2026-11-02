@@ -57,12 +57,14 @@ final class EntryView: NSView {
             let isTitleShown = display == .content && !isIconOnly
             title.stringValue = display == .content ? window.title : window.appName
             title.isHidden = isIconOnly
-            toolTip = isTitleShown ? nil : window.title
+            let newToolTip = isTitleShown ? nil : window.title
+            if toolTip != newToolTip { toolTip = newToolTip }
         case .group(_, let windows):
             let label = "\(windows[0].appName) (\(windows.count))"
             title.stringValue = isIconOnly ? String(windows.count) : label
             title.isHidden = false
-            toolTip = isIconOnly ? label : nil
+            let newToolTip = isIconOnly ? label : nil
+            if toolTip != newToolTip { toolTip = newToolTip }
         }
     }
 

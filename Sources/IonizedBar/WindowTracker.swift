@@ -180,7 +180,8 @@ final class WindowTracker: @unchecked Sendable {
             apps[pid]?.orders[element] = nil
             guard apps[pid]?.windows.contains(where: { CFEqual($0.window.element, element) }) == true else { return }
         }
-        if notification as String == kAXWindowMovedNotification || notification as String == kAXWindowResizedNotification {
+        // Deminiaturize: the CG list lags, so the first publish could filter the restored window.
+        if [kAXWindowMovedNotification, kAXWindowResizedNotification, kAXWindowDeminiaturizedNotification].contains(notification as String) {
             moving.insert(element)
         }
         markDirty(pid)
