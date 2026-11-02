@@ -13,7 +13,7 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 | 1 | Taskbar | Horizontal bar at the bottom of the screen. Each entry shows the app icon and the window title. The active window is highlighted. |
 | 2 | One bar per display | Connecting or disconnecting a display adds or removes its bar within about 1s. The bar follows changes to resolution and arrangement. |
 | 3 | Per-display tasks | A window shows on the bar of the display that holds most of its area. Moving a window to another screen moves its entry within about 1s. |
-| 4 | Real windows only | No pinned launchers and no windowless apps (for example, Finder with no windows shows nothing). Minimized windows **are** shown, dimmed, as in KDE. Panels, sheets and utility windows are excluded (`AXStandardWindow` only). |
+| 4 | Real windows only | Tasks are windows: no windowless apps (for example, Finder with no windows shows no task). Pinned icons (M9) are not tasks. Minimized windows **are** shown, dimmed, as in KDE. Panels, sheets and utility windows are excluded (`AXStandardWindow` only). |
 | 5 | Equal width | All entries share the bar's width equally, up to a max width. Titles get truncated. Below a minimum width only the icon shows (no wrapping). |
 | 6 | Replaces the Dock | On launch, the app saves your Dock prefs, then sets `autohide=true` and a very large `autohide-delay`. On a normal quit or crash, it restores them. |
 | 7 | Launch at login | `SMAppService.mainApp` toggle, on by default after onboarding. |
@@ -38,7 +38,7 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 - **Motion:** entries animate in, out and when resized in under 150ms. Animations are off when *Reduce Motion* is on.
 
 ## Non-goals (v1)
-Widgets (tray, clock, start menu), pinned launchers, drag to reorder, windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover and grouping windows by app are planned after v1, see below.
+Widgets (tray, clock), drag to reorder, windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover, grouping windows by app, an app launcher and pinned apps are planned after v1, see below.
 
 ## After v1: window preview (M6)
 Hovering an entry shows a panel above it with the app icon and name, the window title and a thumbnail of that window. A preview always shows one window, so a group entry (M7) has no preview: its window list takes that place.
@@ -62,6 +62,30 @@ A settings window, opened with "Settings…" from the right-click menu of an ent
 - **Group entry:** all of an app's windows on that bar (2 or more), placed where the app's first window was. It shows the icon, app name and window count, or the icon and count in Icon only mode. It's highlighted if any of its windows has focus, and dimmed only if all of them are minimized.
 - **Group interactions:** a click opens a native menu above the entry that lists the windows. The focused window has a checkmark, and minimized windows say so. Picking a window raises or restores it. Middle-click does nothing, so a stray click can't close several windows. Right-click offers Close all windows, Quit, Settings… and Quit IonizedBar.
 
+## After v1: app launcher (M8)
+A button always at the left of the bar, on every bar. It opens a panel above it that lists applications, with a search field. Nothing else: no categories and no recent apps.
+
+- **Button:** a fixed-width, icon-only entry, about 48pt like Icon only tasks. Tasks share the width left of the bar (see M9 for the order). R5's equal share then means the width left for tasks.
+- **Applications:** the `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, sorted by name, each with its icon and name.
+- **Search:** fuzzy matching over application names and over descriptions when an app provides one. A name match ranks above a description match. The search field has focus when the panel opens, and an empty search lists everything.
+- **Description:** macOS bundles have no standard description field, so the first M8 task checks what's available (Info.plist `CFBundleGetInfoString`, Spotlight `kMDItemDescription`). If nothing is usable, search covers names only.
+- **Opening an app:** a click, or Return on the selected row, opens it with `NSWorkspace.openApplication` and closes the panel. Esc or a click outside closes the panel too, and keys go back to the frontmost app.
+- **Keyboard:** the launcher is the first stop of ⌃⌥B keyboard mode. A bar is never empty anymore, so ⌃⌥B with no tasks now focuses the launcher button instead of doing nothing.
+- **Accessibility:** the button and rows are VoiceOver elements labelled with the app name, and the panel honors *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*, like the bar.
+
+## After v1: pinned apps (M9)
+Pinning keeps an app's icon on the bar while it's closed, and clicking the icon opens the app. The bar reads, from the left: launcher (M8), pinned icons, tasks.
+
+- **Pinning:** "Pin" in the right-click menu of a task or of a group entry, since a pin belongs to the app and not to a window. "Unpin" replaces it when the app is pinned, and is also in the right-click menu of a pinned icon. A task whose app has no bundle identifier has no Pin item.
+- **Pinned icon:** a fixed-width, icon-only entry, about 48pt, with the app name as tooltip. A click opens the app with `NSWorkspace.openApplication`: a running app comes to the front and decides whether to reopen a window, no new window is forced.
+- **Saved as:** an ordered list of bundle identifiers in `UserDefaults`, global to all bars, in pinning order. Reordering is not planned. A pin whose app is no longer installed isn't shown, and stays saved.
+- **Setting "Keep pinned app icons visible":** a checkbox in the settings window, off by default.
+  - **On:** the pinned icon is always visible, even when the app is open.
+  - **Off:** the pinned icon disappears as the app opens, then only the task is visible.
+- **Hiding is per bar:** with the setting off, an icon hides on a bar only if that bar shows a task for the app. It stays on other displays, on Spaces without the app's windows, and for a running app with no windows, so an app can always be reached from any bar.
+- **Keyboard:** pinned icons are in ⌃⌥B keyboard mode, between the launcher and the tasks. Shift-F10 opens their menu.
+- **Accessibility:** a pinned icon is a VoiceOver button labelled with the app name and "pinned".
+
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
 - **Bar window:** borderless, non-activating `NSPanel`, one per `NSScreen`, placed at `.statusBar` level. It joins all Spaces (`canJoinAllSpaces`, `stationary`) and does not show in Cmd-Tab (`LSUIElement`).
@@ -83,6 +107,8 @@ A settings window, opened with "Settings…" from the right-click menu of an ent
 | Preview (M6): same-app windows with the same frame can't be told apart | A thumbnail could show the wrong window | Show the header only when the match is ambiguous |
 | Preview (M6): `SCScreenshotManager` capture is async and can lag | The panel feels slow, or the bar stutters | Capture once per hover, not on every mouse move |
 | Preview (M6): the Screen Recording grant is probably lost on upgrade, like Accessibility (unverified) | Previews stop working after an update | Check during M6. Same fix as the Accessibility grant, see *Known issues* |
+| Launcher and pins (M8, M9) take bar width | Tasks shrink sooner, and many pins can leave little room for them | The entry width and the When full grouping both use the width left for tasks. Tasks shrink as usual; pins never do |
+| Launcher (M8): apps may provide no usable description | Description search rarely matches anything | Check it first in M8. Fall back to names only |
 
 ## Milestones
 1. **M0 – Bootstrap:** `LICENSE` (GPLv3), README, `docs/PRODUCT.md`, an empty SwiftPM app, CI build on GitHub Actions.
@@ -93,6 +119,8 @@ A settings window, opened with "Settings…" from the right-click menu of an ent
 6. **M5 – Release:** archive, zip, and a cask in `adericbourg/homebrew-tap`.
 7. **M6 – Window preview:** opt-in thumbnail panel on hover, after v1. Depends on the M2 entries and their hover state.
 8. **M7 – Settings:** window grouping and task display, after v1. Depends on the M2 interactions.
+9. **M8 – App launcher:** a button at the left of the bar and an application list with fuzzy search, after v1. Depends on the M2 bars and keyboard mode.
+10. **M9 – Pin applications:** pinned icons on the bar and the "Keep pinned app icons visible" setting, after v1. Depends on the M7 settings window, and on M8 for the bar's order and task width.
 
 ## Verification (per milestone, once implemented)
 - A check executable (`swift run IonizedBarChecks`) for the pure logic, because Command Line Tools have no working test framework (no `TestingMacros` plugin, no XCTest): screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation. CI runs it too. If it can't load on the runner's older macOS, lower the minimum from 27.2 to 27.0.
@@ -100,6 +128,8 @@ A settings window, opened with "Settings…" from the right-click menu of an ent
 - `brew install --cask adericbourg/tap/ionized-bar` on a clean user account.
 - Manual checklist for M6: previews on and off, a minimized window, two same-app windows with the same frame, keyboard focus and Esc, and the Screen Recording grant being denied.
 - Manual checklist for M7: every display mode with every grouping mode, and settings surviving a relaunch. Going past and back under the When full threshold, with each bar deciding on its own. Picking and restoring from a group's list, by mouse and keyboard. Opening settings with no windows open, closing with Cmd-W, and using them with VoiceOver.
+- Manual checklist for M8: the button on every bar, in every display mode and with no tasks. Fuzzy search with typos and partial names, opening an app by mouse and keyboard, Esc and a click outside, keys going back to the frontmost app, and VoiceOver.
+- Manual checklist for M9: pin and unpin from a task, a group entry and a pinned icon. The icon opening a closed app and raising a running one. The setting on and off, with the app open on one display only, on another Space, and running with no windows. Pins surviving a relaunch, an uninstalled pinned app, and VoiceOver and keyboard on a pinned icon.
 
 ## Known issues (to fix later)
 - **The Accessibility grant is lost on every `brew upgrade`.** TCC ties the grant to the code signature, and an ad-hoc or unsigned build gets a new identity on each release. Accepted for v1. Candidate fixes to evaluate later: a Developer ID with a stable Team ID and notarization, or a stable self-signed certificate used for every release. Once M6 ships, the Screen Recording grant is probably affected too (unverified).

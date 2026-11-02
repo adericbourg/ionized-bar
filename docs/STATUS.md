@@ -18,6 +18,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M5 – Release | 🚧 | 1/3 |
 | M6 – Window preview | 🚧 | 2/6 |
 | M7 – Settings | ✅ | 6/6 |
+| M8 – App launcher | ⬜ | 0/6 |
+| M9 – Pin applications | ⬜ | 0/6 |
 
 ## Requirements
 
@@ -174,6 +176,22 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Settings window, and "Settings…" on entries and the empty bar
 - [x] Manual pass
 
+### M8 – App launcher
+- [ ] Spike: which description can apps provide (`CFBundleGetInfoString`, `kMDItemDescription`)? Record the result, and fall back to names only if nothing is usable
+- [ ] Application list: `.app` bundles from `/Applications`, `/System/Applications` and `~/Applications`, with icon and name
+- [ ] Fuzzy matching in `IonizedBarCore`, with checks (names rank above descriptions)
+- [ ] Launcher button at the left of every bar, with tasks laid out and grouped in the width left
+- [ ] Launcher panel: search field, list, click and Return open the app, Esc and a click outside close it, keys go back to the frontmost app
+- [ ] ⌃⌥B keyboard mode and VoiceOver, Reduce Motion, Reduce Transparency and contrast on the panel; manual pass
+
+### M9 – Pin applications
+- [ ] Saved pins: ordered bundle identifiers in `UserDefaults`
+- [ ] Decision of which icons a bar shows, in `IonizedBarCore`, with checks (setting on and off, hiding per bar, uninstalled app)
+- [ ] Pinned icons between the launcher and the tasks; a click opens the app
+- [ ] Pin and Unpin in the right-click menus of tasks, group entries and pinned icons
+- [ ] "Keep pinned app icons visible" in the settings window, off by default
+- [ ] ⌃⌥B keyboard mode and VoiceOver on pinned icons; manual pass
+
 ## Known issues (tracked)
 
 | Issue | Status |
@@ -241,3 +259,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M6 spike, result unknown. A scratch program (not in the repo) opened its own magenta window and captured it with `SCScreenshotManager` and `SCContentFilter(desktopIndependentWindow:)` before, while minimized and after restoring. Every capture, the on-screen control included, failed with `SCStreamErrorDomain -3811`, although `CGPreflightScreenCaptureAccess()` was true and no prompt appeared, so the minimized result can't be told from a harness limit. What did work: on macOS 27.2 `SCShareableContent` (with `onScreenWindowsOnly: false`) keeps listing the window while minimized, with the same frame and `isOnScreen == false`; its `isActive` is also false. Later M6 tasks assume the cache is needed. The box stays open, to retry from a normal GUI session. M6 stays at 0/6.
 - 2026-11-02 — M6 task 9: `Settings.showsPreviews` (off by default, saved) and a checkable "Show window previews" item in a window entry's right-click menu (not on groups or the empty bar). Turning it on calls `CGRequestScreenCaptureAccess()`; at launch, only if it is on, `CGPreflightScreenCaptureAccess()` runs read-only and is logged. With it off no Screen Recording call is made. The settings window keeps the stored value when it reports its own changes. Build, checks and bundle pass. The app was not launched and the request was not called, so the menu item, the system prompt and the persisted value are unverified until the M6 manual pass. M6 at 1/6, the spike box stays open.
 - 2026-11-02 — M6 task 10: `matchWindow` in `IonizedBarCore` returns the id of the only candidate with the entry's pid and bounds within 2pt (nil for none or several), sharing `framesMatch` with the Space check; AX and CG/ScreenCaptureKit frames both use a top-left origin, as the Space check already relies on. `PreviewCapture.thumbnail(pid:frame:)` lists `SCShareableContent` with `onScreenWindowsOnly: false` (so Task 12 can see minimized windows), keeps layer 0, matches, and captures with `SCScreenshotManager` at most 640px on the longest side; nil on ambiguity, denial or any error, logged by pid without titles. Same-app windows on other Spaces or hidden with the same frame make the match ambiguous. Nothing calls it yet; the caller must check `Settings.showsPreviews` first. 5 checks added (red on behaviour before the implementation); build, checks and bundle pass. The capture itself is unverified: after the spike's `-3811` failures it was not run, and the `SCShareableContent` listing in this code was not run either. M6 at 2/6.
+- 2026-11-02 — Added M8 – App launcher and M9 – Pin applications, after M7 and out of v1 scope; framing only, nothing is implemented. PRODUCT.md no longer lists a start menu or pinned launchers as non-goals, and R4 now says pinned icons are not tasks. With "Keep pinned app icons visible" off (the default), a pinned icon hides per bar, only where that bar shows a task for the app. Whether apps provide a usable description is still open, so M8 starts with a spike. M8 at 0/6, M9 at 0/6.
