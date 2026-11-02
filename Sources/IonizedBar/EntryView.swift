@@ -8,6 +8,8 @@ struct EntryActions {
     let restore: (TrackedWindow) -> Void
     let close: (TrackedWindow) -> Void
     let openSettings: @MainActor () -> Void
+    let showsPreviews: @MainActor () -> Bool
+    let setShowsPreviews: @MainActor (Bool) -> Void
 }
 
 final class EntryView: NSView {
@@ -237,6 +239,8 @@ final class EntryView: NSView {
         case .window(let window):
             menu.addItem(withTitle: "Close", action: #selector(closeWindows), keyEquivalent: "")
             menu.addItem(withTitle: "Minimize", action: #selector(minimizeWindow), keyEquivalent: "").isEnabled = !window.isMinimized
+            let previews = menu.addItem(withTitle: "Show window previews", action: #selector(togglePreviews), keyEquivalent: "")
+            previews.state = actions.showsPreviews() ? .on : .off
         case .group:
             menu.addItem(withTitle: "Close All Windows", action: #selector(closeWindows), keyEquivalent: "")
         }
@@ -254,6 +258,7 @@ final class EntryView: NSView {
     }
 
     @objc private func openSettings() { actions.openSettings() }
+    @objc private func togglePreviews() { actions.setShowsPreviews(!actions.showsPreviews()) }
     @objc private func closeWindows() { item.windows.forEach(actions.close) }
     @objc private func minimizeWindow() { item.windows.forEach(actions.minimize) }
     @objc private func quitApp() { NSRunningApplication(processIdentifier: item.windows[0].pid)?.terminate() }

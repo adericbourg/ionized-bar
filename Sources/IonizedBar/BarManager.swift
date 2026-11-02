@@ -3,17 +3,35 @@ import IonizedBarCore
 
 @MainActor
 final class BarManager {
-    private let actions: EntryActions
+    private lazy var actions = EntryActions(
+        raise: windowTracker.raise, minimize: windowTracker.minimize, restore: windowTracker.restore, close: windowTracker.close,
+        openSettings: settingsWindow.show,
+        showsPreviews: { [unowned self] in settings.showsPreviews },
+        setShowsPreviews: { [unowned self] in
+            var newSettings = settings
+            newSettings.showsPreviews = $0
+            apply(newSettings)
+        }
+    )
+    private let windowTracker: WindowTracker
     private let settingsWindow: SettingsWindow
     private var panels: [UInt32: BarPanel] = [:]
     private var settings = Settings.load()
     private var latestWindowsByDisplay: [UInt32: [TrackedWindow]] = [:]
 
     init(windowTracker: WindowTracker) {
+        self.windowTracker = windowTracker
         let settingsWindow = SettingsWindow(settings: settings)
         self.settingsWindow = settingsWindow
-        actions = EntryActions(raise: windowTracker.raise, minimize: windowTracker.minimize, restore: windowTracker.restore, close: windowTracker.close, openSettings: settingsWindow.show)
-        settingsWindow.onChange = { [weak self] in self?.apply($0) }
+        // The settings window knows nothing of previews, so keep their current value.
+        settingsWindow.onChange = { [weak self] in
+            guard let self else { return }
+            var newSettings = $0
+            newSettings.showsPreviews = settings.showsPreviews
+            apply(newSettings)
+        }
+        // Read-only status: no prompt. Only the opt-in toggle may ask.
+        if settings.showsPreviews { log("screen recording \(CGPreflightScreenCaptureAccess() ? "granted" : "not granted")") }
     }
 
     func sync() {
@@ -50,7 +68,9 @@ final class BarManager {
     }
 
     private func apply(_ newSettings: Settings) {
+        let isEnablingPreviews = newSettings.showsPreviews && !settings.showsPreviews
         settings = newSettings
+        if isEnablingPreviews { CGRequestScreenCaptureAccess() }
         settings.save()
         update(windowsByDisplay: latestWindowsByDisplay)
     }
