@@ -183,6 +183,7 @@ final class EntryView: NSView {
         menu.addItem(.separator())
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "")
         menu.items.forEach { $0.target = self }
+        menu.addItem(withTitle: "Quit IonizedBar", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "").target = NSApp
         return menu
     }
 

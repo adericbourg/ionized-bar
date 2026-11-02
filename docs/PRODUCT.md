@@ -20,7 +20,7 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 | 8 | Current Space only | Only windows on the active Space are listed. The list updates when you switch Spaces. |
 | 9 | Push windows away | Any window that overlaps the bar gets resized or moved by AX so it stays above the bar. Maximize and zoom must not cover the bar. |
 
-**Interactions (KDE parity, MVP):** clicking an entry raises and focuses that window. Clicking the active entry minimizes it. Clicking a minimized entry restores it. Middle-click closes the window. Right-click opens a menu: Close, Minimize, Quit app.
+**Interactions (KDE parity, MVP):** clicking an entry raises and focuses that window. Clicking the active entry minimizes it. Clicking a minimized entry restores it. Middle-click closes the window. Right-click opens a menu: Close, Minimize, Quit app. The right-click menu of an entry or of the empty bar also has "Quit IonizedBar", under "Settings…".
 
 **Accessibility (app UI):** every entry is a VoiceOver element with the window title, the app name and its state (active or minimized). The bar can be reached from the keyboard. This follows the spirit of WCAG 2.2 AA (contrast, focus visible).
 
@@ -59,7 +59,7 @@ A settings window, opened with "Settings…" from the right-click menu of an ent
 - **Show tasks as:** Icon only, App name or Content (default, the window title). When the title isn't shown, it moves to a tooltip. VoiceOver reads it in every mode.
   - **Icon only:** compact entries of about 48pt, packed from the left. This is the one exception to R5's equal share of the bar's width.
 - **Group entry:** all of an app's windows on that bar (2 or more), placed where the app's first window was. It shows the icon, app name and window count, or the icon and count in Icon only mode. It's highlighted if any of its windows has focus, and dimmed only if all of them are minimized.
-- **Group interactions:** a click opens a native menu above the entry that lists the windows. The focused window has a checkmark, and minimized windows say so. Picking a window raises or restores it. Middle-click does nothing, so a stray click can't close several windows. Right-click offers Close all windows, Quit and Settings….
+- **Group interactions:** a click opens a native menu above the entry that lists the windows. The focused window has a checkmark, and minimized windows say so. Picking a window raises or restores it. Middle-click does nothing, so a stray click can't close several windows. Right-click offers Close all windows, Quit, Settings… and Quit IonizedBar.
 
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
