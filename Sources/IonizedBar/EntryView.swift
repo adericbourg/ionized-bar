@@ -8,6 +8,14 @@ final class EntryView: NSView {
     private let title = NSTextField(labelWithString: "")
     private var isActive = false { didSet { needsDisplay = true } }
     private var isHovered = false { didSet { needsDisplay = true } }
+    var isIconOnly = false {
+        didSet {
+            guard isIconOnly != oldValue else { return }
+            title.isHidden = isIconOnly
+            toolTip = isIconOnly ? title.stringValue : nil
+            needsLayout = true
+        }
+    }
 
     init(pid: pid_t) {
         super.init(frame: .zero)
@@ -26,6 +34,7 @@ final class EntryView: NSView {
         isActive = window.isFocused
         icon.alphaValue = window.isMinimized ? 0.5 : 1
         title.stringValue = window.title
+        if isIconOnly { toolTip = window.title }
         let font = NSFont.systemFont(ofSize: 13)
         title.font = window.isMinimized ? NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) : font
         title.textColor = window.isFocused ? .alternateSelectedControlTextColor : window.isMinimized ? .secondaryLabelColor : .labelColor
@@ -34,7 +43,8 @@ final class EntryView: NSView {
     override func layout() {
         super.layout()
         // Rounded: an integer point is on a device pixel at every scale, so the icon and text stay sharp.
-        icon.frame = CGRect(x: Self.padding, y: ((bounds.height - Self.iconSize) / 2).rounded(), width: Self.iconSize, height: Self.iconSize)
+        let iconX = isIconOnly ? ((bounds.width - Self.iconSize) / 2).rounded() : Self.padding
+        icon.frame = CGRect(x: iconX, y: ((bounds.height - Self.iconSize) / 2).rounded(), width: Self.iconSize, height: Self.iconSize)
         let titleX = icon.frame.maxX + Self.padding
         let titleHeight = title.intrinsicContentSize.height
         title.frame = CGRect(x: titleX, y: ((bounds.height - titleHeight) / 2).rounded(), width: max(0, bounds.width - titleX - Self.padding), height: titleHeight)

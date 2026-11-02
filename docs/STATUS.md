@@ -12,7 +12,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ✅ | 5/5 |
-| M2 – Bars | 🚧 | 2/6 |
+| M2 – Bars | 🚧 | 3/6 |
 | M3 – Dock replacement and launch at login | ⬜ | 0/4 |
 | M4 – Push windows away | ⬜ | 0/3 |
 | M5 – Release | ⬜ | 0/3 |
@@ -64,7 +64,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 ### M2 – Bars
 - [x] One non-activating `NSPanel` per screen, following screen add, remove and resize (R2)
 - [x] Entry view: icon, title, active, minimized and hover states (R1)
-- [ ] Equal-width layout with icon-only fallback (R5)
+- [x] Equal-width layout with icon-only fallback (R5)
 - [ ] Interactions: click, click on active, middle-click, context menu
 - [ ] Frosted glass vs Liquid Glass prototype, pick one
   - Compare: `open --env IONIZED_BAR_MATERIAL=liquid --stderr "$(tty)" build/IonizedBar.app` (Liquid Glass); without the env, frosted (default).
@@ -135,3 +135,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — Added M6 – Window preview, after M5 and out of v1 scope: an opt-in thumbnail panel on hover. PRODUCT.md no longer lists thumbnails as a non-goal, and Screen Recording is now allowed for opt-in previews only. Whether a minimized window can be captured is still open, so M6 starts with a spike that decides if a cache is needed. M6 at 0/6.
 - 2026-11-02 — M2 task 5: `IONIZED_BAR_MATERIAL=liquid` hosts the bar (hairline included) in an `NSGlassEffectView` instead of the frosted `NSVisualEffectView`; frosted stays default. The compare command is under the material box, which stays unticked until the user picks. Build, checks and bundle pass; the app was not launched, so neither material's look is verified.
 - 2026-11-02 — M2 task 2 fix: each app now keeps its windows' order in a map that outlives the window cache, so a window missing from a read keeps its place when it returns, released when the window is destroyed or the app quits. First reads go through apps in pid order, so the order across apps no longer varies between launches. Build, checks and bundle pass; the app was not launched, so this is unverified with real AX data until the M2 manual pass.
+- 2026-11-02 — M2 task 3: entries below 48pt hide the title, center the icon and show the title as tooltip (kept current on title changes); entries fade in and out and animate frame changes through `NSAnimationContext` (0.12s), applied immediately with Reduce Motion. A window returning during its fade reuses the fading view. `entryWidth` checks already cover the 48pt boundary and the 220pt cap, so none added. Build, checks and bundle pass; an offscreen scratch run of `BarContentView` confirmed icon-only switch with tooltips, no duplicate on return during a fade, and removal after the fade. The app was not launched, so the animation's look and timing, Reduce Motion and real-window behaviour are unverified until the M2 manual pass. M2 at 3/6.
