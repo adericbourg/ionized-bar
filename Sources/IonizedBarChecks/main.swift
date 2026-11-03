@@ -725,6 +725,31 @@ do {
     check("launcherFrame_onSmallScreen_shrinksToFit", fitted == CGRect(x: 4, y: 40, width: 292, height: 156))
 }
 
+// pins
+do {
+    // Given pins in pinning order
+    let pins = ["a", "b", "c"]
+    let all: Set = ["a", "b", "c"]
+    check("pinning_ofNewApp_appendsLast", pinning("d", in: pins) == ["a", "b", "c", "d"])
+    check("pinning_ofPinnedApp_changesNothing", pinning("b", in: pins) == pins)
+    check("unpinning_removesOnlyThatApp", unpinning("b", in: pins) == ["a", "c"])
+    // Setting off: only the bar with a task for the app hides its icon
+    check("visiblePins_whenOffAndTaskOnThisBar_hidesIt",
+          visiblePins(pins, keepsVisible: false, taskBundleIDs: ["b"], installedBundleIDs: all) == ["a", "c"])
+    check("visiblePins_whenOffAndTaskOnAnotherBarOnly_keepsIt",
+          visiblePins(pins, keepsVisible: false, taskBundleIDs: [], installedBundleIDs: all) == pins)
+    check("visiblePins_whenOffAndRunningWithNoWindows_keepsIt",
+          visiblePins(pins, keepsVisible: false, taskBundleIDs: ["x"], installedBundleIDs: all) == pins)
+    // Setting on: always visible, even with a task here
+    check("visiblePins_whenOn_keepsItWithATask",
+          visiblePins(pins, keepsVisible: true, taskBundleIDs: ["a", "b", "c"], installedBundleIDs: all) == pins)
+    // Uninstalled: hidden in both modes, and the saved list is untouched
+    check("visiblePins_ofUninstalledApp_hidesItWhenOn",
+          visiblePins(pins, keepsVisible: true, taskBundleIDs: [], installedBundleIDs: ["a", "c"]) == ["a", "c"])
+    check("visiblePins_ofUninstalledApp_hidesItWhenOff",
+          visiblePins(pins, keepsVisible: false, taskBundleIDs: [], installedBundleIDs: ["a", "c"]) == ["a", "c"])
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)
