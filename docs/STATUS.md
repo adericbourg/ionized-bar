@@ -21,7 +21,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M8 – App launcher | ✅ | 6/6 |
 | M9 – Pin applications | ✅ | 6/6 |
 | M10 – Re-order tasks | 🚧 | 4/5 |
-| M11 – Plasma-style launcher | 🚧 | 5/6 |
+| M11 – Plasma-style launcher | ✅ | 6/6 |
 
 ## Requirements
 
@@ -277,22 +277,22 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Hover highlight on the launcher's rows
 - [x] Sidebar and Favorites grid
 - [x] Restart and Shut Down in the footer
-- [ ] Keyboard, VoiceOver, Reduce Motion, Reduce Transparency and contrast on the new panel; manual pass
+- [x] Keyboard, VoiceOver, Reduce Motion, Reduce Transparency and contrast on the new panel; manual pass
 
 ### M11 manual pass
 - [x] Restart and Shut Down each show the macOS dialog from the bundled app, Cancel leaves everything running, and the footer's look and hover read as intended
-- [ ] A confirmed restart: the Dock is restored, and IonizedBar comes back at login
+- [x] A confirmed restart: the Dock is restored, and IonizedBar comes back at login
 - [x] The pointer highlights rows, grid items and sidebar items, a click on a sidebar item switches view, and the layout reads as intended
-- [ ] With another app frontmost, a click on a row and on a grid item opens that app, and the app comes to the front
-- [ ] Favorites with no pins shows its message, readable and unclipped, and opens on All Applications; a pin outside the listed folders (Finder) shows and opens; an uninstalled pin doesn't show
+- [x] With another app frontmost, a click on a row and on a grid item opens that app, and the app comes to the front
+- [x] Favorites with no pins shows its message, readable and unclipped, and opens on All Applications; a pin outside the listed folders (Finder) shows and opens; an uninstalled pin doesn't show
 - [x] Tab goes through the search field, the sidebar, Restart and Shut Down; Up and Down in the sidebar switch view, with a visible outline; Right goes to its apps, where Up, Down and Return act on them; Left comes back; Esc closes from anywhere; Return on a footer button shows its dialog
 - [x] VoiceOver: a view change is announced, and grid items read as buttons
-- [ ] Left and Right stay in the search text while a query is typed
-- [ ] Reduce Transparency, Increase Contrast and Reduce Motion on the sidebar, the grid and the footer, with 4.5:1 text on a highlighted grid item and a visible focus on the footer buttons
-- [ ] A search from each view shows the list, clearing it returns to that view, and a click on a sidebar item during a search ends it
-- [ ] Return opens the last row hovered; a pointer leaving the list leaves the highlight in place
-- [ ] Arrow keys with a still pointer over the list: the highlight follows the keys and stays with them when the list scrolls
-- [ ] The wheel under a still pointer: the highlight follows the row under the pointer
+- [x] Left and Right stay in the search text while a query is typed
+- [x] Reduce Transparency, Increase Contrast and Reduce Motion on the sidebar, the grid and the footer, with 4.5:1 text on a highlighted grid item and a visible focus on the footer buttons
+- [x] A search from each view shows the list, clearing it returns to that view, and a click on a sidebar item during a search ends it
+- [x] Return opens the last row hovered; a pointer leaving the list leaves the highlight in place
+- [x] Arrow keys with a still pointer over the list: the highlight follows the keys and stays with them when the list scrolls
+- [x] The wheel under a still pointer: the highlight follows the row under the pointer
 
 ### Final review manual checks
 - [ ] Launcher: hold Return on the launcher button from ⌃⌥B: the panel opens and stays open, no app opens until Return is pressed again
@@ -416,3 +416,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M11: the launcher panel now has a sidebar and a Favorites grid. The panel grows to 620x520, and it opens on Favorites, or on All Applications with no pins. Favorites are the pins, looked up by bundle identifier since a pin can be outside the listed folders. Hover moved to one scroll view subclass shared by the list, the grid and the sidebar. Verified: the checks, the build and the user's run on the bundled app (layout, hover, view switching). Not verified: the rest of the M11 manual pass.
 - 2026-11-03 — M11: Restart and Shut Down in the launcher's footer. A click closes the panel and asks `loginwindow` for the macOS dialog off the main thread, with a 10s reply timeout; a failure is logged. No `Info.plist` change: there was no Automation prompt. Verified: the checks, the build and the user's run of both dialogs with Cancel on the bundled app. Not verified: a confirmed restart. No check added: this is Apple event glue the checks target cannot run.
 - 2026-11-03 — M11: keyboard and VoiceOver on the new launcher. Focus stays in the search field, so typing always works, and the arrow keys act on the apps from there. Tab goes through the sidebar and the footer. The user's first run found no way from a category to its apps, as Return was the only way and nothing showed it, so Right now goes to the apps and Left comes back when no text is typed. A view change is announced. Verified: the checks (red first for the announcement), the build and the user's run of the keyboard paths and VoiceOver on the bundled app. M11 stays open at 5/6 until the rest of its manual pass is run.
+- 2026-11-03 — M11: the user ran the rest of the manual pass and reported it passing, so the milestone is done at 6/6.
