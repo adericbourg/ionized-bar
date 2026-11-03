@@ -564,6 +564,43 @@ do {
     check("fittedSize_ofSmallImage_keepsItsSize", fittedSize(CGSize(width: 40, height: 20), within: box) == CGSize(width: 40, height: 20))
 }
 
+// fuzzyFilter
+do {
+    let names = ["Activity Monitor", "Google Chrome", "Google Docs", "Slack", "Safari", "System Settings", "Visual Studio Code", "Terminal", "1Password", "Karabiner-Elements", "Firefox"]
+    func found(_ q: String) -> [String] { fuzzyFilter(names, query: q, name: { $0 }) }
+    // Given an empty or blank search, Then everything is listed in the given order
+    check("fuzzyFilter_ofEmptyQuery_returnsEverything", found("") == names && found("  ") == names)
+    // Given a prefix, a word start and a substring, Then they rank in that order
+    check("fuzzyFilter_ofPrefix_ranksBeforeWordStartAndSubstring", fuzzyFilter(["Mail Chat", "Chat", "Unchat", "Chatter"], query: "chat", name: { $0 }) == ["Chat", "Chatter", "Mail Chat", "Unchat"])
+    check("fuzzyFilter_ofWordStart_findsTheApp", found("mon").first == "Activity Monitor" && found("studio") == ["Visual Studio Code"])
+    check("fuzzyFilter_ofCaseAndAccents_ignoresThem", found("SLACK") == ["Slack"] && fuzzyFilter(["Café"], query: "cafe", name: { $0 }) == ["Café"])
+    // Given partial names, Then they find the app
+    check("fuzzyFilter_ofPartialName_findsTheApp", found("goo ch") == ["Google Chrome"] && found("vsc") == ["Visual Studio Code"])
+    // Given typos, Then they still find the app
+    check("fuzzyFilter_ofSwappedLetters_findsTheApp", found("slcak") == ["Slack"] && found("terminla") == ["Terminal"])
+    check("fuzzyFilter_ofWrongLetter_findsTheApp", found("safsri") == ["Safari"] && found("firefax") == ["Firefox"])
+    check("fuzzyFilter_ofMissingOrExtraLetter_findsTheApp", found("termnal") == ["Terminal"] && found("slackk") == ["Slack"] && found("1pasword") == ["1Password"])
+    check("fuzzyFilter_ofTypoInSecondWord_findsTheApp", found("google crhome") == ["Google Chrome"] && found("karabiner-elemnts") == ["Karabiner-Elements"])
+    // Given a 3-letter query with a typo, or an unrelated one, Then nothing matches
+    check("fuzzyFilter_ofShortQueryWithTypo_findsNothing", found("slx").isEmpty && found("zq").isEmpty)
+    check("fuzzyFilter_ofUnrelatedQuery_findsNothing", found("photoshop").isEmpty)
+}
+
+// listApplications
+do {
+    // Given a folder with two apps, a non-app, and a Utilities subfolder holding an app
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("ionized-bar-checks-\(UUID().uuidString)")
+    let fm = FileManager.default
+    for dir in ["Zed.app", "alpha.app", "notes.txt", "Utilities/Terminal.app", "Utilities/Deep/Hidden.app", ".Secret.app"] {
+        try? fm.createDirectory(at: root.appendingPathComponent(dir), withIntermediateDirectories: true)
+    }
+    defer { try? fm.removeItem(at: root) }
+    // When listing it with a missing folder
+    let apps = listApplications(in: [root, root.appendingPathComponent("missing")])
+    // Then apps come sorted by name, without the extension, and only one Utilities level
+    check("listApplications_sortsByNameAndIncludesUtilities", apps.map(\.name) == ["alpha", "Terminal", "Zed"])
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

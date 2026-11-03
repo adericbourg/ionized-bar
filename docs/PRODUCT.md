@@ -66,7 +66,7 @@ A settings window, opened with "Settings…" from the right-click menu of an ent
 A button always at the left of the bar, on every bar. It opens a panel above it that lists applications, with a search field. Nothing else: no categories and no recent apps.
 
 - **Button:** a fixed-width, icon-only entry, about 48pt like Icon only tasks. Tasks share the width left of the bar (see M9 for the order). R5's equal share then means the width left for tasks.
-- **Applications:** the `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, sorted by name, each with its icon and name.
+- **Applications:** the `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, and in their `Utilities` folder, sorted by name, each with its icon and name.
 - **Search:** fuzzy matching over application names only (see Description). The search field has focus when the panel opens, and an empty search lists everything.
 - **Description:** macOS bundles have no standard description field. The M8 spike (2026-11-03) read 125 bundles from the three folders: Spotlight `kMDItemDescription` was empty on all 125, and Info.plist `CFBundleGetInfoString` was empty on 109, a copyright or version line on 12 and a real description on 3 (all third-party, none among the 65 system apps). Not usable, so search covers names only.
 - **Opening an app:** a click, or Return on the selected row, opens it with `NSWorkspace.openApplication` and closes the panel. Esc or a click outside closes the panel too, and keys go back to the frontmost app.
