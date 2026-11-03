@@ -8,7 +8,7 @@ final class PreviewPanel: NSPanel {
     private static let padding: CGFloat = 10
     private static let iconSize: CGFloat = 32
     private static let maxThumbnailHeight: CGFloat = 200
-    private static let cornerRadius: CGFloat = 10
+    static let cornerRadius: CGFloat = 10
     private static let gap: CGFloat = 4
 
     private let icon = NSImageView()

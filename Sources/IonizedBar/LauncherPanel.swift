@@ -21,6 +21,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         "x": #selector(NSText.cut(_:)), "c": #selector(NSText.copy(_:)), "v": #selector(NSText.paste(_:)), "a": #selector(NSText.selectAll(_:))
     ]
 
+    private let tint = makeDarkTint(cornerRadius: PreviewPanel.cornerRadius)
     private let searchField = NSSearchField()
     private let scrollView = HoverScrollView()
     private let table = NSTableView()
@@ -108,7 +109,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         sidebar.nextKeyView = restartButton
         restartButton.nextKeyView = shutDownButton
         shutDownButton.nextKeyView = searchField
-        for view in [searchField, headerSeparator, sidebarScrollView, sidebarSeparator, scrollView, gridScrollView, emptyLabel, footerSeparator, restartButton, shutDownButton] { frosted.addSubview(view) }
+        for view in [tint, searchField, headerSeparator, sidebarScrollView, sidebarSeparator, scrollView, gridScrollView, emptyLabel, footerSeparator, restartButton, shutDownButton] { frosted.addSubview(view) }
     }
 
     private func configure(_ table: NSTableView, in scrollView: NSScrollView, label: String, id: NSUserInterfaceItemIdentifier, rowHeight: CGFloat, action: Selector) {
@@ -156,6 +157,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         searchField.stringValue = ""
         list.reset(favorites: favorites)
         setFrame(frame, display: false)
+        tint.frame = CGRect(origin: .zero, size: frame.size)
         let fieldHeight = searchField.intrinsicContentSize.height
         let fieldY = frame.height - Self.padding - fieldHeight
         searchField.frame = CGRect(x: Self.padding, y: fieldY, width: frame.width - 2 * Self.padding, height: fieldHeight)

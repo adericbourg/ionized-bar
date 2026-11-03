@@ -1,5 +1,16 @@
 import AppKit
 
+/// Goes under a panel's content: the frosted material alone turns mid-grey over a light backdrop, even with a dark appearance.
+@MainActor
+func makeDarkTint(cornerRadius: CGFloat = 0) -> NSView {
+    let tint = NSView()
+    tint.wantsLayer = true
+    tint.layer?.backgroundColor = NSColor(white: 0.11, alpha: 0.8).cgColor
+    tint.layer?.cornerRadius = cornerRadius
+    tint.autoresizingMask = [.width, .height]
+    return tint
+}
+
 final class BarPanel: NSPanel {
     private let content: BarContentView
     private let preview: PreviewController
@@ -24,6 +35,9 @@ final class BarPanel: NSPanel {
         frosted.blendingMode = .behindWindow
         frosted.state = .active
         frosted.material = .hudWindow
+        let tint = makeDarkTint()
+        tint.frame = frosted.bounds
+        frosted.addSubview(tint)
         surface.frame = frosted.bounds
         surface.autoresizingMask = [.width, .height]
         frosted.addSubview(surface)
