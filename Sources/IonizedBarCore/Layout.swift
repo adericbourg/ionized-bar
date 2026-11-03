@@ -85,7 +85,7 @@ public func assignDisplay(windowFrame: CGRect, displays: [Display]) -> Display? 
     var best: (display: Display, area: CGFloat)?
     for display in displays {
         let overlap = display.frame.intersection(windowFrame)
-        let area = overlap.isNull ? 0 : overlap.width * overlap.height
+        let area = overlap.width * overlap.height
         if area > (best?.area ?? 0) { best = (display, area) }
     }
     return best?.display
@@ -124,8 +124,8 @@ public func barFrame(screenFrame: CGRect, height: CGFloat = 36) -> CGRect {
 
 /// Cocoa coordinates (bottom-left origin), like `barFrame`.
 public func overlapsBar(_ window: CGRect, bar: CGRect) -> Bool {
-    let overlap = window.intersection(bar)
-    return !overlap.isNull && overlap.width > 0 && overlap.height > 0
+    // `intersects` alone is true for an empty rect inside the bar.
+    !window.isEmpty && window.intersects(bar)
 }
 
 /// Cocoa coordinates. The room is from the bar's top to `visibleFrame`'s top (below the menu bar); x and width never change.

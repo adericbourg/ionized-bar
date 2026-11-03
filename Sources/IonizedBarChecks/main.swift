@@ -379,6 +379,7 @@ do {
     check("overlapsBar_ofWindowAbove_isFalse", !overlapsBar(above, bar: bar))
     check("overlapsBar_ofWindowTouchingTop_isFalse", !overlapsBar(CGRect(x: -700, y: 1036, width: 300, height: 200), bar: bar))
     check("overlapsBar_ofWindowOverBar_isTrue", overlapsBar(over, bar: bar))
+    check("overlapsBar_ofEmptyWindowInsideBar_isFalse", !overlapsBar(CGRect(x: bar.midX, y: bar.midY, width: 0, height: 10), bar: bar))
     // Given a window that fits, When pushing, Then it moves up and keeps its size, x and width
     check("pushedFrame_ofOverlappingWindow_movesUp",
           pushedFrame(over, screenFrame: screen, visibleFrame: visible, barHeight: 36) == CGRect(x: -700, y: 1036, width: 300, height: 200))
