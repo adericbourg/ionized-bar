@@ -137,9 +137,17 @@ final class EntryView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        guard isActive || isHovered else { return }
-        (isActive ? NSColor.controlAccentColor : NSColor.labelColor.withAlphaComponent(0.1)).setFill()
-        NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4).fill()
+        // A tile on the focus ring's inset, so entries stand apart from the bar and from each other.
+        (isActive ? NSColor.controlAccentColor : NSColor.labelColor.withAlphaComponent(isHovered ? 0.1 : 0.05)).setFill()
+        focusRingPath.fill()
+        if !isActive {
+            // Half a pixel in, so the 1 px hairline lands on whole device pixels.
+            let halfPixel = 0.5 / (window?.backingScaleFactor ?? 2)
+            let border = NSBezierPath(roundedRect: bounds.insetBy(dx: Self.focusRingInset + halfPixel, dy: Self.focusRingInset + halfPixel), xRadius: 4, yRadius: 4)
+            border.lineWidth = 2 * halfPixel
+            NSColor.labelColor.withAlphaComponent(0.08).setStroke()
+            border.stroke()
+        }
         // The system focus ring is accent-derived, so it does not show on the accent fill.
         if isActive && window?.isKeyWindow == true && window?.firstResponder === self {
             NSColor.alternateSelectedControlTextColor.setStroke()
