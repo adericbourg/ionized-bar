@@ -53,12 +53,11 @@ final class BarManager {
         self.windowTracker = windowTracker
         let settingsWindow = SettingsWindow(settings: settings)
         self.settingsWindow = settingsWindow
-        // The settings window knows nothing of previews or pinned icons, so keep their current values.
+        // The settings window knows nothing of previews, so keep their current value.
         settingsWindow.onChange = { [weak self] in
             guard let self else { return }
             var newSettings = $0
             newSettings.showsPreviews = settings.showsPreviews
-            newSettings.keepsPinnedVisible = settings.keepsPinnedVisible
             apply(newSettings)
         }
         // Read-only status: no prompt. Only the opt-in toggle may ask.

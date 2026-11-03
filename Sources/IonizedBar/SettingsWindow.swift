@@ -6,9 +6,10 @@ final class SettingsWindow: NSWindow {
     private let groupingPopUp = NSPopUpButton()
     private let displayPopUp = NSPopUpButton()
     private let loginCheckbox = NSButton(checkboxWithTitle: "Start at login", target: nil, action: nil)
+    private let pinnedCheckbox = NSButton(checkboxWithTitle: "Keep pinned app icons visible", target: nil, action: nil)
 
     init(settings: Settings) {
-        super.init(contentRect: CGRect(x: 0, y: 0, width: 320, height: 130), styleMask: [.titled, .closable], backing: .buffered, defer: true)
+        super.init(contentRect: CGRect(x: 0, y: 0, width: 320, height: 160), styleMask: [.titled, .closable], backing: .buffered, defer: true)
         title = "Settings"
         isReleasedWhenClosed = false
 
@@ -27,9 +28,15 @@ final class SettingsWindow: NSWindow {
         loginCheckbox.action = #selector(loginChanged)
         loginCheckbox.setAccessibilityLabel("Start at login")
 
+        pinnedCheckbox.state = settings.keepsPinnedVisible ? .on : .off
+        pinnedCheckbox.target = self
+        pinnedCheckbox.action = #selector(selectionChanged)
+        pinnedCheckbox.setAccessibilityLabel("Keep pinned app icons visible")
+
         let grid = NSGridView(views: [
             [NSTextField(labelWithString: "Group windows:"), groupingPopUp],
             [NSTextField(labelWithString: "Show tasks as:"), displayPopUp],
+            [NSGridCell.emptyContentView, pinnedCheckbox],
             [NSGridCell.emptyContentView, loginCheckbox]
         ])
         grid.translatesAutoresizingMaskIntoConstraints = false
@@ -81,7 +88,8 @@ final class SettingsWindow: NSWindow {
     @objc private func selectionChanged() {
         onChange?(Settings(
             grouping: GroupingMode.allCases[groupingPopUp.indexOfSelectedItem],
-            taskDisplay: TaskDisplay.allCases[displayPopUp.indexOfSelectedItem]
+            taskDisplay: TaskDisplay.allCases[displayPopUp.indexOfSelectedItem],
+            keepsPinnedVisible: pinnedCheckbox.state == .on
         ))
     }
 
