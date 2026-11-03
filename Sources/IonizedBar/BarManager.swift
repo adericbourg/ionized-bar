@@ -50,7 +50,7 @@ final class BarManager {
     // The one place a capture is asked for, always after `EntryView.previewWindow` checks the setting and the grant.
     private lazy var preview = PreviewController { [unowned self] in await thumbnail(of: $0) }
     // Memory only, never on disk. A minimized window can't be captured (-3811), so it shows its last image.
-    private var lastCaptures = LastCaptureCache<AXUIElement, CGImage>()
+    private var lastCaptures: [AXUIElement: CGImage] = [:]
     private let windowTracker: WindowTracker
     private let settingsWindow: SettingsWindow
     private var panels: [UInt32: BarPanel] = [:]
@@ -114,10 +114,10 @@ final class BarManager {
 
     private func thumbnail(of window: TrackedWindow) async -> CGImage? {
         if !window.isMinimized, let image = await PreviewCapture.thumbnail(pid: window.pid, frame: window.frame) {
-            lastCaptures.store(image, for: window.element)
+            lastCaptures[window.element] = image
             return image
         }
-        return lastCaptures.value(for: window.element)
+        return lastCaptures[window.element]
     }
 
     func update(windowsByDisplay: [UInt32: [TrackedWindow]], aliveWindows: Set<AXUIElement>) {
@@ -129,7 +129,8 @@ final class BarManager {
 
     private func update(windowsByDisplay: [UInt32: [TrackedWindow]]) {
         latestWindowsByDisplay = windowsByDisplay
-        lastCaptures.keepOnly(Set(windowsByDisplay.values.joined().map(\.element)))
+        let shown = Set(windowsByDisplay.values.joined().map(\.element))
+        lastCaptures = lastCaptures.filter { shown.contains($0.key) }
         let bundleIDs = identities.bundleIDs(of: Array(windowsByDisplay.values.joined()))
         let installed = identities.installedBundleIDs(among: pins)
         for (id, panel) in panels {

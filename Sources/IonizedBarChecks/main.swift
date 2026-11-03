@@ -538,22 +538,6 @@ do {
     check("isInPreviewGap_ofPanelBelowTheEntry_isFalse", !isInPreviewGap(CGPoint(x: 120, y: 38), entry: entry, panel: CGRect(x: 4, y: -500, width: 320, height: 100)))
 }
 
-// LastCaptureCache
-do {
-    // Given a stored value, Then it is returned, and a new one replaces it
-    var cache = LastCaptureCache<Int, String>()
-    check("value_ofUnknownKey_isNil", cache.value(for: 1) == nil)
-    cache.store("a", for: 1)
-    check("value_ofStoredKey_isTheStoredValue", cache.value(for: 1) == "a")
-    cache.store("b", for: 1)
-    check("store_onAStoredKey_replacesTheValue", cache.value(for: 1) == "b")
-    // Given two keys and one window closed, Then only the closed one is dropped
-    cache.store("c", for: 2)
-    cache.keepOnly([2])
-    check("keepOnly_dropsTheKeysNotKept", cache.value(for: 1) == nil)
-    check("keepOnly_keepsTheKeysKept", cache.value(for: 2) == "c")
-}
-
 // fittedSize
 do {
     let box = CGSize(width: 300, height: 200)
