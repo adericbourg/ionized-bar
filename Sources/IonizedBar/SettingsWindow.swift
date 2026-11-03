@@ -1,7 +1,7 @@
 import AppKit
 import IonizedBarCore
 
-final class SettingsWindow: NSWindow {
+final class SettingsWindow: AppWindow {
     var onChange: ((Settings) -> Void)?
     private let groupingPopUp = NSPopUpButton()
     private let displayPopUp = NSPopUpButton()
@@ -9,9 +9,7 @@ final class SettingsWindow: NSWindow {
     private let pinnedCheckbox = NSButton(checkboxWithTitle: "Keep pinned app icons visible", target: nil, action: nil)
 
     init(settings: Settings) {
-        super.init(contentRect: CGRect(x: 0, y: 0, width: 320, height: 160), styleMask: [.titled, .closable], backing: .buffered, defer: true)
-        title = "Settings"
-        isReleasedWhenClosed = false
+        super.init(title: "Settings", size: CGSize(width: 320, height: 160))
 
         groupingPopUp.addItems(withTitles: GroupingMode.allCases.map(Self.title))
         groupingPopUp.selectItem(at: GroupingMode.allCases.firstIndex(of: settings.grouping)!)
@@ -68,22 +66,9 @@ final class SettingsWindow: NSWindow {
         }
     }
 
-    func show() {
+    override func show() {
         loginCheckbox.state = LoginItem.isEnabled ? .on : .off
-        center()
-        // The app has no Dock icon or menu bar, so nothing else brings this window forward.
-        NSApp.activate()
-        makeKeyAndOrderFront(nil)
-    }
-
-    // With no main menu, nothing maps Cmd-W to closing the window.
-    override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        if event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock) == .command,
-           event.charactersIgnoringModifiers?.lowercased() == "w" {
-            close()
-            return true
-        }
-        return super.performKeyEquivalent(with: event)
+        super.show()
     }
 
     @objc private func selectionChanged() {

@@ -1,13 +1,11 @@
 import AppKit
 @preconcurrency import ApplicationServices
 
-final class OnboardingWindow: NSWindow {
+final class OnboardingWindow: AppWindow {
     private static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
 
     init() {
-        super.init(contentRect: CGRect(x: 0, y: 0, width: 380, height: 150), styleMask: [.titled, .closable], backing: .buffered, defer: true)
-        title = "Accessibility permission"
-        isReleasedWhenClosed = false
+        super.init(title: "Accessibility permission", size: CGSize(width: 380, height: 150))
 
         let explanation = NSTextField(wrappingLabelWithString: "IonizedBar needs the Accessibility permission to list, raise and move your windows. Open System Settings, then switch IonizedBar on in Privacy & Security > Accessibility. This window closes once it is granted.")
         let button = NSButton(title: "Open Accessibility Settings", target: self, action: #selector(openSettings))
@@ -30,23 +28,6 @@ final class OnboardingWindow: NSWindow {
         ])
         contentView = container
         initialFirstResponder = button
-    }
-
-    func show() {
-        center()
-        // The app has no Dock icon or menu bar, so nothing else brings this window forward.
-        NSApp.activate()
-        makeKeyAndOrderFront(nil)
-    }
-
-    // With no main menu, nothing maps Cmd-W to closing the window.
-    override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        if event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock) == .command,
-           event.charactersIgnoringModifiers?.lowercased() == "w" {
-            close()
-            return true
-        }
-        return super.performKeyEquivalent(with: event)
     }
 
     @objc private func openSettings() {
