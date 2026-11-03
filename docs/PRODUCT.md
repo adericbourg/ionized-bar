@@ -120,7 +120,8 @@ The launcher panel (M8) takes the layout of Plasma's launcher: a full-width sear
 - **Search:** typing searches all apps and shows the list, from any view. Clearing it returns to the view, and picking a view ends the search.
 - **Hover:** the pointer and the arrow keys share one highlight, as in Plasma, so Return opens the last row hovered. A pointer off the rows leaves it where it is.
 - **Restart and Shut Down:** ask `loginwindow` for the macOS confirmation dialog (`aevt`/`rrst` and `aevt`/`rsdn`), never acting directly. The dialog's own countdown applies. The M11 spike showed it from an `LSUIElement` app, above the bar, with no Automation prompt (macOS 27.2).
-- **Accessibility:** Tab goes through the search field, the sidebar and the footer. Grid items are VoiceOver buttons labelled with the app name, and a view change is announced. The panel keeps honoring *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*.
+- **Keyboard:** focus starts in the search field, and the arrow keys act on the apps from there, so typing always works. Tab goes through the search field, the sidebar, Restart and Shut Down. In the sidebar, Up and Down switch view, and Right, Return or Space go to its apps. Left comes back to the sidebar when no text is typed, in the grid from its first column only. Esc closes the panel from anywhere.
+- **Accessibility:** grid items are VoiceOver buttons labelled with the app name, and a view change is announced. The panel keeps honoring *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*.
 
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).

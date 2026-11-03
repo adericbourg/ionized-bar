@@ -138,6 +138,11 @@ public struct LauncherList {
         return "\(rows.count) application\(rows.count == 1 ? "" : "s"), \(selected.name) selected"
     }
 
+    public var viewAnnouncement: String {
+        let content = hasNoFavorites ? Self.noFavoritesMessage : "\(rows.count) application\(rows.count == 1 ? "" : "s")"
+        return "\(view.title), \(content)"
+    }
+
     /// A fresh read keeps the selected app, by URL: names repeat across folders.
     public mutating func setApps(_ apps: [InstalledApp]) {
         let maybeSelectedURL = selected?.url

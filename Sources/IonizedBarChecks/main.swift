@@ -790,8 +790,13 @@ do {
     // Given Favorites with no pins, Then that is neither a failed search nor announced as one
     list.setView(.favorites)
     check("hasNoFavorites_ofEmptyFavorites_isTrue", list.hasNoFavorites && !list.hasNoMatch && list.resultsAnnouncement == LauncherList.noFavoritesMessage)
+    check("viewAnnouncement_ofEmptyFavorites_saysHowToPin", list.viewAnnouncement == "Favorites, \(LauncherList.noFavoritesMessage)")
     list.setQuery("notes")
     check("hasNoFavorites_whileSearching_isFalse", !list.hasNoFavorites)
+    list.setView(.all)
+    check("viewAnnouncement_ofSeveralRows_givesTitleAndCount", list.viewAnnouncement == "All Applications, 2 applications")
+    list.setView(.category(.office))
+    check("viewAnnouncement_ofOneRow_isSingular", list.viewAnnouncement == "Office, 1 application")
 }
 
 // LauncherList: hover and grid movement

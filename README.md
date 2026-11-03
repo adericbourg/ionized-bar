@@ -22,7 +22,7 @@ The first time it has the Accessibility permission, the app adds itself to the l
 
 The button at the left of the bar opens your applications, with a search field that tolerates typos. A sidebar switches between Favorites (your pinned apps, as an icon grid), All Applications and categories. It opens on Favorites, or on All Applications when nothing is pinned, and typing searches all apps from any view.
 
-The categories come from what each app declares, and apps that declare none are under Other. The pointer and the arrow keys move the same highlight, and Return or a click open an app; Escape or a click outside closes the panel. VoiceOver announces the number of results and the selected app. The panel follows Reduce Motion, Reduce Transparency and Increase Contrast.
+The categories come from what each app declares, and apps that declare none are under Other. The pointer and the arrow keys move the same highlight, and Return or a click open an app; Escape or a click outside closes the panel. Tab reaches the sidebar and the footer; in the sidebar, Up and Down switch view, Right goes to its apps and Left comes back. VoiceOver announces the number of results and the selected app. The panel follows Reduce Motion, Reduce Transparency and Increase Contrast.
 
 Restart and Shut Down in the panel's footer show the macOS confirmation dialog. They never act without it.
 

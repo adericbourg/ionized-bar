@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import IonizedBarCore
 
 /// Key without activating the app, like the bar in keyboard mode, so typing reaches the search field.
@@ -24,7 +25,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     private let scrollView = HoverScrollView()
     private let table = NSTableView()
     private let sidebarScrollView = HoverScrollView()
-    private let sidebar = NSTableView()
+    private let sidebar = SidebarTableView()
     private let gridScrollView = HoverScrollView()
     private let grid = NSCollectionView()
     private let gridLayout = NSCollectionViewFlowLayout()
@@ -74,6 +75,14 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         }
         configure(sidebar, in: sidebarScrollView, label: "Application views", id: Self.sidebarRowID, rowHeight: Self.sidebarRowHeight, action: #selector(sidebarClicked))
         sidebarScrollView.onHover = { [unowned self] point in hoverSidebar(row: point.map(sidebar.row(at:)) ?? -1) }
+        // Unlike the list, it takes focus, by Tab or Left. A click, Right or Return gives focus back to the search field,
+        // where Up, Down and Return act on the apps.
+        sidebar.refusesFirstResponder = false
+        sidebar.onMove = { [unowned self] offset in moveSidebar(by: offset) }
+        sidebar.onConfirm = { [unowned self] in makeFirstResponder(searchField) }
+        sidebar.onFocusChange = { [unowned self] isFocused in
+            sidebar.enumerateAvailableRowViews { rowView, _ in (rowView as? EmphasizedRow)?.showsFocus = isFocused }
+        }
 
         grid.collectionViewLayout = gridLayout
         gridLayout.minimumInteritemSpacing = 0
@@ -95,6 +104,10 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         sidebarSeparator.boxType = .separator
         footerSeparator.boxType = .separator
         emptyLabel.alignment = .center
+        searchField.nextKeyView = sidebar
+        sidebar.nextKeyView = restartButton
+        restartButton.nextKeyView = shutDownButton
+        shutDownButton.nextKeyView = searchField
         for view in [searchField, headerSeparator, sidebarScrollView, sidebarSeparator, scrollView, gridScrollView, emptyLabel, footerSeparator, restartButton, shutDownButton] { frosted.addSubview(view) }
     }
 
@@ -121,6 +134,8 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    override func cancelOperation(_ sender: Any?) { onDismiss() }
 
     override func resignKey() {
         super.resignKey()
@@ -238,9 +253,23 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
     @objc private func sidebarClicked() {
         guard list.sidebarItems.indices.contains(sidebar.clickedRow) else { return }
+        pick(list.sidebarItems[sidebar.clickedRow])
+        makeFirstResponder(searchField)
+    }
+
+    /// The view follows the keys: focus stays in the sidebar, so nothing is lost by passing over a view.
+    private func moveSidebar(by offset: Int) {
+        let items = list.sidebarItems
+        guard let current = items.firstIndex(of: list.view), items.indices.contains(current + offset) else { return }
+        pick(items[current + offset])
+        sidebar.scrollRowToVisible(current + offset)
+    }
+
+    private func pick(_ view: LauncherView) {
         searchField.stringValue = ""
-        list.setView(list.sidebarItems[sidebar.clickedRow])
+        list.setView(view)
         reload()
+        announce(list.viewAnnouncement)
     }
 
     @objc private func restartClicked() { onPower(.restart) }
@@ -262,9 +291,16 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
                 list.moveSelection(by: offset)
             }
             selectionMoved()
-        // In a list they stay with the search field's text cursor.
-        case #selector(NSResponder.moveLeft(_:)) where list.showsGrid, #selector(NSResponder.moveRight(_:)) where list.showsGrid:
-            list.moveSelection(by: selector == #selector(NSResponder.moveLeft(_:)) ? -1 : 1)
+        // With a query typed, Left and Right stay with the search field's text cursor.
+        case #selector(NSResponder.moveLeft(_:)) where list.query.isEmpty:
+            if list.showsGrid, let selectedIndex = list.selectedIndex, selectedIndex % Self.gridColumns != 0 {
+                list.moveSelection(by: -1)
+                selectionMoved()
+            } else {
+                makeFirstResponder(sidebar)
+            }
+        case #selector(NSResponder.moveRight(_:)) where list.showsGrid:
+            list.moveSelection(by: 1)
             selectionMoved()
         case #selector(NSResponder.insertNewline(_:)):
             // A held Return that opened the panel from the launcher button would otherwise open the top app on repeat.
@@ -302,6 +338,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
             rowView.setAccessibilityLabel(item.title)
             rowView.hasDivider = item == .all
             rowView.isHovered = row == hoveredSidebarRow
+            rowView.showsFocus = firstResponder === sidebar
         } else {
             rowView.setAccessibilityLabel(list.rows[row].name)
         }
@@ -377,10 +414,20 @@ private final class EmphasizedRow: NSTableRowView {
 
     var isHovered = false { didSet { needsDisplay = true } }
     var hasDivider = false
+    var showsFocus = false { didSet { needsDisplay = true } }
 
     override var isEmphasized: Bool {
         get { true }
         set {}
+    }
+
+    override func drawSelection(in dirtyRect: NSRect) {
+        super.drawSelection(in: dirtyRect)
+        guard showsFocus else { return }
+        NSColor.labelColor.setStroke()
+        let outline = NSBezierPath(roundedRect: bounds.insetBy(dx: Self.insetStylePadding + 1, dy: 1), xRadius: 4, yRadius: 4)
+        outline.lineWidth = 2
+        outline.stroke()
     }
 
     override func drawBackground(in dirtyRect: NSRect) {
@@ -395,8 +442,48 @@ private final class EmphasizedRow: NSTableRowView {
     }
 }
 
+/// Reports the keys it acts on, so that the view follows them instead of the table's own selection.
+private final class SidebarTableView: NSTableView {
+    var onMove: ((Int) -> Void)?
+    var onConfirm: (() -> Void)?
+    var onFocusChange: ((Bool) -> Void)?
+
+    override func keyDown(with event: NSEvent) {
+        switch Int(event.keyCode) {
+        case kVK_UpArrow: onMove?(-1)
+        case kVK_DownArrow: onMove?(1)
+        case kVK_RightArrow, kVK_Return, kVK_ANSI_KeypadEnter, kVK_Space: onConfirm?()
+        case kVK_Escape: window?.cancelOperation(nil)
+        default: super.keyDown(with: event)
+        }
+    }
+
+    override func becomeFirstResponder() -> Bool {
+        let didBecome = super.becomeFirstResponder()
+        if didBecome { onFocusChange?(true) }
+        return didBecome
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let didResign = super.resignFirstResponder()
+        if didResign { onFocusChange?(false) }
+        return didResign
+    }
+}
+
 private final class FooterButton: NSButton {
     private var isHovered = false { didSet { needsDisplay = true } }
+
+    // Without this, Tab skips buttons unless the user turned on macOS's full keyboard navigation.
+    override var canBecomeKeyView: Bool { true }
+
+    override func keyDown(with event: NSEvent) {
+        switch Int(event.keyCode) {
+        case kVK_Return, kVK_ANSI_KeypadEnter: performClick(nil)
+        case kVK_Escape: window?.cancelOperation(nil)
+        default: super.keyDown(with: event)
+        }
+    }
 
     init(title: String, symbolName: String, target: AnyObject, action: Selector) {
         super.init(frame: .zero)
