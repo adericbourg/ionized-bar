@@ -25,3 +25,27 @@ jobs:
       - run: swift run IonizedBarChecks
       - run: ./scripts/archive.sh
       - run: gh release create "$GITHUB_REF_NAME" build/IonizedBar-*.zip --title "$GITHUB_REF_NAME" --generate-notes
+
+  cask:
+    needs: release
+    runs-on: ubuntu-slim
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: adericbourg/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      - name: Point the cask at the release
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern 'IonizedBar-*.zip' --dir "$RUNNER_TEMP"
+          sha=$(sha256sum "$RUNNER_TEMP"/IonizedBar-*.zip | cut -d' ' -f1)
+          sed -i -E "s/^  version \".*\"/  version \"${GITHUB_REF_NAME#v}\"/; s/^  sha256 \"[^\"]*\"/  sha256 \"$sha\"/" Casks/ionized-bar.rb
+          # Fails when the cask already holds this version and checksum
+          ! git diff --quiet Casks/ionized-bar.rb
+      - name: Push to the tap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Brew cask update for ionized-bar version $GITHUB_REF_NAME"
+          git push
