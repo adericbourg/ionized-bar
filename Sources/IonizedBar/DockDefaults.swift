@@ -51,7 +51,12 @@ func defaultsDockStore(domain: String, savedIn appDefaults: UserDefaults, relaun
     return DockStore(
         read: read,
         write: { prefs in
-            guard let current = read() else { return false }
+            // Read only when a key needs deleting: a failed read must not block restoring values.
+            var current = prefs
+            if prefs.autohide == nil || prefs.autohideDelay == nil {
+                guard let read = read() else { return false }
+                current = read
+            }
             // Both keys are always tried, so one failing doesn't leave the other unrestored.
             let isAutohideOK = apply(key: DockPrefs.autohideKey, type: "-bool", value: prefs.autohide.map { String($0) }, isPresent: current.autohide != nil)
             let isDelayOK = apply(key: DockPrefs.autohideDelayKey, type: "-float", value: prefs.autohideDelay.map { String($0) }, isPresent: current.autohideDelay != nil)
