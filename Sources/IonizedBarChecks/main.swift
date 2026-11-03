@@ -1050,12 +1050,6 @@ do {
     // Given an app listing a window twice, When moving it, Then nothing traps
     check("move_ofGroupWithDuplicateWindow_movesIt", shown(moving(seeing("f e e"), on: "f e e", mode: .always, from: 1, to: 0), "f e e", mode: .always) == "e+e f")
     check("move_ontoItsOwnDuplicate_changesNothing", moving(seeing("e e f"), on: "e e f", from: 1, to: 0).keys == ["e", "f"])
-
-    // Given three items, Then each end can't move past itself
-    check("canMoveLeft_atTheStart_isFalse", !canMoveLeft(itemAt: 0))
-    check("canMoveLeft_elsewhere_isTrue", canMoveLeft(itemAt: 1))
-    check("canMoveRight_atTheEnd_isFalse", !canMoveRight(itemAt: 2, itemCount: 3))
-    check("canMoveRight_elsewhere_isTrue", canMoveRight(itemAt: 1, itemCount: 3))
 }
 
 // Dragging an entry

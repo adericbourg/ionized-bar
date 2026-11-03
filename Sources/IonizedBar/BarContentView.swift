@@ -210,7 +210,7 @@ final class BarContentView: NSView {
     /// False for an entry fading out. Asked again when the menu item fires, as the bar can have changed since the menu opened.
     func canMove(_ entry: EntryView, by offset: Int) -> Bool {
         guard let index = ordered.firstIndex(of: entry) else { return false }
-        return offset < 0 ? canMoveLeft(itemAt: index) : canMoveRight(itemAt: index, itemCount: ordered.count)
+        return ordered.indices.contains(index + offset)
     }
 
     /// One slot, through the same move as a drop there.
@@ -222,7 +222,7 @@ final class BarContentView: NSView {
     /// Among the pins this bar shows. False for an icon fading out.
     func canMove(_ icon: PinnedIconView, by offset: Int) -> Bool {
         guard let index = pinnedIcons.firstIndex(of: icon) else { return false }
-        return offset < 0 ? canMoveLeft(itemAt: index) : canMoveRight(itemAt: index, itemCount: pinnedIcons.count)
+        return pinnedIcons.indices.contains(index + offset)
     }
 
     func move(_ icon: PinnedIconView, by offset: Int) {

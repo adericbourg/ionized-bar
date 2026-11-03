@@ -44,10 +44,6 @@ public struct TaskOrder<Key: Hashable> {
     }
 }
 
-public func canMoveLeft(itemAt index: Int) -> Bool { index > 0 }
-
-public func canMoveRight(itemAt index: Int, itemCount: Int) -> Bool { index < itemCount - 1 }
-
 /// About 4pt from the press, in any direction: a smaller slip stays a click.
 public func isPastDragThreshold(from start: CGPoint, to point: CGPoint) -> Bool {
     hypot(point.x - start.x, point.y - start.y) > 4
