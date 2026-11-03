@@ -16,7 +16,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M3 – Dock replacement and launch at login | 🚧 | 4/4 |
 | M4 – Push windows away | 🚧 | 3/3 |
 | M5 – Release | 🚧 | 1/3 |
-| M6 – Window preview | 🚧 | 3/6 |
+| M6 – Window preview | 🚧 | 5/6 |
 | M7 – Settings | ✅ | 6/6 |
 | M8 – App launcher | ⬜ | 0/6 |
 | M9 – Pin applications | ⬜ | 0/6 |
@@ -162,11 +162,11 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] Clean-account install check (`brew install --cask adericbourg/tap/ionized-bar`)
 
 ### M6 – Window preview
-- [ ] Spike: can `SCScreenshotManager` capture a minimized window? Record the result and whether a cache is needed (ran 2026-11-02, unknown: the control capture failed, so the cache is assumed needed)
+- [x] Spike: can `SCScreenshotManager` capture a minimized window? No: the user's own run (Terminal.app, macOS 27.2, the spike's magenta window) captured it before minimizing and after restoring (800x664, magentaFraction 0.901), but while minimized the window was still listed (same frame, isOnScreen=false, layer 0) and the capture failed with `SCStreamErrorDomain` -3811. The cache is needed
 - [x] Opt-in setting and Screen Recording request (off by default, no prompt until enabled)
 - [x] Match the entry's window to an `SCWindow` and capture a thumbnail, with a header-only fallback when ambiguous (capture unverified, see the log; joins the M6 manual pass)
 - [x] Preview panel above the entry: hover delay, keyboard focus, Esc, stays open under the pointer (real pointer, real capture and Esc from another app unverified, see the log; join the M6 manual pass)
-- [ ] Minimized windows: live capture or in-memory last capture, per the spike
+- [x] Minimized windows: live capture or in-memory last capture, per the spike (last capture, in memory; real hover on a minimized window unverified, joins the M6 manual pass)
 - [ ] Reduce Motion, Reduce Transparency and contrast on the preview panel; manual pass
 
 ### M7 – Settings
@@ -273,3 +273,5 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-02 — M6 task 11 fix: with Screen Recording denied no panel appears, per PRODUCT.md, which settles the question left open above. `EntryActions.canPreview` is the setting and then `CGPreflightScreenCaptureAccess()`, asked afresh on each hover and keyboard focus, read-only and not called with previews off. While denied, an entry keeps the tooltip it has with previews off, refreshed on hover. A nil thumbnail for any other reason (ambiguity, a capture error) still gives the header-only panel. Build, checks and bundle pass. The scratch harness, with a fake grant, passes on the denied, granted-later, denied-during-the-delay and nil-while-granted cases (failing first on behaviour). The real preflight was not exercised through the app, and whether it turns true without a relaunch after a grant in System Settings is unverified; both join the M6 manual pass. Also removes a stray conflict-marker line from this log.
 - 2026-11-02 — M6 task 11 review fix: a pointer stopped in the 4pt gap between an entry and its panel no longer loses the panel when the 150ms grace ends (WCAG 1.4.13 hoverable). `isInPreviewGap` in `IonizedBarCore`, with checks, recognizes the strip within the panel's width; no tracking area covers it, so the grace re-arms there instead of dismissing, and a pointer leaving sideways still dismisses within a grace rather than leaving the panel stuck. A late exit from an already dismissed panel no longer starts a grace that would cancel the next, keyboard-opened preview. Build, checks and bundle pass. The scratch harness, with its bar placed around the real pointer and the panel moved away to stand for leaving sideways, failed then passed on both; a real pointer crossing the gap is unverified and joins the M6 manual pass.
 - 2026-11-03 — M6 fix: `isInPreviewGap` compared with a range `entry.maxY..<panel.minY`, which traps when `panel.minY < entry.maxY` (for example a stale frame from a hidden panel on another screen). It now compares `point.y >= entry.maxY && point.y < panel.minY`. The new check failed first as a crash of the checks binary ("Range requires lowerBound <= upperBound"), then passes.
+- 2026-11-03 — M6 spike settled by the user's own run (see the box): a minimized window is never captured live, so the cache is needed. The 2026-11-02 -3811 on the on-screen control came from the agent's session, since the same program passes in the user's. PRODUCT.md's "Minimized windows" bullet is fixed accordingly.
+- 2026-11-03 — M6 task 12: `LastCaptureCache` in `IonizedBarCore` (checked: store, replace, `keepOnly`) holds one image per window, keyed on the AX element, in memory only. `BarManager.thumbnail(of:)` captures live for a window that is not minimized and stores the result; a minimized window skips the capture call and shows the cached image, or the header only if never hovered. A failed or ambiguous capture also falls back to the cached image. `update(windowsByDisplay:)` drops the images of windows no longer listed, which bounds the cache to the open windows (a window on another Space that is no longer listed loses its image too). A window un-minimized is captured live again and refreshes it. A denied grant still shows no panel, so no cached image shows then. Verified: checks, release build, bundle. Not verified (the app can't be launched here): hovering a real minimized window.

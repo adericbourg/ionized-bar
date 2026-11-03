@@ -17,7 +17,9 @@ final class BarManager {
         preview: preview
     )
     // The one place a capture is asked for, always after `EntryView.previewWindow` checks the setting and the grant.
-    private let preview = PreviewController { await PreviewCapture.thumbnail(pid: $0.pid, frame: $0.frame) }
+    private lazy var preview = PreviewController { [unowned self] in await thumbnail(of: $0) }
+    // Memory only, never on disk. A minimized window can't be captured (-3811), so it shows its last image.
+    private var lastCaptures = LastCaptureCache<AXUIElement, CGImage>()
     private let windowTracker: WindowTracker
     private let settingsWindow: SettingsWindow
     private var panels: [UInt32: BarPanel] = [:]
@@ -66,8 +68,17 @@ final class BarManager {
         panels[id]?.beginKeyboardMode()
     }
 
+    private func thumbnail(of window: TrackedWindow) async -> CGImage? {
+        if !window.isMinimized, let image = await PreviewCapture.thumbnail(pid: window.pid, frame: window.frame) {
+            lastCaptures.store(image, for: window.element)
+            return image
+        }
+        return lastCaptures.value(for: window.element)
+    }
+
     func update(windowsByDisplay: [UInt32: [TrackedWindow]]) {
         latestWindowsByDisplay = windowsByDisplay
+        lastCaptures.keepOnly(Set(windowsByDisplay.values.joined().map(\.element)))
         for (id, panel) in panels {
             panel.update(with: windowsByDisplay[id] ?? [], settings: settings)
         }

@@ -46,8 +46,8 @@ Hovering an entry shows a panel above it with the app icon and name, the window 
 - **Opt-in:** off by default, toggled by a "Show window previews" item in the entry's right-click menu. The bar works fully without Screen Recording, and macOS only prompts when previews are turned on. With previews off, nothing appears and the icon-only tooltip stays as it is. If the permission is denied, no preview appears.
 - **Showing and dismissing:** the panel appears after about 300ms of hover, and also on keyboard focus. Esc dismisses it, and it stays open while the pointer is over it (WCAG 1.4.13). Esc works whichever app is frontmost, and that app gets the key too: a global key monitor can only observe. With previews on and the permission granted, a window entry has no tooltip, since the panel shows its title.
 - **Display-only:** clicking the panel does nothing. Clicks stay on the entry.
-- **Minimized windows:** a live capture if macOS allows it (the first M6 task checks this; the 2026-11-02 spike was inconclusive, so assume the cache is needed), otherwise the last captured image. With no captured image, the panel shows the header only.
-- **Cache, if needed:** in memory only, never written to disk. It's filled on hover and drops an image when its window closes, so a window minimized with its yellow button and never hovered shows the header only.
+- **Minimized windows:** never captured live: macOS lists them but fails the capture (verified on macOS 27.2), so the panel shows the last captured image. With no captured image, the panel shows the header only.
+- **Cache:** in memory only, never written to disk. It's filled on hover and drops an image when its window closes, so a window minimized with its yellow button and never hovered shows the header only.
 - **Ambiguous match:** if the window can't be identified with certainty, the panel shows the header only. Showing another window's content is worse than showing none.
 - **Accessibility:** the panel honors *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*, like the bar.
 
