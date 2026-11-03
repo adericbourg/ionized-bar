@@ -25,6 +25,8 @@ final class BarContentView: NSView {
     private var settings = Settings.load()
     private var pins: [String] = []
     private var pinnedIcons: [PinnedIconView] = []
+    // Fading out; one is revived if its pin returns before the fade ends.
+    private var leavingIcons: [PinnedIconView] = []
 
     private static let duration: TimeInterval = 0.12
     private static let iconOnlyWidth: CGFloat = 48
@@ -74,8 +76,13 @@ final class BarContentView: NSView {
         let maybeFocused = window?.firstResponder as? NSView
         let focusedIndex = focusStops.firstIndex { $0 === maybeFocused }
         let previousIcons = pinnedIcons
-        pinnedIcons = pins.map { bundleID in previousIcons.first { $0.bundleID == bundleID } ?? addPinnedIcon(bundleID) }
-        for icon in previousIcons where !pinnedIcons.contains(icon) { icon.removeFromSuperview() }
+        pinnedIcons = pins.map { bundleID in previousIcons.first { $0.bundleID == bundleID } ?? reviveIcon(bundleID) ?? addPinnedIcon(bundleID) }
+        for icon in previousIcons where !pinnedIcons.contains(icon) {
+            leavingIcons.append(icon)
+            animate({ icon.animator().alphaValue = 0 }) { [weak self] in
+                MainActor.assumeIsolated { self?.finishLeaving(icon) }
+            }
+        }
         let items = barItems(
             windows, pid: \.pid, barWidth: slot.width, mode: settings.grouping,
             minEntryWidth: settings.taskDisplay == .iconOnly ? Self.iconOnlyWidth : Self.groupWhenFullBelow
@@ -129,7 +136,22 @@ final class BarContentView: NSView {
 
     private func addPinnedIcon(_ bundleID: String) -> PinnedIconView {
         let icon = PinnedIconView(bundleID: bundleID, actions: actions)
+        icon.alphaValue = 0
         addSubview(icon)
+        animate { icon.animator().alphaValue = 1 }
+        return icon
+    }
+
+    private func finishLeaving(_ icon: PinnedIconView) {
+        guard let index = leavingIcons.firstIndex(of: icon) else { return }
+        icon.removeFromSuperview()
+        leavingIcons.remove(at: index)
+    }
+
+    private func reviveIcon(_ bundleID: String) -> PinnedIconView? {
+        guard let index = leavingIcons.firstIndex(where: { $0.bundleID == bundleID }) else { return nil }
+        let icon = leavingIcons.remove(at: index)
+        animate { icon.animator().alphaValue = 1 }
         return icon
     }
 
@@ -157,7 +179,12 @@ final class BarContentView: NSView {
         super.layout()
         launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
         for (index, icon) in pinnedIcons.enumerated() {
-            icon.frame = backingAlignedRect(CGRect(x: launcherWidth + CGFloat(index) * pinnedIconWidth, y: 0, width: pinnedIconWidth, height: bounds.height), options: .alignAllEdgesNearest)
+            let target = backingAlignedRect(CGRect(x: launcherWidth + CGFloat(index) * pinnedIconWidth, y: 0, width: pinnedIconWidth, height: bounds.height), options: .alignAllEdgesNearest)
+            if icon.frame == .zero {
+                icon.frame = target
+            } else if icon.frame != target {
+                animate { icon.animator().frame = target }
+            }
         }
         let slot = self.slot
         let isIconOnlyMode = settings.taskDisplay == .iconOnly
