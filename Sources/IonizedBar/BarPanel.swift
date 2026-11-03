@@ -43,13 +43,18 @@ final class BarPanel: NSPanel {
         becomesKeyOnlyIfNeeded = true
         isReleasedWhenClosed = false
         appearance = NSAppearance(named: .darkAqua)
-        let surface = BarSurface(content: content)
         let tint = makeDarkTint()
         tint.frame = frosted.bounds
         frosted.addSubview(tint)
-        surface.frame = frosted.bounds
-        surface.autoresizingMask = [.width, .height]
-        frosted.addSubview(surface)
+        // Below the hairline, not under it: it would take the clicks on the bar's top edge.
+        content.frame = CGRect(x: 0, y: 0, width: frosted.bounds.width, height: frosted.bounds.height - 1)
+        content.autoresizingMask = [.width, .height]
+        frosted.addSubview(content)
+        let hairline = NSBox()
+        hairline.boxType = .separator
+        hairline.frame = CGRect(x: 0, y: frosted.bounds.height - 1, width: frosted.bounds.width, height: 1)
+        hairline.autoresizingMask = [.width, .minYMargin]
+        frosted.addSubview(hairline)
     }
 
     override var canBecomeKey: Bool { true }
@@ -105,42 +110,5 @@ final class BarPanel: NSPanel {
         // resignKey() alone does not hand key back to the frontmost app.
         orderOut(nil)
         orderFrontRegardless()
-    }
-}
-
-private final class BarSurface: NSView {
-    private let content: NSView
-    private let hairline = HairlineView()
-
-    init(content: NSView) {
-        self.content = content
-        super.init(frame: .zero)
-        addSubview(content)
-        addSubview(hairline)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func layout() {
-        super.layout()
-        let thickness = 1 / (window?.backingScaleFactor ?? 1)
-        hairline.frame = CGRect(x: 0, y: bounds.height - thickness, width: bounds.width, height: thickness)
-        content.frame = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height - thickness)
-    }
-
-    // One device pixel changes with the backing scale (e.g. moving between displays).
-    override func viewDidChangeBackingProperties() {
-        super.viewDidChangeBackingProperties()
-        needsLayout = true
-    }
-}
-
-/// Redrawn on appearance changes, so the separator color follows light/dark.
-private final class HairlineView: NSView {
-    override var wantsUpdateLayer: Bool { true }
-
-    override func updateLayer() {
-        layer?.backgroundColor = NSColor.separatorColor.cgColor
     }
 }

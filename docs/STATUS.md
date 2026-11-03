@@ -458,3 +458,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — Audit cut: `LastCaptureCache` replaced by a dictionary in `BarManager`.
 - 2026-11-03 — Audit cut: the onboarding and settings windows share `AppWindow`, which holds their setup, `show()` and Cmd-W.
 - 2026-11-03 — Audit cut: the bar, preview and launcher panels share `setUpFloating()`, so the window level, Space behaviour and frosted view are set in one place.
+- 2026-11-03 — Audit cut: the line along the top of the bar is an `NSBox` separator, as in the launcher, replacing `BarSurface` and `HairlineView`. It is now 1 pt tall rather than one device pixel; not yet checked by eye.
