@@ -36,7 +36,7 @@ public struct DockPrefs: Equatable, Sendable {
 }
 
 public struct DockStore {
-    /// Nil when the read failed, which is not the same as both keys being absent.
+    /// Nil when a value can't be trusted, which is not the same as both keys being absent.
     public var read: () -> DockPrefs?
     public var write: (DockPrefs) -> Bool
     public var relaunchDock: () -> Bool
@@ -79,10 +79,4 @@ public func restoreDock(_ store: DockStore) {
     // Even after a failed write: one of the two keys may have been written.
     _ = store.relaunchDock()
     if isWritten { store.clearSaved() }
-}
-
-/// Parses `defaults export` output. Nil when it can't be trusted, so the caller doesn't take a failure for absent keys.
-public func parseDockPrefs(plist: Data) -> DockPrefs? {
-    guard let dictionary = try? PropertyListSerialization.propertyList(from: plist, format: nil) as? [String: Any] else { return nil }
-    return DockPrefs(dictionary: dictionary)
 }

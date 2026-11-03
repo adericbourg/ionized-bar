@@ -28,7 +28,7 @@ let tracker = AppTracker(
     }
 )
 
-let dock = defaultsDockStore(domain: "com.apple.dock", savedIn: .standard, relaunchDock: killallDock)
+let dock = defaultsDockStore()
 restoreDockOnTermination { restoreDock(dock) }
 
 // The one place that runs once Accessibility is granted, on the main thread; later M3 and M4 steps hook in here.

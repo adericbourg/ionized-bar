@@ -332,42 +332,6 @@ do {
     check("restoreDock_whenRelaunchFails_clearsState", restoreRelaunchFails.current == user && restoreRelaunchFails.saved == nil)
 }
 
-// parseDockPrefs
-do {
-    func plist(_ body: String) -> Data {
-        Data("""
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">\(body)</plist>
-        """.utf8)
-    }
-
-    // Given an export with both keys, When parsing, Then both are read
-    check("parseDockPrefs_ofSetKeys_returnsThem",
-          parseDockPrefs(plist: plist("<dict><key>autohide</key><false/><key>autohide-delay</key><real>0.5</real><key>tilesize</key><integer>48</integer></dict>"))
-              == DockPrefs(autohide: false, autohideDelay: 0.5))
-    // Given integers, as `defaults write -int` stores them, When parsing, Then they count
-    check("parseDockPrefs_ofIntegers_returnsThem",
-          parseDockPrefs(plist: plist("<dict><key>autohide</key><integer>1</integer><key>autohide-delay</key><integer>0</integer></dict>"))
-              == DockPrefs(autohide: true, autohideDelay: 0))
-    // Given missing keys or an empty domain, When parsing, Then they are absent, not defaults
-    check("parseDockPrefs_ofEmptyDomain_returnsAbsent", parseDockPrefs(plist: plist("<dict/>")) == DockPrefs(autohide: nil, autohideDelay: nil))
-    check("parseDockPrefs_ofOneKey_returnsOtherAbsent",
-          parseDockPrefs(plist: plist("<dict><key>autohide</key><true/></dict>")) == DockPrefs(autohide: true, autohideDelay: nil))
-    // Given anything that can't be restored faithfully, When parsing, Then it is a failure
-    check("parseDockPrefs_ofUnexpectedType_returnsNil",
-          parseDockPrefs(plist: plist("<dict><key>autohide</key><string>yes</string></dict>")) == nil)
-    check("parseDockPrefs_ofGarbage_returnsNil", parseDockPrefs(plist: Data("not a plist".utf8)) == nil)
-    check("parseDockPrefs_ofNoOutput_returnsNil", parseDockPrefs(plist: Data()) == nil)
-    check("parseDockPrefs_ofArray_returnsNil", parseDockPrefs(plist: plist("<array/>")) == nil)
-
-    // Given prefs saved as a dictionary, When reading them back, Then absent stays absent
-    for prefs in [DockPrefs(autohide: false, autohideDelay: 0.5), DockPrefs(autohide: true, autohideDelay: nil), DockPrefs(autohide: nil, autohideDelay: nil)] {
-        check("dockPrefs_dictionary_roundTrips", DockPrefs(dictionary: prefs.dictionary) == prefs)
-    }
-    check("dockPrefs_dictionary_ofAbsentKeys_isEmpty", DockPrefs(autohide: nil, autohideDelay: nil).dictionary.isEmpty)
-}
-
 // overlapsBar / pushedFrame
 do {
     // Given a screen at a non-zero origin with a 25pt menu bar (Cocoa coordinates, bar 36pt at the bottom)

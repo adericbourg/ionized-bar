@@ -3,66 +3,48 @@ import IonizedBarCore
 
 private let savedDockKey = "dockOriginals"
 
-/// Returns the tool's output, or nil after logging a failure. Its stderr goes to the app's.
-private func run(_ path: String, _ arguments: [String]) -> Data? {
+func killallDock() -> Bool {
     let process = Process()
-    process.executableURL = URL(fileURLWithPath: path)
-    process.arguments = arguments
-    let output = Pipe()
-    process.standardOutput = output
-    let command = ([path] + arguments).joined(separator: " ")
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+    process.arguments = ["Dock"]
     do {
         try process.run()
     } catch {
-        log("\(command) failed to start: \(error)")
-        return nil
+        log("killall Dock failed to start: \(error)")
+        return false
     }
-    let data = output.fileHandleForReading.readDataToEndOfFile()
     process.waitUntilExit()
     guard process.terminationStatus == 0 else {
-        log("\(command) failed with status \(process.terminationStatus)")
-        return nil
+        log("killall Dock failed with status \(process.terminationStatus)")
+        return false
     }
-    return data
+    return true
 }
 
-func killallDock() -> Bool {
-    run("/usr/bin/killall", ["Dock"]) != nil
-}
-
-/// The domain, the app's defaults and the relaunch are parameters so a scratch run can stay away from the real Dock.
-func defaultsDockStore(domain: String, savedIn appDefaults: UserDefaults, relaunchDock: @escaping () -> Bool) -> DockStore {
-    func read() -> DockPrefs? {
-        // Export rather than `defaults read`: an absent key is then told from a failure without parsing error messages.
-        guard let plist = run("/usr/bin/defaults", ["export", domain, "-"]) else { return nil }
-        guard let prefs = parseDockPrefs(plist: plist) else {
-            log("Unexpected values in \(domain)")
-            return nil
-        }
-        return prefs
-    }
-    func apply(key: String, type: String, value: String?, isPresent: Bool) -> Bool {
-        if let value {
-            return run("/usr/bin/defaults", ["write", domain, key, type, value]) != nil
-        }
-        // Deleting an absent key is an error, which would block a retry after a partial restore.
-        return !isPresent || run("/usr/bin/defaults", ["delete", domain, key]) != nil
-    }
+func defaultsDockStore() -> DockStore {
+    let appDefaults = UserDefaults.standard
+    let dockDomain = "com.apple.dock" as CFString
     return DockStore(
-        read: read,
-        write: { prefs in
-            // Read only when a key needs deleting: a failed read must not block restoring values.
-            var current = prefs
-            if prefs.autohide == nil || prefs.autohideDelay == nil {
-                guard let read = read() else { return false }
-                current = read
+        read: {
+            // Picks up what another process wrote since the last read.
+            CFPreferencesAppSynchronize(dockDomain)
+            var dictionary: [String: Any] = [:]
+            for key in [DockPrefs.autohideKey, DockPrefs.autohideDelayKey] {
+                dictionary[key] = CFPreferencesCopyAppValue(key as CFString, dockDomain)
             }
-            // Both keys are always tried, so one failing doesn't leave the other unrestored.
-            let isAutohideOK = apply(key: DockPrefs.autohideKey, type: "-bool", value: prefs.autohide.map { String($0) }, isPresent: current.autohide != nil)
-            let isDelayOK = apply(key: DockPrefs.autohideDelayKey, type: "-float", value: prefs.autohideDelay.map { String($0) }, isPresent: current.autohideDelay != nil)
-            return isAutohideOK && isDelayOK
+            guard let prefs = DockPrefs(dictionary: dictionary) else {
+                log("Unexpected values in \(dockDomain)")
+                return nil
+            }
+            return prefs
         },
-        relaunchDock: relaunchDock,
+        write: { prefs in
+            // A nil value deletes the key, and deleting an absent key is fine.
+            CFPreferencesSetAppValue(DockPrefs.autohideKey as CFString, prefs.autohide.map { $0 as CFBoolean }, dockDomain)
+            CFPreferencesSetAppValue(DockPrefs.autohideDelayKey as CFString, prefs.autohideDelay.map { $0 as CFNumber }, dockDomain)
+            return CFPreferencesAppSynchronize(dockDomain)
+        },
+        relaunchDock: killallDock,
         loadSaved: { appDefaults.dictionary(forKey: savedDockKey).flatMap(DockPrefs.init(dictionary:)) },
         save: { prefs in
             appDefaults.set(prefs.dictionary, forKey: savedDockKey)
