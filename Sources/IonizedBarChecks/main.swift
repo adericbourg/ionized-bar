@@ -924,11 +924,13 @@ do {
         draggedEntryX(pointerX: pointerX, grabOffset: grab, slotX: 148, entryWidth: width, entryCount: count)
     }
     check("draggedEntryX_followsThePointer", x(300) == 270)
-    check("draggedEntryX_pastTheLauncherAndPins_stopsAtTheFirstSlot", x(0) == 148)
-    check("draggedEntryX_pastTheEnd_stopsAtTheLastSlot", x(5000) == 448)
+    // Past the end slots the entry keeps following, with resistance, and never goes a full entry width past
+    check("draggedEntryX_beforeTheFirstSlot_rubberBands", x(100) < 148 && x(100) > 48 && x(0) < x(100) && x(0) > 48)
+    check("draggedEntryX_pastTheLastSlot_rubberBands", x(500) > 448 && x(500) < 548 && x(5000) > x(500) && x(5000) < 548)
+    check("draggedEntryX_justPastTheEnd_followsThePointerClosely", abs(x(490) - 458) < 4)
     // Given icon only, packed left: the end is the last entry's slot, not the bar's end
-    check("draggedEntryX_whenPackedLeft_stopsAtTheLastEntry", x(5000, grab: 10, width: 48, count: 3) == 244)
-    check("draggedEntryX_ofOneEntry_staysPut", x(5000, count: 1) == 148 && x(0, count: 1) == 148)
+    check("draggedEntryX_whenPackedLeft_rubberBandsPastTheLastEntry", x(5000, grab: 10, width: 48, count: 3) > 244 && x(5000, grab: 10, width: 48, count: 3) < 292)
+    check("draggedEntryX_ofOneEntry_rubberBandsBothWays", x(5000, count: 1) > 148 && x(5000, count: 1) < 248 && x(0, count: 1) < 148 && x(0, count: 1) > 48)
     check("draggedEntryX_ofZeroWidthEntries_stopsAtTheStart", x(5000, grab: 0, width: 0, count: 4) == 148)
     // Given a window opening mid-drag narrows the entries, Then the pointer stays on the entry
     check("draggedEntryX_whenEntryNarrowedPastTheGrab_keepsThePointerOnIt", x(300, grab: 90, width: 50) == 250)

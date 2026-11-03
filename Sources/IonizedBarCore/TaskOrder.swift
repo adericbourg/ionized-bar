@@ -53,11 +53,17 @@ public func isPastDragThreshold(from start: CGPoint, to point: CGPoint) -> Bool 
     hypot(point.x - start.x, point.y - start.y) > 4
 }
 
-/// Under the pointer, within the first and last slots: entries can stop short of the task area's end.
+/// Under the pointer between the first and last slots: entries can stop short of the task area's end.
+/// Past them it keeps following with growing resistance, and stays less than one entry width beyond.
 /// `grabOffset` is capped so that the pointer stays on an entry that narrowed during the drag.
 public func draggedEntryX(pointerX: CGFloat, grabOffset: CGFloat, slotX: CGFloat, entryWidth: CGFloat, entryCount: Int) -> CGFloat {
     let lastSlotX = slotX + CGFloat(max(entryCount - 1, 0)) * entryWidth
-    return min(max(pointerX - min(grabOffset, entryWidth), slotX), lastSlotX)
+    let x = pointerX - min(grabOffset, entryWidth)
+    // Slope 1 at the edge, so there's no jolt where the resistance starts.
+    func stretch(_ overshoot: CGFloat) -> CGFloat { entryWidth * overshoot / (overshoot + entryWidth) }
+    if x < slotX { return slotX - stretch(slotX - x) }
+    if x > lastSlotX { return lastSlotX + stretch(x - lastSlotX) }
+    return x
 }
 
 /// The slot nearest an entry at `entryX`. With no width to tell slots apart, the entry stays at `from`.
