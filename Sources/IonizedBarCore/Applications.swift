@@ -186,6 +186,12 @@ public struct LauncherList {
         setQuery("")
     }
 
+    /// What resting the pointer on a sidebar row switches to. Never during a search, which would lose the typed text.
+    public func hoverTarget(sidebarRow row: Int) -> LauncherView? {
+        guard query.isEmpty, sidebarItems.indices.contains(row), sidebarItems[row] != view else { return nil }
+        return sidebarItems[row]
+    }
+
     /// Off the rows, as for a pointer over no row, the selection stays: it is what Return opens.
     public mutating func select(index: Int) {
         if rows.indices.contains(index) { selectedIndex = index }

@@ -797,6 +797,15 @@ do {
     check("viewAnnouncement_ofSeveralRows_givesTitleAndCount", list.viewAnnouncement == "All Applications, 2 applications")
     list.setView(.category(.office))
     check("viewAnnouncement_ofOneRow_isSingular", list.viewAnnouncement == "Office, 1 application")
+
+    // Given Office showing, When resting the pointer on a sidebar row, Then only another view is a target
+    check("hoverTarget_ofAnotherRow_returnsItsView", list.hoverTarget(sidebarRow: 1) == .all)
+    check("hoverTarget_ofCurrentView_returnsNil", list.hoverTarget(sidebarRow: 2) == nil)
+    check("hoverTarget_ofRowOutsideTheSidebar_returnsNil", list.hoverTarget(sidebarRow: -1) == nil && list.hoverTarget(sidebarRow: list.sidebarItems.count) == nil)
+
+    // Given a search, When resting the pointer on another view, Then the search stays
+    list.setQuery("notes")
+    check("hoverTarget_duringASearch_returnsNil", list.hoverTarget(sidebarRow: 1) == nil)
 }
 
 // LauncherList: hover and grid movement

@@ -9,6 +9,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     private static let rowHeight: CGFloat = 28
     private static let sidebarWidth: CGFloat = 190
     private static let sidebarRowHeight: CGFloat = 32
+    private static let sidebarHoverDelay: TimeInterval = 0.15
     private static let gridColumns = 4
     private static let gridItemHeight: CGFloat = 100
     private static let footerHeight: CGFloat = 44
@@ -37,6 +38,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     private lazy var shutDownButton = FooterButton(title: "Shut Down", symbolName: "power", target: self, action: #selector(shutDownClicked))
     private let emptyLabel = NSTextField(wrappingLabelWithString: "")
     private var hoveredSidebarRow = -1
+    private var sidebarHoverTimer: Timer?
     private var list = LauncherList()
     private let onOpen: (InstalledApp) -> Void
     private let onDismiss: () -> Void
@@ -154,6 +156,8 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     }
 
     func show(in frame: CGRect, favorites: [InstalledApp]) {
+        // The pointer may have left while the panel was hidden, with no event to say so.
+        hoverSidebar(row: -1)
         searchField.stringValue = ""
         list.reset(favorites: favorites)
         setFrame(frame, display: false)
@@ -217,9 +221,24 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
     private func hoverSidebar(row: Int) {
         guard row != hoveredSidebarRow else { return }
-        (sidebar.rowView(atRow: hoveredSidebarRow, makeIfNecessary: false) as? EmphasizedRow)?.isHovered = false
+        sidebarRowView(hoveredSidebarRow)?.isHovered = false
         hoveredSidebarRow = row
-        (sidebar.rowView(atRow: row, makeIfNecessary: false) as? EmphasizedRow)?.isHovered = true
+        sidebarRowView(row)?.isHovered = true
+        sidebarHoverTimer?.invalidate()
+        // A delay, so that crossing the sidebar on the way to an app doesn't replace the list under the pointer.
+        sidebarHoverTimer = Timer.scheduledTimer(withTimeInterval: Self.sidebarHoverDelay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.switchToHovered(row: row) }
+        }
+    }
+
+    private func switchToHovered(row: Int) {
+        if isVisible, let view = list.hoverTarget(sidebarRow: row) { pick(view) }
+    }
+
+    // rowView(atRow:) throws for a row outside the table: -1 for no row, or a stale one after a reload with fewer rows.
+    private func sidebarRowView(_ row: Int) -> EmphasizedRow? {
+        guard (0..<sidebar.numberOfRows).contains(row) else { return nil }
+        return sidebar.rowView(atRow: row, makeIfNecessary: false) as? EmphasizedRow
     }
 
     private func showSelection() {

@@ -100,7 +100,7 @@ Dragging a task along its bar changes its place on that bar. Only the entry move
 ## After v1: Plasma-style launcher (M11)
 The launcher panel (M8) takes the layout of Plasma's launcher: a full-width search field on top, a sidebar on the left, apps on the right, and a footer with Restart and Shut Down. Places, the account picture and name, Sleep and Leave are not planned.
 
-- **Sidebar:** Favorites, All Applications, then the categories that have apps. A click switches view.
+- **Sidebar:** Favorites, All Applications, then the categories that have apps. Resting the pointer on an item or clicking it switches view.
 - **Favorites:** the apps pinned on the bar (M9), in the same order, as an icon grid. Pins can be outside the launcher's folders (Finder, for one). Pinning stays in the bar's menus. The other views are the M8 list.
 - **Opening view:** Favorites, or All Applications when nothing is pinned. Each opening starts over.
 - **Categories:** from the optional `LSApplicationCategoryType` key of each bundle's `Info.plist`, the only category macOS has. 90 of 122 apps declared one on 2026-11-03, and most of its values hold an app or two, so they merge:
@@ -118,7 +118,7 @@ The launcher panel (M8) takes the layout of Plasma's launcher: a full-width sear
   | Other, always last | any other value, or none |
 
 - **Search:** typing searches all apps and shows the list, from any view. Clearing it returns to the view, and picking a view ends the search.
-- **Hover:** the pointer and the arrow keys share one highlight, as in Plasma, so Return opens the last row hovered. A pointer off the rows leaves it where it is.
+- **Hover:** the pointer and the arrow keys share one highlight, as in Plasma, so Return opens the last row hovered. A pointer off the rows leaves it where it is. A sidebar item highlights at once and switches view after 150ms, so crossing the sidebar on the way to an app doesn't replace the list. During a search it only highlights, and a click ends the search.
 - **Restart and Shut Down:** ask `loginwindow` for the macOS confirmation dialog (`aevt`/`rrst` and `aevt`/`rsdn`), never acting directly. The dialog's own countdown applies. The M11 spike showed it from an `LSUIElement` app, above the bar, with no Automation prompt (macOS 27.2).
 - **Keyboard:** focus starts in the search field, and the arrow keys act on the apps from there, so typing always works. Tab goes through the search field, the sidebar, Restart and Shut Down. In the sidebar, Up and Down switch view, and Right, Return or Space go to its apps. Left comes back to the sidebar when no text is typed, in the grid from its first column only. Esc closes the panel from anywhere.
 - **Accessibility:** grid items are VoiceOver buttons labelled with the app name, and a view change is announced. The panel keeps honoring *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*.
