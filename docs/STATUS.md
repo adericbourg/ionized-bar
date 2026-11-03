@@ -21,6 +21,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M8 – App launcher | ✅ | 6/6 |
 | M9 – Pin applications | ✅ | 6/6 |
 | M10 – Re-order tasks | 🚧 | 4/5 |
+| M11 – Plasma-style launcher | 🚧 | 2/6 |
 
 ## Requirements
 
@@ -270,6 +271,14 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] "Move Left" and "Move Right" on a task and a group entry, by right-click, from ⌃⌥B with Shift-F10 and from VoiceOver's Show Menu: one place, as a drag of one slot, and disabled at the first and last entries; the launcher and pinned icons have neither. In keyboard mode, focus stays on the moved entry and keys still go to the bar; check what VoiceOver reads after the move, as no announcement is posted
 - [ ] Reduce Motion on, then off: after "Move Left" or "Move Right" the entries jump, then slide in under 150ms
 
+### M11 – Plasma-style launcher
+- [x] Spike: the `loginwindow` Apple event shows the Restart dialog from a signed `LSUIElement` app, above the bar, with no Automation prompt, and Cancel leaves everything running; the Shut Down event is unverified until the footer's manual pass
+- [x] Categories from `LSApplicationCategoryType` and the launcher's views in `IonizedBarCore`, with checks
+- [ ] Hover highlight on the launcher's rows
+- [ ] Sidebar and Favorites grid
+- [ ] Restart and Shut Down in the footer
+- [ ] Keyboard, VoiceOver, Reduce Motion, Reduce Transparency and contrast on the new panel; manual pass
+
 ### Final review manual checks
 - [ ] Launcher: hold Return on the launcher button from ⌃⌥B: the panel opens and stays open, no app opens until Return is pressed again
 - [ ] Caps Lock on: ⌘X, ⌘C, ⌘V and ⌘A in the launcher's search field, and ⌘W on the Settings and onboarding windows, work as with Caps Lock off; ⌘⇧W closes nothing
@@ -387,3 +396,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — Minimized entries keep the regular font: the title is dimmed but no longer italic. `PRODUCT.md` updated. No check added: pure font styling.
 - 2026-11-03 — README: the Installation section now gives the `xattr -d com.apple.quarantine /Applications/IonizedBar.app` command for the Gatekeeper quarantine. Docs only, nothing run.
 - 2026-11-03 — Gatekeeper quarantine without a paid Developer ID: the tap's cask gets a `postflight_steps` block running `xattr -dr com.apple.quarantine` on the installed app (Homebrew 5 dropped `--no-quarantine`; third-party taps may do this, homebrew/cask may not). Its stale caveats ("not signed yet", re-grant Accessibility after each upgrade) are gone. README and PRODUCT.md updated. The cask change is committed in a local clone of the tap, not pushed. Verified: `brew style` on the cask, and Homebrew loads it with one `run` step on `{{appdir}}/IonizedBar.app`. Not verified: an install on a clean account.
+- 2026-11-03 — M11: started the Plasma-style launcher, with its spec in `PRODUCT.md`, which reverses M8's "no categories". The spike sent `aevt`/`rrst` to `loginwindow` from a signed `LSUIElement` bundle: accepted in 0.08s, the user saw the macOS dialog above the bar with no permission prompt, and Cancel left everything running. `IonizedBarCore` now reads `LSApplicationCategoryType` (90 of 122 apps here declare one) into `AppCategory`, and `LauncherList` has the views, favorites, hover selection and grid movement. No UI uses them yet. Verified: `swift run IonizedBarChecks`, red first (23 behavioral failures against stubs).

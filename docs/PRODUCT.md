@@ -38,7 +38,7 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 - **Motion:** entries animate in, out and when resized in under 150ms. Animations are off when *Reduce Motion* is on.
 
 ## Non-goals (v1)
-Widgets (tray, clock), windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover, grouping windows by app, an app launcher, pinned apps and re-ordering tasks are planned after v1, see below.
+Widgets (tray, clock), windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover, grouping windows by app, an app launcher, pinned apps, re-ordering tasks and a Plasma-style launcher layout are planned after v1, see below.
 
 ## After v1: window preview (M6)
 Hovering an entry shows a panel above it with the app icon and name, the window title and a thumbnail of that window. A preview always shows one window, so a group entry (M7) has no preview: its window list takes that place.
@@ -63,7 +63,7 @@ A settings window, opened with "Settings…" from the right-click menu of an ent
 - **Group interactions:** a click opens a native menu above the entry that lists the windows. The focused window has a checkmark, and minimized windows say so. Picking a window raises or restores it. Middle-click does nothing, so a stray click can't close several windows. Right-click offers Close all windows, Quit, Settings… and Quit IonizedBar.
 
 ## After v1: app launcher (M8)
-A button always at the left of the bar, on every bar. It opens a panel above it that lists applications, with a search field. Nothing else: no categories and no recent apps.
+A button always at the left of the bar, on every bar. It opens a panel above it that lists applications, with a search field. M11 adds the sidebar, the favorites and the footer; recent apps are not planned.
 
 - **Button:** a fixed-width, icon-only entry, about 48pt like Icon only tasks, on every bar and in every display mode, with a system icon. Tasks share the width left of the bar (see M9 for the order). R5's equal share then means the width left for tasks; When full decides on that width and Icon only tasks pack from just after the button. Hovering it shows no preview, and right-click offers Settings… and Quit IonizedBar.
 - **Applications:** the `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, and in their `Utilities` folder, sorted by name, each with its icon and name.
@@ -96,6 +96,31 @@ Dragging a task along its bar changes its place on that bar. Only the entry move
 - **Launcher and pinned icons (M8, M9):** can't be dragged, and a task can't be dropped before them.
 - **Without dragging:** "Move Left" and "Move Right" in the right-click menu of a task or group entry, disabled at the ends. WCAG 2.2 AA 2.5.7 asks for an alternative to dragging. The menu also covers keyboard mode (Shift-F10) and VoiceOver, so there's no new shortcut.
 - **Motion:** the other entries slide apart in under 150ms, and jump with *Reduce Motion* on. A drag dismisses the M6 preview and shows no new one until the drop.
+
+## After v1: Plasma-style launcher (M11)
+The launcher panel (M8) takes the layout of Plasma's launcher: a full-width search field on top, a sidebar on the left, apps on the right, and a footer with Restart and Shut Down. Places, the account picture and name, Sleep and Leave are not planned.
+
+- **Sidebar:** Favorites, All Applications, then the categories that have apps. A click switches view.
+- **Favorites:** the apps pinned on the bar (M9), in pinning order, as an icon grid. Pins can be outside the launcher's folders (Finder, for one). Pinning stays in the bar's menus. The other views are the M8 list.
+- **Opening view:** Favorites, or All Applications when nothing is pinned. Each opening starts over.
+- **Categories:** from the optional `LSApplicationCategoryType` key of each bundle's `Info.plist`, the only category macOS has. 90 of 122 apps declared one on 2026-11-03, and most of its values hold an app or two, so they merge:
+
+  | Group | `public.app-category.*` |
+  |---|---|
+  | Development | `developer-tools` |
+  | Education | `education`, `reference`, `books` |
+  | Games | `games`, `*-games` |
+  | Graphics | `graphics-design`, `photography` |
+  | Internet | `social-networking`, `news` |
+  | Multimedia | `music`, `video`, `entertainment` |
+  | Office | `productivity`, `business`, `finance` |
+  | Utilities | `utilities` |
+  | Other, always last | any other value, or none |
+
+- **Search:** typing searches all apps and shows the list, from any view. Clearing it returns to the view, and picking a view ends the search.
+- **Hover:** the pointer and the arrow keys share one highlight, as in Plasma, so Return opens the last row hovered. A pointer off the rows leaves it where it is.
+- **Restart and Shut Down:** ask `loginwindow` for the macOS confirmation dialog (`aevt`/`rrst` and `aevt`/`rsdn`), never acting directly. The dialog's own countdown applies. The M11 spike showed it from an `LSUIElement` app, above the bar, with no Automation prompt (macOS 27.2).
+- **Accessibility:** Tab goes through the search field, the sidebar and the footer. Grid items are VoiceOver buttons labelled with the app name, and a view change is announced. The panel keeps honoring *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*.
 
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
@@ -135,6 +160,7 @@ Dragging a task along its bar changes its place on that bar. Only the entry move
 9. **M8 – App launcher:** a button at the left of the bar and an application list with fuzzy search, after v1. Depends on the M2 bars and keyboard mode.
 10. **M9 – Pin applications:** pinned icons on the bar and the "Keep pinned app icons visible" setting, after v1. Depends on the M7 settings window, and on M8 for the bar's order and task width.
 11. **M10 – Re-order tasks:** drag and drop a task on its bar, with "Move Left" and "Move Right" as the alternative, after v1. Depends on the M2 entries and interactions and on the M7 group entries.
+12. **M11 – Plasma-style launcher:** the sidebar, favorites and footer in the launcher panel, and hover on its rows, after v1. Depends on M8 and M9.
 
 ## Verification (per milestone, once implemented)
 - A check executable (`swift run IonizedBarChecks`) for the pure logic, because Command Line Tools have no working test framework (no `TestingMacros` plugin, no XCTest): screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation. CI runs it too. If it can't load on the runner's older macOS, lower the minimum from 27.2 to 27.0.
@@ -145,6 +171,7 @@ Dragging a task along its bar changes its place on that bar. Only the entry move
 - Manual checklist for M8: the button on every bar, in every display mode and with no tasks. Fuzzy search with typos and partial names, opening an app by mouse and keyboard, Esc and a click outside, keys going back to the frontmost app, and VoiceOver.
 - Manual checklist for M9: pin and unpin from a task, a group entry and a pinned icon. The icon opening a closed app and raising a running one. The setting on and off, with the app open on one display only, on another Space, and running with no windows. Pins surviving a relaunch, an uninstalled pinned app, and VoiceOver and keyboard on a pinned icon.
 - Manual checklist for M10: drag a task and a group entry in every display mode, with and without grouping. A plain click and a small pointer slip still act as a click, and a drop neither raises nor minimizes a window. A drag past either end, and a window opening or closing during a drag. The order across a Space switch, a window moved to another display and back, and ungrouping. "Move Left" and "Move Right" by mouse, keyboard and VoiceOver, disabled at the ends. Reduce Motion, and a drag with a preview showing.
+- Manual checklist for M11: hover on every kind of item with another app frontmost, a still pointer while using the arrow keys, each view with no pins and with a pin outside the launcher's folders, both power dialogs and their Cancel, the Dock coming back after a confirmed restart, Tab and VoiceOver through the panel.
 
 ## Known issues (to fix later)
 - **Gatekeeper quarantine on install.** The self-signed certificate (which keeps the TCC grants across upgrades, see README *Signing certificate*) is not trusted by Gatekeeper. The fix is a Developer ID with notarization (paid, so out of reach for now). Until then, the cask's `postflight_steps` runs `xattr -dr com.apple.quarantine` on the installed app (allowed in a third-party tap, not in homebrew/cask), and the README documents the same command for a manual zip install.

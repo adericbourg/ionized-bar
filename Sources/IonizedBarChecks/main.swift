@@ -620,6 +620,33 @@ do {
     let apps = listApplications(in: [root, root.appendingPathComponent("missing")])
     // Then apps come sorted by name, without the extension, and only one Utilities level
     check("listApplications_sortsByNameAndIncludesUtilities", apps.map(\.name) == ["alpha", "Terminal", "Zed"])
+
+    // Given a bundle declaring a category, and one whose Info.plist is broken
+    let plistURL = { (app: String) in root.appendingPathComponent(app).appendingPathComponent("Contents/Info.plist") }
+    try? fm.createDirectory(at: plistURL("Zed.app").deletingLastPathComponent(), withIntermediateDirectories: true)
+    try? fm.createDirectory(at: plistURL("alpha.app").deletingLastPathComponent(), withIntermediateDirectories: true)
+    let plist = try? PropertyListSerialization.data(fromPropertyList: ["LSApplicationCategoryType": "public.app-category.developer-tools"], format: .xml, options: 0)
+    try? plist?.write(to: plistURL("Zed.app"))
+    try? Data("not a plist".utf8).write(to: plistURL("alpha.app"))
+    // When listing it
+    let categories = Dictionary(uniqueKeysWithValues: listApplications(in: [root]).map { ($0.name, $0.category) })
+    // Then the declared one is read, and a broken or missing plist gives Other
+    check("listApplications_readsTheDeclaredCategory", categories["Zed"] == .development)
+    check("listApplications_ofBrokenOrMissingPlist_givesOther", categories["alpha"] == .other && categories["Terminal"] == .other)
+}
+
+// AppCategory
+do {
+    let category = { (name: String) in AppCategory(categoryType: "public.app-category.\(name)") }
+    check("init_ofDeveloperTools_isDevelopment", category("developer-tools") == .development)
+    check("init_ofEducationGroup_isEducation", ["education", "reference", "books"].allSatisfy { category($0) == .education })
+    check("init_ofGameSubcategories_isGames", ["games", "board-games", "action-games"].allSatisfy { category($0) == .games })
+    check("init_ofGraphicsGroup_isGraphics", ["graphics-design", "photography"].allSatisfy { category($0) == .graphics })
+    check("init_ofInternetGroup_isInternet", ["social-networking", "news"].allSatisfy { category($0) == .internet })
+    check("init_ofMultimediaGroup_isMultimedia", ["music", "video", "entertainment"].allSatisfy { category($0) == .multimedia })
+    check("init_ofOfficeGroup_isOffice", ["productivity", "business", "finance"].allSatisfy { category($0) == .office })
+    check("init_ofUtilities_isUtilities", category("utilities") == .utilities)
+    check("init_ofUnknownOrMissing_isOther", category("travel") == .other && AppCategory(categoryType: nil) == .other && AppCategory(categoryType: "junk") == .other)
 }
 
 // LauncherList
@@ -707,6 +734,93 @@ do {
     list.setQuery("zzzzqqq")
     check("hasNoMatch_withNoRows_isTrue", list.hasNoMatch)
     check("resultsAnnouncement_ofNoRows_saysSo", list.resultsAnnouncement == LauncherList.noMatchMessage)
+}
+
+// LauncherList: views
+do {
+    let app = { (name: String, category: AppCategory) in InstalledApp(name: name, url: URL(fileURLWithPath: "/fake/\(name).app"), category: category) }
+    let xcode = app("Xcode", .development)
+    let chrome = app("Chrome", .other)
+    let notes = app("Notes", .office)
+    let finder = app("Finder", .other)
+    var list = LauncherList()
+    list.setApps([chrome, notes, xcode])
+
+    // Given nothing pinned, When opening, Then All Applications shows
+    list.reset(favorites: [])
+    check("reset_withoutFavorites_opensAllApplications", list.view == .all && list.rows == [chrome, notes, xcode] && !list.showsGrid)
+
+    // Given pins, one outside the listed apps, When opening, Then they show as a grid, in pinning order
+    list.reset(favorites: [finder, xcode])
+    check("reset_withFavorites_opensFavoritesAsGrid", list.view == .favorites && list.rows == [finder, xcode] && list.showsGrid && list.selected == finder)
+
+    // Then the sidebar has the two fixed views and only the groups with apps, in order, with Other last
+    check("sidebarItems_hideEmptyGroupsAndKeepOtherLast", list.sidebarItems == [.favorites, .all, .category(.development), .category(.office), .category(.other)])
+    check("title_namesTheView", LauncherView.all.title == "All Applications" && LauncherView.category(.office).title == "Office")
+
+    // When picking a group, Then only its apps show, as a list
+    list.setView(.category(.office))
+    check("setView_ofCategory_listsItsAppsOnly", list.rows == [notes] && list.selected == notes && !list.showsGrid)
+
+    // When searching from a group, Then all apps are searched, and clearing returns to the group
+    list.setQuery("xcode")
+    check("setQuery_fromCategory_searchesAllApps", list.rows == [xcode])
+    list.setQuery("")
+    check("setQuery_cleared_returnsToTheView", list.view == .category(.office) && list.rows == [notes])
+
+    // When searching from Favorites, Then the results are a list, not a grid
+    list.reset(favorites: [xcode])
+    list.setQuery("notes")
+    check("setQuery_fromFavorites_showsAList", list.rows == [notes] && !list.showsGrid)
+
+    // When picking a view during a search, Then the search ends
+    list.setView(.all)
+    check("setView_clearsTheQuery", list.query.isEmpty && list.rows == [chrome, notes, xcode])
+
+    // When a fresh read drops the last app of the current group, Then the list falls back to all apps
+    list.setView(.category(.development))
+    list.setApps([chrome, notes])
+    check("setApps_withoutTheViewsGroup_fallsBackToAll", list.view == .all && list.rows == [chrome, notes])
+
+    // When reopening after a search, Then the query is gone
+    list.setQuery("notes")
+    list.reset(favorites: [])
+    check("reset_clearsTheQuery", list.query.isEmpty && list.rows == [chrome, notes])
+
+    // Given Favorites with no pins, Then that is neither a failed search nor announced as one
+    list.setView(.favorites)
+    check("hasNoFavorites_ofEmptyFavorites_isTrue", list.hasNoFavorites && !list.hasNoMatch && list.resultsAnnouncement == LauncherList.noFavoritesMessage)
+    list.setQuery("notes")
+    check("hasNoFavorites_whileSearching_isFalse", !list.hasNoFavorites)
+}
+
+// LauncherList: hover and grid movement
+do {
+    let apps = (0..<7).map { InstalledApp(name: "App\($0)", url: URL(fileURLWithPath: "/fake/\($0).app")) }
+    var list = LauncherList()
+    list.setApps(apps)
+
+    // When the pointer is over a row, Then it is the selection
+    list.select(index: 3)
+    check("select_ofRow_movesTheSelection", list.selectedIndex == 3)
+    // When the pointer is over nothing, Then the selection stays
+    list.select(index: -1)
+    list.select(index: 7)
+    check("select_outOfRange_keepsTheSelection", list.selectedIndex == 3)
+
+    // Given 7 items in 3 columns: 0 1 2 / 3 4 5 / 6
+    list.reset(favorites: apps)
+    list.moveGridSelection(byRows: -1, columns: 3)
+    check("moveGridSelection_upFromFirstRow_stays", list.selectedIndex == 0)
+    list.moveGridSelection(byRows: 1, columns: 3)
+    check("moveGridSelection_down_keepsTheColumn", list.selectedIndex == 3)
+    list.select(index: 5)
+    list.moveGridSelection(byRows: 1, columns: 3)
+    check("moveGridSelection_downWithNothingBelow_goesToTheLastItem", list.selectedIndex == 6)
+    list.moveGridSelection(byRows: 1, columns: 3)
+    check("moveGridSelection_downFromLastRow_stays", list.selectedIndex == 6)
+    list.moveGridSelection(byRows: -1, columns: 3)
+    check("moveGridSelection_up_keepsTheColumn", list.selectedIndex == 3)
 }
 
 // launcherFrame
