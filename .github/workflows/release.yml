@@ -11,6 +11,8 @@ permissions:
 
 jobs:
   release:
+    # A manual run from another branch would release unmerged code
+    if: github.ref == 'refs/heads/main'
     runs-on: xcode-27
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
@@ -23,6 +25,10 @@ jobs:
         id: version
         run: |
           version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)
+          if ! [[ "$version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
+            echo "Unexpected version '$version' in Info.plist" >&2
+            exit 1
+          fi
           if gh release view "v$version" >/dev/null 2>&1; then
             echo "v$version is already released, nothing to do"
           else
@@ -33,7 +39,9 @@ jobs:
       - if: steps.version.outputs.tag
         run: ./scripts/archive.sh
       - if: steps.version.outputs.tag
-        run: gh release create "${{ steps.version.outputs.tag }}" build/IonizedBar-*.zip --target "$GITHUB_SHA" --title "${{ steps.version.outputs.tag }}" --generate-notes
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release create "$TAG" build/IonizedBar-*.zip --target "$GITHUB_SHA" --title "$TAG" --generate-notes
 
   cask:
     needs: release
