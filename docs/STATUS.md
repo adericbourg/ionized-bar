@@ -18,7 +18,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M5 – Release | 🚧 | 1/3 |
 | M6 – Window preview | 🚧 | 5/6 |
 | M7 – Settings | ✅ | 6/6 |
-| M8 – App launcher | ⬜ | 0/6 |
+| M8 – App launcher | 🚧 | 1/6 |
 | M9 – Pin applications | ⬜ | 0/6 |
 | M10 – Re-order tasks | ⬜ | 0/5 |
 
@@ -196,9 +196,9 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Manual pass
 
 ### M8 – App launcher
-- [ ] Spike: which description can apps provide (`CFBundleGetInfoString`, `kMDItemDescription`)? Record the result, and fall back to names only if nothing is usable
+- [x] Spike: which description can apps provide (`CFBundleGetInfoString`, `kMDItemDescription`)? Result: 3 of 125 bundles, so search covers names only
 - [ ] Application list: `.app` bundles from `/Applications`, `/System/Applications` and `~/Applications`, with icon and name
-- [ ] Fuzzy matching in `IonizedBarCore`, with checks (names rank above descriptions)
+- [ ] Fuzzy matching over names in `IonizedBarCore`, with checks
 - [ ] Launcher button at the left of every bar, with tasks laid out and grouped in the width left
 - [ ] Launcher panel: search field, list, click and Return open the app, Esc and a click outside close it, keys go back to the frontmost app
 - [ ] ⌃⌥B keyboard mode and VoiceOver, Reduce Motion, Reduce Transparency and contrast on the panel; manual pass
@@ -294,3 +294,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M6 spike settled by the user's own run (see the box): a minimized window is never captured live, so the cache is needed. The 2026-11-02 -3811 on the on-screen control came from the agent's session, since the same program passes in the user's. PRODUCT.md's "Minimized windows" bullet is fixed accordingly.
 - 2026-11-03 — M6 task 12: `LastCaptureCache` in `IonizedBarCore` (checked: store, replace, `keepOnly`) holds one image per window, keyed on the AX element, in memory only. `BarManager.thumbnail(of:)` captures live for a window that is not minimized and stores the result; a minimized window skips the capture call and shows the cached image, or the header only if never hovered. A failed or ambiguous capture also falls back to the cached image. `update(windowsByDisplay:)` drops the images of windows no longer listed, which bounds the cache to the open windows (a window on another Space that is no longer listed loses its image too). A window un-minimized is captured live again and refreshes it. A denied grant still shows no panel, so no cached image shows then. Verified: checks, release build, bundle. Not verified (the app can't be launched here): hovering a real minimized window.
 - 2026-11-03 — M6 task 13: no code change for Reduce Motion, Reduce Transparency or contrast on the preview panel, as for the bar (which has no transparency code either). The panel has no animation (`orderFrontRegardless` and `orderOut` show and hide at once), so there is nothing to reduce. Its `NSVisualEffectView` is expected to turn opaque with Reduce Transparency and to adapt to Increase Contrast on its own, and the labels use the dynamic `labelColor` and `secondaryLabelColor`; none of this is verified. VoiceOver: the panel never becomes key or main, its icon is hidden from VoiceOver, and the entry's label is untouched. Added "M6 manual pass" (the items earlier tasks marked for it, the accessibility settings, and the grant-on-upgrade question), a "Window previews" section to the README, and fixed the 2026-11-02 log lines that still read as if the spike were open. The box stays unticked until the user runs the pass. M6 stays at 5/6.
+- 2026-11-03 — M8 spike: read-only scan of 125 `.app` bundles (plist and `mdls`, nothing launched). `kMDItemDescription` is empty on all, `CFBundleGetInfoString` has a real description on 3 (third-party), none on the 65 system apps. Decision: search covers names only. M8 at 1/6.

@@ -67,8 +67,8 @@ A button always at the left of the bar, on every bar. It opens a panel above it 
 
 - **Button:** a fixed-width, icon-only entry, about 48pt like Icon only tasks. Tasks share the width left of the bar (see M9 for the order). R5's equal share then means the width left for tasks.
 - **Applications:** the `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, sorted by name, each with its icon and name.
-- **Search:** fuzzy matching over application names and over descriptions when an app provides one. A name match ranks above a description match. The search field has focus when the panel opens, and an empty search lists everything.
-- **Description:** macOS bundles have no standard description field, so the first M8 task checks what's available (Info.plist `CFBundleGetInfoString`, Spotlight `kMDItemDescription`). If nothing is usable, search covers names only.
+- **Search:** fuzzy matching over application names only (see Description). The search field has focus when the panel opens, and an empty search lists everything.
+- **Description:** macOS bundles have no standard description field. The M8 spike (2026-11-03) read 125 bundles from the three folders: Spotlight `kMDItemDescription` was empty on all 125, and Info.plist `CFBundleGetInfoString` was empty on 109, a copyright or version line on 12 and a real description on 3 (all third-party, none among the 65 system apps). Not usable, so search covers names only.
 - **Opening an app:** a click, or Return on the selected row, opens it with `NSWorkspace.openApplication` and closes the panel. Esc or a click outside closes the panel too, and keys go back to the frontmost app.
 - **Keyboard:** the launcher is the first stop of ⌃⌥B keyboard mode. A bar is never empty anymore, so ⌃⌥B with no tasks now focuses the launcher button instead of doing nothing.
 - **Accessibility:** the button and rows are VoiceOver elements labelled with the app name, and the panel honors *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*, like the bar.
@@ -120,7 +120,7 @@ Dragging a task along its bar changes its place on that bar. Only the entry move
 | Preview (M6): `SCScreenshotManager` capture is async and can lag | The panel feels slow, or the bar stutters | Capture once per hover, not on every mouse move |
 | Preview (M6): the Screen Recording grant is probably lost on upgrade, like Accessibility (unverified) | Previews stop working after an update | Check during M6. Same fix as the Accessibility grant, see *Known issues* |
 | Launcher and pins (M8, M9) take bar width | Tasks shrink sooner, and many pins can leave little room for them | The entry width and the When full grouping both use the width left for tasks. Tasks shrink as usual; pins never do |
-| Launcher (M8): apps may provide no usable description | Description search rarely matches anything | Check it first in M8. Fall back to names only |
+| Launcher (M8): apps provide no usable description | Search can't match on what an app does | Checked in the M8 spike: 3 of 125 bundles have one, so search covers names only |
 | Re-order (M10): a drag can fire a click or raise a window | Dropping an entry minimizes or raises a window by accident | The 4pt threshold, and a manual check |
 
 ## Milestones
