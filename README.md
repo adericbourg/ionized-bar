@@ -20,7 +20,7 @@ The first time it has the Accessibility permission, the app adds itself to the l
 
 ## App launcher
 
-The button at the left of the bar opens a list of your applications, with a search field that tolerates typos. Up, Down and Return, or a click, open an app; Escape or a click outside closes the list.
+The button at the left of the bar opens a list of your applications, with a search field that tolerates typos. Up, Down and Return, or a click, open an app; Escape or a click outside closes the list. VoiceOver announces the number of results and the selected app. The list follows Reduce Motion, Reduce Transparency and Increase Contrast.
 
 ## Window previews
 

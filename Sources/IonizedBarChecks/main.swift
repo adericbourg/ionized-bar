@@ -688,6 +688,27 @@ do {
     check("setQuery_empty_listsAllAndSelectsTop", list.rows.count == 4 && list.selectedIndex == 0)
 }
 
+// LauncherList: no-match state and VoiceOver announcement
+do {
+    let apps = ["Calculator", "Mail", "Safari"].map { InstalledApp(name: $0, url: URL(fileURLWithPath: "/fake/\($0).app")) }
+    var list = LauncherList()
+    // Given no list read yet and no query
+    // Then that isn't a failed search
+    check("hasNoMatch_beforeTheListIsRead_isFalse", !list.hasNoMatch)
+    list.setApps(apps)
+    // When listing everything
+    check("hasNoMatch_withNoQuery_isFalse", !list.hasNoMatch)
+    check("resultsAnnouncement_ofSeveralRows_givesCountAndSelection", list.resultsAnnouncement == "3 applications, Calculator selected")
+    // When one row matches
+    list.setQuery("safari")
+    check("hasNoMatch_withMatches_isFalse", !list.hasNoMatch)
+    check("resultsAnnouncement_ofOneRow_isSingular", list.resultsAnnouncement == "1 application, Safari selected")
+    // When nothing matches
+    list.setQuery("zzzzqqq")
+    check("hasNoMatch_withNoRows_isTrue", list.hasNoMatch)
+    check("resultsAnnouncement_ofNoRows_saysSo", list.resultsAnnouncement == LauncherList.noMatchMessage)
+}
+
 // launcherFrame
 do {
     let screen = CGRect(x: 1000, y: 0, width: 1000, height: 800)

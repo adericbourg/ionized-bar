@@ -64,6 +64,8 @@ private func tier(of q: [Character], in n: [Character]) -> Int? {
 
 /// What the launcher panel shows: the apps matching the query, and the row Up, Down and Return act on.
 public struct LauncherList {
+    public static let noMatchMessage = "No applications found"
+
     private var apps: [InstalledApp] = []
     public private(set) var query = ""
     public private(set) var rows: [InstalledApp] = []
@@ -72,6 +74,15 @@ public struct LauncherList {
     public init() {}
 
     public var selected: InstalledApp? { selectedIndex.map { rows[$0] } }
+
+    /// A search that found nothing, not a list that isn't read yet.
+    public var hasNoMatch: Bool { rows.isEmpty && !query.isEmpty }
+
+    /// Focus stays in the search field, so VoiceOver reads neither the rows nor the selection on its own.
+    public var resultsAnnouncement: String {
+        guard let selected else { return Self.noMatchMessage }
+        return "\(rows.count) application\(rows.count == 1 ? "" : "s"), \(selected.name) selected"
+    }
 
     /// A fresh read keeps the selected app, by URL: names repeat across folders.
     public mutating func setApps(_ apps: [InstalledApp]) {

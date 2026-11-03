@@ -14,6 +14,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     private let searchField = NSSearchField()
     private let scrollView = NSScrollView()
     private let table = NSTableView()
+    private let noMatchLabel = NSTextField(labelWithString: LauncherList.noMatchMessage)
     private var list = LauncherList()
     private let onOpen: (InstalledApp) -> Void
     private let onDismiss: () -> Void
@@ -37,6 +38,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         contentView = frosted
 
         searchField.placeholderString = "Search applications"
+        searchField.setAccessibilityLabel("Search applications")
         searchField.delegate = self
         // The clear button. Typing goes through controlTextDidChange: this action comes later, so Return could outrun it.
         searchField.target = self
@@ -50,6 +52,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         table.style = .inset
         table.rowHeight = Self.rowHeight
         table.backgroundColor = .clear
+        table.setAccessibilityLabel("Applications")
         // Focus stays in the search field, so typing keeps working after a click.
         table.refusesFirstResponder = true
         table.dataSource = self
@@ -59,7 +62,8 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         scrollView.documentView = table
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = false
-        for view in [searchField, scrollView] { frosted.addSubview(view) }
+        noMatchLabel.alignment = .center
+        for view in [searchField, scrollView, noMatchLabel] { frosted.addSubview(view) }
     }
 
     override var canBecomeKey: Bool { true }
@@ -89,6 +93,8 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         let fieldY = frame.height - Self.padding - fieldHeight
         searchField.frame = CGRect(x: Self.padding, y: fieldY, width: frame.width - 2 * Self.padding, height: fieldHeight)
         scrollView.frame = CGRect(x: 0, y: Self.padding, width: frame.width, height: max(0, fieldY - 2 * Self.padding))
+        let noMatchHeight = noMatchLabel.intrinsicContentSize.height
+        noMatchLabel.frame = CGRect(x: 0, y: (scrollView.frame.midY - noMatchHeight / 2).rounded(), width: frame.width, height: noMatchHeight)
         table.sizeLastColumnToFit()
         invalidateShadow()
         orderFrontRegardless()
@@ -103,6 +109,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
     private func reload() {
         table.reloadData()
+        noMatchLabel.isHidden = !list.hasNoMatch
         showSelection()
     }
 
@@ -111,12 +118,21 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         if let selectedIndex = list.selectedIndex { table.scrollRowToVisible(selectedIndex) }
     }
 
+    private func announce(_ text: String) {
+        // On the panel: it can't become main, so the usual NSApp.mainWindow is nil here.
+        NSAccessibility.post(element: self, notification: .announcementRequested, userInfo: [
+            .announcement: text,
+            .priority: NSAccessibilityPriorityLevel.medium.rawValue
+        ])
+    }
+
     func controlTextDidChange(_ notification: Notification) { queryChanged() }
 
     @objc private func queryChanged() {
         guard searchField.stringValue != list.query else { return }
         list.setQuery(searchField.stringValue)
         reload()
+        announce(list.resultsAnnouncement)
     }
 
     @objc private func rowClicked() {
@@ -128,6 +144,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         case #selector(NSResponder.moveUp(_:)), #selector(NSResponder.moveDown(_:)):
             list.moveSelection(by: selector == #selector(NSResponder.moveUp(_:)) ? -1 : 1)
             showSelection()
+            if let selected = list.selected { announce(selected.name) }
         case #selector(NSResponder.insertNewline(_:)):
             if let app = list.selected { onOpen(app) }
         case #selector(NSResponder.cancelOperation(_:)):
@@ -148,7 +165,11 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         return cell
     }
 
-    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? { EmphasizedRow() }
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        let rowView = EmphasizedRow()
+        rowView.setAccessibilityLabel(list.rows[row].name)
+        return rowView
+    }
 
     // The selection follows `list`: a drag over the rows must not move it away from what Return opens.
     func selectionShouldChange(in tableView: NSTableView) -> Bool { false }
@@ -169,6 +190,7 @@ private final class AppCell: NSTableCellView {
         super.init(frame: .zero)
         self.identifier = identifier
         let icon = NSImageView()
+        icon.setAccessibilityElement(false)
         let name = NSTextField(labelWithString: "")
         name.lineBreakMode = .byTruncatingTail
         addSubview(icon)
