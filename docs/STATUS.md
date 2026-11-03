@@ -463,3 +463,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — Audit cut: the Dock prefs go through `CFPreferences` rather than the `defaults` tool, and `killall Dock` stays. A scratch domain round-tripped a write, a delete and an absent-key delete, with the same types as `defaults` and values readable both ways. `parseDockPrefs` and its checks are gone. Hiding and restoring the real Dock is not yet checked by hand.
 - 2026-11-03 — Audit cut: removed `EntryActions`, a struct of closures with one instance. The bar views now hold the `BarManager`.
 - 2026-11-03 — Audit cut: `LauncherController` takes no injected closures: it lists the apps and finds the favorites itself.
+- 2026-11-03 — Audit cut: `BarButton` holds what task entries and icon buttons shared (hover, focus, keys, menu, press and drag), and `BarContentView` loses its `Dragged` enum and overloads. Not yet checked by hand.

@@ -1,25 +1,16 @@
 import AppKit
-import Carbon.HIToolbox
 import IonizedBarCore
 
-final class EntryView: NSView {
-    enum Press {
-        case none, pressed(at: NSPoint), dragging, abandoned
-    }
-
+final class EntryView: BarButton {
     private static let padding: CGFloat = 8
     static let iconSize: CGFloat = 16
     private static let countGap: CGFloat = 2
-    static let focusRingInset: CGFloat = 3
 
-    private let manager: BarManager
     private var item: BarItem<TrackedWindow>
     private let icon = NSImageView()
     private let title = NSTextField(labelWithString: "")
     private(set) var isActive = false { didSet { needsDisplay = true } }
-    private var isHovered = false { didSet { needsDisplay = true } }
     private var display = TaskDisplay.content
-    private var press = Press.none
     var isIconOnly = false {
         didSet {
             guard isIconOnly != oldValue else { return }
@@ -30,19 +21,13 @@ final class EntryView: NSView {
 
     init(item: BarItem<TrackedWindow>, manager: BarManager) {
         self.item = item
-        self.manager = manager
-        super.init(frame: .zero)
+        super.init(manager: manager)
         icon.image = NSRunningApplication(processIdentifier: item.windows[0].pid)?.icon
         title.lineBreakMode = .byTruncatingTail
         addSubview(icon)
         addSubview(title)
-        setAccessibilityElement(true)
-        setAccessibilityRole(.button)
         icon.setAccessibilityElement(false)
         title.setAccessibilityElement(false)
-        focusRingType = .exterior
-        // activeAlways: this app is never the active one, and inVisibleRect follows resizes.
-        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
     }
 
     @available(*, unavailable)
@@ -135,98 +120,21 @@ final class EntryView: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) {
-        guard manager.preview.dragged == nil else { return }
-        isHovered = true
+        super.mouseEntered(with: event)
+        guard isHovered else { return }
         // The grant can have changed since the last snapshot, and the tooltip depends on it.
         updateText()
         showPreview()
     }
 
     override func mouseExited(with event: NSEvent) {
-        isHovered = false
+        super.mouseExited(with: event)
         manager.preview.pointerLeft(self)
     }
-
-    // Keeps the icon and title out of event dispatch: a control-click on the title opens no menu otherwise.
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        super.hitTest(point) == nil ? nil : self
-    }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    override func mouseDown(with event: NSEvent) {
-        press = event.modifierFlags.contains(.control) ? .none : .pressed(at: event.locationInWindow)
-        super.mouseDown(with: event)
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        guard let bar = superview as? BarContentView else { return }
-        if case .pressed(let start) = press, isPastDragThreshold(from: start, to: event.locationInWindow) {
-            press = bar.beginDrag(self, pressedAt: start) ? .dragging : .abandoned
-        }
-        if case .dragging = press { bar.moveDrag(to: event.locationInWindow) }
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        defer { press = .none }
-        switch press {
-        case .dragging, .abandoned:
-            (superview as? BarContentView)?.endDrag()
-            // Waits for the drop, like a click: the panel ordering out mid-press could cut the drag short.
-            (window as? BarPanel)?.endKeyboardMode()
-        case .none, .pressed:
-            // A control-click opens the menu: its mouse-up is not a click.
-            if isInside(event) && !event.modifierFlags.contains(.control) { performClickAction() }
-        }
-    }
-
-    /// The drag ended without a drop, so what's left of the press is neither a move nor a click.
-    func abandonDrag() { press = .abandoned }
 
     override func otherMouseUp(with event: NSEvent) {
         // A group ignores it, so a stray click can't close several windows.
         if event.buttonNumber == 2 && isInside(event), case .window(let window) = item { manager.windowTracker.close(window) }
-    }
-
-    override func menu(for event: NSEvent) -> NSMenu? {
-        manager.preview.dismiss()
-        return contextMenu()
-    }
-
-    private func isInside(_ event: NSEvent) -> Bool {
-        bounds.contains(convert(event.locationInWindow, from: nil))
-    }
-
-    override var acceptsFirstResponder: Bool { true }
-
-    // Follows acceptsFirstResponder by default, which would make every click take key from the frontmost app.
-    override var needsPanelToBecomeKey: Bool { false }
-
-    // Inset: entries fill the bar, so a ring around the bounds would be clipped by the panel's edges.
-    private var focusRingPath: NSBezierPath {
-        NSBezierPath(roundedRect: bounds.insetBy(dx: Self.focusRingInset, dy: Self.focusRingInset), xRadius: 4, yRadius: 4)
-    }
-
-    override func drawFocusRingMask() { focusRingPath.fill() }
-
-    override var focusRingMaskBounds: NSRect { bounds }
-
-    override func becomeFirstResponder() -> Bool {
-        needsDisplay = true
-        return super.becomeFirstResponder()
-    }
-
-    override func resignFirstResponder() -> Bool {
-        needsDisplay = true
-        return super.resignFirstResponder()
-    }
-
-    override func keyDown(with event: NSEvent) {
-        switch Int(event.keyCode) {
-        case kVK_Return, kVK_Space: performClickAction()
-        case kVK_F10 where event.modifierFlags.contains(.shift): showContextMenu()
-        default: super.keyDown(with: event)
-        }
     }
 
     // Deferred: a menu's tracking would otherwise hold the accessibility reply until the menu closes.
@@ -235,22 +143,7 @@ final class EntryView: NSView {
         return true
     }
 
-    override func accessibilityPerformShowMenu() -> Bool {
-        Task { @MainActor in showContextMenu() }
-        return true
-    }
-
-    private func showContextMenu() {
-        manager.preview.dismiss()
-        popUpAbove(contextMenu())
-    }
-
-    private func popUpAbove(_ menu: NSMenu) {
-        // popUp places the menu's top-left at this point, so this puts the whole menu above the entry.
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: bounds.height + menu.size.height), in: self)
-    }
-
-    func performClickAction() {
+    override func performClickAction() {
         manager.preview.dismiss()
         switch item {
         case .window(let window):
@@ -278,7 +171,7 @@ final class EntryView: NSView {
         return menu
     }
 
-    func contextMenu() -> NSMenu {
+    override func contextMenu() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
         let appName = item.windows[0].appName

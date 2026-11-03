@@ -4,7 +4,6 @@ import IonizedBarCore
 /// An app kept on the bar while closed. Takes no window action: a click opens the app, which decides whether to show a window.
 final class PinnedIconView: BarIconButton {
     let bundleID: String
-    private var press = EntryView.Press.none
 
     init(bundleID: String, manager: BarManager) {
         self.bundleID = bundleID
@@ -20,34 +19,6 @@ final class PinnedIconView: BarIconButton {
     required init?(coder: NSCoder) { fatalError() }
 
     override func open() { manager.openPinnedApp(bundleID) }
-
-    override func mouseDown(with event: NSEvent) {
-        press = event.modifierFlags.contains(.control) ? .none : .pressed(at: event.locationInWindow)
-        super.mouseDown(with: event)
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        guard let bar = superview as? BarContentView else { return }
-        if case .pressed(let start) = press, isPastDragThreshold(from: start, to: event.locationInWindow) {
-            press = bar.beginDrag(self, pressedAt: start) ? .dragging : .abandoned
-        }
-        if case .dragging = press { bar.moveDrag(to: event.locationInWindow) }
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        defer { press = .none }
-        switch press {
-        case .dragging, .abandoned:
-            (superview as? BarContentView)?.endDrag()
-            // Waits for the drop, as for an entry: the panel ordering out mid-press could cut the drag short.
-            (window as? BarPanel)?.endKeyboardMode()
-        case .none, .pressed:
-            super.mouseUp(with: event)
-        }
-    }
-
-    /// The drag ended without a drop, so what's left of the press is neither a move nor a click.
-    func abandonDrag() { press = .abandoned }
 
     override func contextMenu() -> NSMenu? {
         guard let menu = super.contextMenu() else { return nil }
