@@ -24,7 +24,7 @@ The button at the left of the bar opens a list of your applications, with a sear
 
 ## Pinned apps
 
-"Pin" in the right-click menu of a task or a group keeps the app's icon on the bar, between the launcher button and the tasks, on every display. A click on the icon opens the app. "Unpin" is in the same menus and in the icon's own. By default, an icon hides on a bar that shows a task for its app.
+"Pin" in the right-click menu of a task or a group keeps the app's icon on the bar, between the launcher button and the tasks, on every display. A click on the icon opens the app. In keyboard mode (see Keyboard) Return or Space does the same and Shift-F10 opens its menu; VoiceOver reads it as a button labelled with the app name and "pinned". "Unpin" is in the same menus and in the icon's own. By default, an icon hides on a bar that shows a task for its app.
 
 ## Window previews
 

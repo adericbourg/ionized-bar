@@ -768,6 +768,12 @@ do {
     check("taskSlot_withMorePinsThanFit_hasNoWidth", taskSlot(barWidth: 100, pinnedWidth: 3 * pinnedIconWidth).width == 0)
 }
 
+// pinnedAccessibilityLabel
+do {
+    // Given an app name, When building the label of its pinned icon, Then it reads the name and "pinned"
+    check("pinnedAccessibilityLabel_readsNameThenPinned", pinnedAccessibilityLabel(appName: "Safari") == "Safari, pinned")
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)
