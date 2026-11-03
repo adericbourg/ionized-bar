@@ -2,19 +2,33 @@ import AppKit
 import IonizedBarCore
 
 /// Key without activating the app, like the bar in keyboard mode, so typing reaches the search field.
-final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource, NSTableViewDelegate {
-    static let size = CGSize(width: 360, height: 420)
+final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource, NSTableViewDelegate, NSCollectionViewDataSource {
+    static let size = CGSize(width: 620, height: 520)
     private static let padding: CGFloat = 10
     private static let rowHeight: CGFloat = 28
+    private static let sidebarWidth: CGFloat = 190
+    private static let sidebarRowHeight: CGFloat = 32
+    private static let gridColumns = 4
+    private static let gridItemHeight: CGFloat = 100
     private static let rowID = NSUserInterfaceItemIdentifier("app")
+    private static let sidebarRowID = NSUserInterfaceItemIdentifier("view")
+    private static let gridItemID = NSUserInterfaceItemIdentifier("gridItem")
     private static let editActions = [
         "x": #selector(NSText.cut(_:)), "c": #selector(NSText.copy(_:)), "v": #selector(NSText.paste(_:)), "a": #selector(NSText.selectAll(_:))
     ]
 
     private let searchField = NSSearchField()
-    private let scrollView = NSScrollView()
-    private let table = HoverTableView()
-    private let noMatchLabel = NSTextField(labelWithString: LauncherList.noMatchMessage)
+    private let scrollView = HoverScrollView()
+    private let table = NSTableView()
+    private let sidebarScrollView = HoverScrollView()
+    private let sidebar = NSTableView()
+    private let gridScrollView = HoverScrollView()
+    private let grid = NSCollectionView()
+    private let gridLayout = NSCollectionViewFlowLayout()
+    private let headerSeparator = NSBox()
+    private let sidebarSeparator = NSBox()
+    private let emptyLabel = NSTextField(wrappingLabelWithString: "")
+    private var hoveredSidebarRow = -1
     private var list = LauncherList()
     private let onOpen: (InstalledApp) -> Void
     private let onDismiss: () -> Void
@@ -45,30 +59,55 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         searchField.target = self
         searchField.action = #selector(queryChanged)
 
-        let column = NSTableColumn(identifier: Self.rowID)
+        configure(table, in: scrollView, label: "Applications", id: Self.rowID, rowHeight: Self.rowHeight, action: #selector(rowClicked))
+        scrollView.onHover = { [unowned self] point in
+            list.select(index: point.map(table.row(at:)) ?? -1)
+            selectListedRow()
+        }
+        configure(sidebar, in: sidebarScrollView, label: "Application views", id: Self.sidebarRowID, rowHeight: Self.sidebarRowHeight, action: #selector(sidebarClicked))
+        sidebarScrollView.onHover = { [unowned self] point in hoverSidebar(row: point.map(sidebar.row(at:)) ?? -1) }
+
+        grid.collectionViewLayout = gridLayout
+        gridLayout.minimumInteritemSpacing = 0
+        gridLayout.minimumLineSpacing = 0
+        gridLayout.sectionInset = NSEdgeInsets(top: 0, left: Self.padding, bottom: 0, right: Self.padding)
+        grid.register(GridItem.self, forItemWithIdentifier: Self.gridItemID)
+        grid.dataSource = self
+        grid.backgroundColors = [.clear]
+        grid.setAccessibilityLabel(LauncherView.favorites.title)
+        gridScrollView.documentView = grid
+        gridScrollView.hasVerticalScroller = true
+        gridScrollView.drawsBackground = false
+        gridScrollView.onHover = { [unowned self] point in
+            list.select(index: point.flatMap(grid.indexPathForItem(at:))?.item ?? -1)
+            selectListedRow()
+        }
+
+        headerSeparator.boxType = .separator
+        sidebarSeparator.boxType = .separator
+        emptyLabel.alignment = .center
+        for view in [searchField, headerSeparator, sidebarScrollView, sidebarSeparator, scrollView, gridScrollView, emptyLabel] { frosted.addSubview(view) }
+    }
+
+    private func configure(_ table: NSTableView, in scrollView: NSScrollView, label: String, id: NSUserInterfaceItemIdentifier, rowHeight: CGFloat, action: Selector) {
+        let column = NSTableColumn(identifier: id)
         column.resizingMask = .autoresizingMask
         table.addTableColumn(column)
         table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         table.headerView = nil
         table.style = .inset
-        table.rowHeight = Self.rowHeight
+        table.rowHeight = rowHeight
         table.backgroundColor = .clear
-        table.setAccessibilityLabel("Applications")
+        table.setAccessibilityLabel(label)
         // Focus stays in the search field, so typing keeps working after a click.
         table.refusesFirstResponder = true
         table.dataSource = self
         table.delegate = self
         table.target = self
-        table.action = #selector(rowClicked)
-        table.onHover = { [unowned self] row in
-            list.select(index: row)
-            selectListedRow()
-        }
+        table.action = action
         scrollView.documentView = table
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = false
-        noMatchLabel.alignment = .center
-        for view in [searchField, scrollView, noMatchLabel] { frosted.addSubview(view) }
     }
 
     override var canBecomeKey: Bool { true }
@@ -89,18 +128,29 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         return super.performKeyEquivalent(with: event)
     }
 
-    func show(in frame: CGRect) {
+    func show(in frame: CGRect, favorites: [InstalledApp]) {
         searchField.stringValue = ""
-        list.setQuery("")
-        reload()
+        list.reset(favorites: favorites)
         setFrame(frame, display: false)
         let fieldHeight = searchField.intrinsicContentSize.height
         let fieldY = frame.height - Self.padding - fieldHeight
         searchField.frame = CGRect(x: Self.padding, y: fieldY, width: frame.width - 2 * Self.padding, height: fieldHeight)
-        scrollView.frame = CGRect(x: 0, y: Self.padding, width: frame.width, height: max(0, fieldY - 2 * Self.padding))
-        let noMatchHeight = noMatchLabel.intrinsicContentSize.height
-        noMatchLabel.frame = CGRect(x: 0, y: (scrollView.frame.midY - noMatchHeight / 2).rounded(), width: frame.width, height: noMatchHeight)
+        let bodyHeight = max(0, fieldY - 2 * Self.padding)
+        headerSeparator.frame = CGRect(x: 0, y: fieldY - Self.padding, width: frame.width, height: 1)
+        sidebarScrollView.frame = CGRect(x: 0, y: Self.padding, width: Self.sidebarWidth, height: bodyHeight)
+        sidebarSeparator.frame = CGRect(x: Self.sidebarWidth, y: 0, width: 1, height: fieldY - Self.padding)
+        let content = CGRect(x: Self.sidebarWidth + 1, y: Self.padding, width: max(0, frame.width - Self.sidebarWidth - 1), height: bodyHeight)
+        scrollView.frame = content
+        gridScrollView.frame = content
+        gridLayout.itemSize = CGSize(
+            width: ((gridScrollView.contentSize.width - 2 * Self.padding) / CGFloat(Self.gridColumns)).rounded(.down),
+            height: Self.gridItemHeight
+        )
+        let emptyHeight = 2 * emptyLabel.intrinsicContentSize.height
+        emptyLabel.frame = CGRect(x: content.minX + 2 * Self.padding, y: (content.midY - emptyHeight / 2).rounded(), width: content.width - 4 * Self.padding, height: emptyHeight)
+        reload()
         table.sizeLastColumnToFit()
+        sidebar.sizeLastColumnToFit()
         invalidateShadow()
         orderFrontRegardless()
         makeKey()
@@ -114,17 +164,38 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
     private func reload() {
         table.reloadData()
-        noMatchLabel.isHidden = !list.hasNoMatch
+        grid.reloadData()
+        sidebar.reloadData()
+        sidebar.selectRowIndexes(list.sidebarItems.firstIndex(of: list.view).map { IndexSet(integer: $0) } ?? [], byExtendingSelection: false)
+        scrollView.isHidden = list.showsGrid
+        gridScrollView.isHidden = !list.showsGrid
+        emptyLabel.stringValue = list.hasNoFavorites ? LauncherList.noFavoritesMessage : LauncherList.noMatchMessage
+        emptyLabel.isHidden = !list.hasNoMatch && !list.hasNoFavorites
         showSelection()
     }
 
     private func selectListedRow() {
         table.selectRowIndexes(list.selectedIndex.map { IndexSet(integer: $0) } ?? [], byExtendingSelection: false)
+        for case let item as GridItem in grid.visibleItems() {
+            item.isCurrent = grid.indexPath(for: item)?.item == list.selectedIndex
+        }
+    }
+
+    private func hoverSidebar(row: Int) {
+        guard row != hoveredSidebarRow else { return }
+        (sidebar.rowView(atRow: hoveredSidebarRow, makeIfNecessary: false) as? EmphasizedRow)?.isHovered = false
+        hoveredSidebarRow = row
+        (sidebar.rowView(atRow: row, makeIfNecessary: false) as? EmphasizedRow)?.isHovered = true
     }
 
     private func showSelection() {
         selectListedRow()
-        if let selectedIndex = list.selectedIndex { table.scrollRowToVisible(selectedIndex) }
+        guard let selectedIndex = list.selectedIndex else { return }
+        if list.showsGrid {
+            grid.scrollToItems(at: [IndexPath(item: selectedIndex, section: 0)], scrollPosition: .nearestHorizontalEdge)
+        } else {
+            table.scrollRowToVisible(selectedIndex)
+        }
     }
 
     private func announce(_ text: String) {
@@ -148,12 +219,32 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         if list.rows.indices.contains(table.clickedRow) { onOpen(list.rows[table.clickedRow]) }
     }
 
+    @objc private func sidebarClicked() {
+        guard list.sidebarItems.indices.contains(sidebar.clickedRow) else { return }
+        searchField.stringValue = ""
+        list.setView(list.sidebarItems[sidebar.clickedRow])
+        reload()
+    }
+
+    private func selectionMoved() {
+        showSelection()
+        if let selected = list.selected { announce(selected.name) }
+    }
+
     func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
         switch selector {
         case #selector(NSResponder.moveUp(_:)), #selector(NSResponder.moveDown(_:)):
-            list.moveSelection(by: selector == #selector(NSResponder.moveUp(_:)) ? -1 : 1)
-            showSelection()
-            if let selected = list.selected { announce(selected.name) }
+            let offset = selector == #selector(NSResponder.moveUp(_:)) ? -1 : 1
+            if list.showsGrid {
+                list.moveGridSelection(byRows: offset, columns: Self.gridColumns)
+            } else {
+                list.moveSelection(by: offset)
+            }
+            selectionMoved()
+        // In a list they stay with the search field's text cursor.
+        case #selector(NSResponder.moveLeft(_:)) where list.showsGrid, #selector(NSResponder.moveRight(_:)) where list.showsGrid:
+            list.moveSelection(by: selector == #selector(NSResponder.moveLeft(_:)) ? -1 : 1)
+            selectionMoved()
         case #selector(NSResponder.insertNewline(_:)):
             // A held Return that opened the panel from the launcher button would otherwise open the top app on repeat.
             if NSApp.currentEvent?.isARepeat != true, let app = list.selected { onOpen(app) }
@@ -165,10 +256,18 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         return true
     }
 
-    func numberOfRows(in tableView: NSTableView) -> Int { list.rows.count }
+    func numberOfRows(in tableView: NSTableView) -> Int { tableView === sidebar ? list.sidebarItems.count : list.rows.count }
 
     // Only the visible rows get here, so icons are read for those only.
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        if tableView === sidebar {
+            let cell = tableView.makeView(withIdentifier: Self.sidebarRowID, owner: nil) as? AppCell ?? AppCell(identifier: Self.sidebarRowID)
+            let item = list.sidebarItems[row]
+            cell.imageView?.image = NSImage(systemSymbolName: item.symbolName, accessibilityDescription: nil)
+            cell.imageView?.contentTintColor = .labelColor
+            cell.textField?.stringValue = item.title
+            return cell
+        }
         let cell = tableView.makeView(withIdentifier: Self.rowID, owner: nil) as? AppCell ?? AppCell(identifier: Self.rowID)
         cell.imageView?.image = NSWorkspace.shared.icon(forFile: list.rows[row].url.path)
         cell.textField?.stringValue = list.rows[row].name
@@ -177,43 +276,184 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
     func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
         let rowView = EmphasizedRow()
-        rowView.setAccessibilityLabel(list.rows[row].name)
+        if tableView === sidebar {
+            let item = list.sidebarItems[row]
+            rowView.setAccessibilityLabel(item.title)
+            rowView.hasDivider = item == .all
+            rowView.isHovered = row == hoveredSidebarRow
+        } else {
+            rowView.setAccessibilityLabel(list.rows[row].name)
+        }
         return rowView
     }
 
     // The selection follows `list`: a drag over the rows must not move it away from what Return opens.
     func selectionShouldChange(in tableView: NSTableView) -> Bool { false }
+
+    func collectionView(_ collectionView: NSCollectionView, numberOfItemsInSection section: Int) -> Int {
+        list.showsGrid ? list.rows.count : 0
+    }
+
+    func collectionView(_ collectionView: NSCollectionView, itemForRepresentedObjectAt indexPath: IndexPath) -> NSCollectionViewItem {
+        let item = collectionView.makeItem(withIdentifier: Self.gridItemID, for: indexPath)
+        if let item = item as? GridItem {
+            let app = list.rows[indexPath.item]
+            item.show(app, isCurrent: indexPath.item == list.selectedIndex) { [unowned self] in onOpen(app) }
+        }
+        return item
+    }
 }
 
-/// Reports the row under the pointer. Only real pointer events do: arrow keys scrolling the list under a still
-/// pointer must not take the selection back. The wheel counts because it brings another row under a still pointer.
-private final class HoverTableView: NSTableView {
-    var onHover: ((Int) -> Void)?
+private extension LauncherView {
+    var symbolName: String {
+        switch self {
+        case .favorites: "bookmark"
+        case .all: "square.grid.2x2"
+        case .category(.development): "hammer"
+        case .category(.education): "graduationcap"
+        case .category(.games): "gamecontroller"
+        case .category(.graphics): "paintpalette"
+        case .category(.internet): "globe"
+        case .category(.multimedia): "play.rectangle"
+        case .category(.office): "doc.text"
+        case .category(.utilities): "wrench.and.screwdriver"
+        case .category(.other): "ellipsis.circle"
+        }
+    }
+}
+
+/// Reports the pointer over its document, or nil when it leaves. Only real pointer events do: arrow keys scrolling
+/// under a still pointer must not take the selection back. The wheel counts: it brings another row under a still pointer.
+private final class HoverScrollView: NSScrollView {
+    var onHover: ((CGPoint?) -> Void)?
 
     override init(frame: NSRect) {
         super.init(frame: frame)
         // Always active: this app is never the active one while the panel is open.
-        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .activeAlways, .inVisibleRect], owner: self))
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    override func mouseMoved(with event: NSEvent) {
-        onHover?(row(at: convert(event.locationInWindow, from: nil)))
-    }
+    override func mouseMoved(with event: NSEvent) { report(event.locationInWindow) }
+
+    override func mouseExited(with event: NSEvent) { onHover?(nil) }
 
     override func scrollWheel(with event: NSEvent) {
         super.scrollWheel(with: event)
-        if let window { onHover?(row(at: convert(window.mouseLocationOutsideOfEventStream, from: nil))) }
+        if let window { report(window.mouseLocationOutsideOfEventStream) }
+    }
+
+    private func report(_ locationInWindow: CGPoint) {
+        onHover?(documentView?.convert(locationInWindow, from: nil))
     }
 }
 
 /// The table is never first responder, which would otherwise draw the selection in the dim, unfocused style.
 private final class EmphasizedRow: NSTableRowView {
+    private static let insetStylePadding: CGFloat = 10
+
+    var isHovered = false { didSet { needsDisplay = true } }
+    var hasDivider = false
+
     override var isEmphasized: Bool {
         get { true }
         set {}
+    }
+
+    override func drawBackground(in dirtyRect: NSRect) {
+        if isHovered {
+            NSColor.labelColor.withAlphaComponent(0.1).setFill()
+            NSBezierPath(roundedRect: bounds.insetBy(dx: Self.insetStylePadding, dy: 0), xRadius: 4, yRadius: 4).fill()
+        }
+        if hasDivider {
+            NSColor.separatorColor.setFill()
+            CGRect(x: Self.insetStylePadding, y: isFlipped ? bounds.maxY - 1 : 0, width: bounds.width - 2 * Self.insetStylePadding, height: 1).fill()
+        }
+    }
+}
+
+private final class GridItem: NSCollectionViewItem {
+    var isCurrent = false {
+        didSet { (view as? GridItemView)?.isCurrent = isCurrent }
+    }
+
+    override func loadView() { view = GridItemView() }
+
+    func show(_ app: InstalledApp, isCurrent: Bool, onPress: @escaping () -> Void) {
+        guard let view = view as? GridItemView else { return }
+        view.show(app, onPress: onPress)
+        self.isCurrent = isCurrent
+    }
+}
+
+/// A button for VoiceOver. The hover and the highlight come from the panel, like the list's selection.
+private final class GridItemView: NSView {
+    private static let iconSize: CGFloat = 48
+    private static let inset: CGFloat = 4
+
+    private let icon = NSImageView()
+    private let name = NSTextField(wrappingLabelWithString: "")
+    private var onPress: (() -> Void)?
+    var isCurrent = false {
+        didSet {
+            name.textColor = isCurrent ? .alternateSelectedControlTextColor : .labelColor
+            needsDisplay = true
+        }
+    }
+
+    init() {
+        super.init(frame: .zero)
+        icon.setAccessibilityElement(false)
+        name.setAccessibilityElement(false)
+        name.alignment = .center
+        name.maximumNumberOfLines = 2
+        name.cell?.truncatesLastVisibleLine = true
+        addSubview(icon)
+        addSubview(name)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    func show(_ app: InstalledApp, onPress: @escaping () -> Void) {
+        icon.image = NSWorkspace.shared.icon(forFile: app.url.path)
+        name.stringValue = app.name
+        setAccessibilityLabel(app.name)
+        self.onPress = onPress
+    }
+
+    override func layout() {
+        super.layout()
+        let iconY = bounds.height - Self.iconSize - 2 * Self.inset
+        icon.frame = CGRect(x: ((bounds.width - Self.iconSize) / 2).rounded(), y: iconY, width: Self.iconSize, height: Self.iconSize)
+        name.frame = CGRect(x: Self.inset, y: Self.inset, width: bounds.width - 2 * Self.inset, height: iconY - Self.inset)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard isCurrent else { return }
+        NSColor.selectedContentBackgroundColor.setFill()
+        NSBezierPath(roundedRect: bounds.insetBy(dx: Self.inset / 2, dy: Self.inset / 2), xRadius: 6, yRadius: 6).fill()
+    }
+
+    // Keeps the icon and the name out of event dispatch, as in EntryView.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        super.hitTest(point) == nil ? nil : self
+    }
+
+    // Handled here so that the mouse-up comes here too: the collection view would otherwise track the click.
+    override func mouseDown(with event: NSEvent) {}
+
+    override func mouseUp(with event: NSEvent) {
+        if bounds.contains(convert(event.locationInWindow, from: nil)) { onPress?() }
+    }
+
+    override func accessibilityPerformPress() -> Bool {
+        onPress?()
+        return true
     }
 }
 
@@ -251,6 +491,7 @@ final class LauncherController {
     private static let gap: CGFloat = 4
 
     private let listApps: @Sendable () -> [InstalledApp]
+    private let favorites: @MainActor () -> [InstalledApp]
     private let openApp: @MainActor (URL) -> Void
     private lazy var panel = LauncherPanel(
         onOpen: { [unowned self] app in
@@ -265,8 +506,9 @@ final class LauncherController {
     var isOpen: Bool { button != nil }
 
     /// `listApps` runs off the main thread, on each open.
-    init(listApps: @escaping @Sendable () -> [InstalledApp], openApp: @escaping @MainActor (URL) -> Void) {
+    init(listApps: @escaping @Sendable () -> [InstalledApp], favorites: @escaping @MainActor () -> [InstalledApp], openApp: @escaping @MainActor (URL) -> Void) {
         self.listApps = listApps
+        self.favorites = favorites
         self.openApp = openApp
     }
 
@@ -281,7 +523,7 @@ final class LauncherController {
         self.button = button
         let buttonFrame = window.convertToScreen(button.convert(button.bounds, to: nil))
         // The last list shows at once, and the fresh read replaces it.
-        panel.show(in: launcherFrame(button: buttonFrame, size: LauncherPanel.size, screen: screen.visibleFrame, gap: Self.gap))
+        panel.show(in: launcherFrame(button: buttonFrame, size: LauncherPanel.size, screen: screen.visibleFrame, gap: Self.gap), favorites: favorites())
         addMouseMonitors()
         let listApps = listApps
         Task { [weak self] in

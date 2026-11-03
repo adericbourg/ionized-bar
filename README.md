@@ -20,7 +20,9 @@ The first time it has the Accessibility permission, the app adds itself to the l
 
 ## App launcher
 
-The button at the left of the bar opens a list of your applications, with a search field that tolerates typos. Up, Down and Return, or a click, open an app; Escape or a click outside closes the list. VoiceOver announces the number of results and the selected app. The list follows Reduce Motion, Reduce Transparency and Increase Contrast.
+The button at the left of the bar opens your applications, with a search field that tolerates typos. A sidebar switches between Favorites (your pinned apps, as an icon grid), All Applications and categories. It opens on Favorites, or on All Applications when nothing is pinned, and typing searches all apps from any view.
+
+The categories come from what each app declares, and apps that declare none are under Other. The pointer and the arrow keys move the same highlight, and Return or a click open an app; Escape or a click outside closes the panel. VoiceOver announces the number of results and the selected app. The panel follows Reduce Motion, Reduce Transparency and Increase Contrast.
 
 ## Pinned apps
 

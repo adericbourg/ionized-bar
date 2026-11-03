@@ -39,6 +39,12 @@ final class BarManager {
         listApps: {
             listApplications(in: ["/Applications", "/System/Applications", NSHomeDirectory() + "/Applications"].map { URL(fileURLWithPath: $0) })
         },
+        // Looked up on their own: a pin can be outside the listed folders, as Finder is.
+        favorites: { [unowned self] in
+            pins.compactMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }.map {
+                InstalledApp(name: FileManager.default.displayName(atPath: $0.path), url: $0)
+            }
+        },
         openApp: { BarManager.openApp(at: $0) }
     )
     // The one place a capture is asked for, always after `EntryView.previewWindow` checks the setting and the grant.

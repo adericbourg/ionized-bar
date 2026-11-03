@@ -21,7 +21,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M8 – App launcher | ✅ | 6/6 |
 | M9 – Pin applications | ✅ | 6/6 |
 | M10 – Re-order tasks | 🚧 | 4/5 |
-| M11 – Plasma-style launcher | 🚧 | 3/6 |
+| M11 – Plasma-style launcher | 🚧 | 4/6 |
 
 ## Requirements
 
@@ -274,13 +274,17 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 ### M11 – Plasma-style launcher
 - [x] Spike: the `loginwindow` Apple event shows the Restart dialog from a signed `LSUIElement` app, above the bar, with no Automation prompt, and Cancel leaves everything running; the Shut Down event is unverified until the footer's manual pass
 - [x] Categories from `LSApplicationCategoryType` and the launcher's views in `IonizedBarCore`, with checks
-- [x] Hover highlight on the launcher's rows (real pointer unverified, joins the M11 manual pass)
-- [ ] Sidebar and Favorites grid
+- [x] Hover highlight on the launcher's rows
+- [x] Sidebar and Favorites grid
 - [ ] Restart and Shut Down in the footer
 - [ ] Keyboard, VoiceOver, Reduce Motion, Reduce Transparency and contrast on the new panel; manual pass
 
 ### M11 manual pass
-- [ ] With another app frontmost, the pointer highlights the launcher's rows, and a click opens the highlighted row
+- [x] The pointer highlights rows, grid items and sidebar items, a click on a sidebar item switches view, and the layout reads as intended
+- [ ] With another app frontmost, a click on a row and on a grid item opens that app, and the app comes to the front
+- [ ] Favorites with no pins shows its message, readable and unclipped, and opens on All Applications; a pin outside the listed folders (Finder) shows and opens; an uninstalled pin doesn't show
+- [ ] Up, Down, Left and Right in the grid, and Return on the item they reach; Left and Right stay in the search text while a query is typed
+- [ ] A search from each view shows the list, clearing it returns to that view, and a click on a sidebar item during a search ends it
 - [ ] Return opens the last row hovered; a pointer leaving the list leaves the highlight in place
 - [ ] Arrow keys with a still pointer over the list: the highlight follows the keys and stays with them when the list scrolls
 - [ ] The wheel under a still pointer: the highlight follows the row under the pointer
@@ -404,3 +408,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — Gatekeeper quarantine without a paid Developer ID: the tap's cask gets a `postflight_steps` block running `xattr -dr com.apple.quarantine` on the installed app (Homebrew 5 dropped `--no-quarantine`; third-party taps may do this, homebrew/cask may not). Its stale caveats ("not signed yet", re-grant Accessibility after each upgrade) are gone. README and PRODUCT.md updated. The cask change is committed in a local clone of the tap, not pushed. Verified: `brew style` on the cask, and Homebrew loads it with one `run` step on `{{appdir}}/IonizedBar.app`. Not verified: an install on a clean account.
 - 2026-11-03 — M11: started the Plasma-style launcher, with its spec in `PRODUCT.md`, which reverses M8's "no categories". The spike sent `aevt`/`rrst` to `loginwindow` from a signed `LSUIElement` bundle: accepted in 0.08s, the user saw the macOS dialog above the bar with no permission prompt, and Cancel left everything running. `IonizedBarCore` now reads `LSApplicationCategoryType` (90 of 122 apps here declare one) into `AppCategory`, and `LauncherList` has the views, favorites, hover selection and grid movement. No UI uses them yet. Verified: `swift run IonizedBarChecks`, red first (23 behavioral failures against stubs).
 - 2026-11-03 — M11: the launcher's rows highlight on hover. The table had no tracking area, so only the arrow keys moved the selection. Pointer and keys now share one selection, as in Plasma, so Return opens the last row hovered. Verified: the checks and the build. Not verified: a real pointer, which joins the M11 manual pass.
+- 2026-11-03 — M11: the launcher panel now has a sidebar and a Favorites grid. The panel grows to 620x520, and it opens on Favorites, or on All Applications with no pins. Favorites are the pins, looked up by bundle identifier since a pin can be outside the listed folders. Hover moved to one scroll view subclass shared by the list, the grid and the sidebar. Verified: the checks, the build and the user's run on the bundled app (layout, hover, view switching). Not verified: the rest of the M11 manual pass.
