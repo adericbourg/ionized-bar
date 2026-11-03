@@ -93,6 +93,14 @@ public func entryWidth(
     return EntryWidth(width: width, isIconOnly: width < iconOnlyBelow)
 }
 
+public let launcherWidth: CGFloat = 48
+
+/// Where a bar's tasks start and the width they share: what's left after the launcher and, from M9, the pinned icons between them.
+public func taskSlot(barWidth: CGFloat, pinnedWidth: CGFloat = 0) -> (x: CGFloat, width: CGFloat) {
+    let x = launcherWidth + pinnedWidth
+    return (x, max(0, barWidth - x))
+}
+
 public func isRealWindow(subrole: String?, isMinimized: Bool, isAppHidden: Bool) -> Bool {
     // AppKit reports AXDialog for a standard window while it is minimized or its app hidden (macOS 27.2).
     subrole == "AXStandardWindow" || ((isMinimized || isAppHidden) && subrole == "AXDialog")

@@ -15,6 +15,7 @@ private enum EntryKey: Hashable {
 
 final class BarContentView: NSView {
     private let actions: EntryActions
+    private let launcher: LauncherButton
     private var entries: [EntryKey: EntryView] = [:]
     private var ordered: [EntryView] = []
     // Entries fading out; one is revived if its window or group returns before the fade ends.
@@ -29,7 +30,9 @@ final class BarContentView: NSView {
 
     init(actions: EntryActions) {
         self.actions = actions
+        launcher = LauncherButton(actions: actions)
         super.init(frame: .zero)
+        addSubview(launcher)
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
         setAccessibilityLabel("Taskbar")
@@ -60,7 +63,7 @@ final class BarContentView: NSView {
 
     private func rebuild() {
         let items = barItems(
-            windows, pid: \.pid, barWidth: bounds.width, mode: settings.grouping,
+            windows, pid: \.pid, barWidth: taskSlot(barWidth: bounds.width).width, mode: settings.grouping,
             minEntryWidth: settings.taskDisplay == .iconOnly ? Self.iconOnlyWidth : Self.groupWhenFullBelow
         )
         let maybeFocused = window?.firstResponder as? EntryView
@@ -100,7 +103,7 @@ final class BarContentView: NSView {
     }
 
     // In visual order, without the entries fading out.
-    override func accessibilityChildren() -> [Any]? { ordered }
+    override func accessibilityChildren() -> [Any]? { [launcher] + ordered }
 
     private func addEntry(_ item: BarItem<TrackedWindow>) -> EntryView {
         let entry = EntryView(item: item, actions: actions)
@@ -124,13 +127,15 @@ final class BarContentView: NSView {
 
     override func layout() {
         super.layout()
+        launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
+        let slot = taskSlot(barWidth: bounds.width)
         let isIconOnlyMode = settings.taskDisplay == .iconOnly
         let layoutWidth = isIconOnlyMode
-            ? entryWidth(barWidth: bounds.width, entryCount: ordered.count, maxWidth: Self.iconOnlyWidth)
-            : entryWidth(barWidth: bounds.width, entryCount: ordered.count)
+            ? entryWidth(barWidth: slot.width, entryCount: ordered.count, maxWidth: Self.iconOnlyWidth)
+            : entryWidth(barWidth: slot.width, entryCount: ordered.count)
         for (index, entry) in ordered.enumerated() {
             entry.isIconOnly = isIconOnlyMode || layoutWidth.isIconOnly
-            let target = backingAlignedRect(CGRect(x: CGFloat(index) * layoutWidth.width, y: 0, width: layoutWidth.width, height: bounds.height), options: .alignAllEdgesNearest)
+            let target = backingAlignedRect(CGRect(x: slot.x + CGFloat(index) * layoutWidth.width, y: 0, width: layoutWidth.width, height: bounds.height), options: .alignAllEdgesNearest)
             if entry.frame == .zero {
                 entry.frame = target
             } else if entry.frame != target {
@@ -141,7 +146,9 @@ final class BarContentView: NSView {
     }
 
     // Keeps settings reachable with no windows open.
-    override func menu(for event: NSEvent) -> NSMenu? {
+    override func menu(for event: NSEvent) -> NSMenu? { barMenu() }
+
+    func barMenu() -> NSMenu {
         let menu = NSMenu()
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Quit IonizedBar", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "").target = NSApp

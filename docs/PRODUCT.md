@@ -65,13 +65,13 @@ A settings window, opened with "Settings…" from the right-click menu of an ent
 ## After v1: app launcher (M8)
 A button always at the left of the bar, on every bar. It opens a panel above it that lists applications, with a search field. Nothing else: no categories and no recent apps.
 
-- **Button:** a fixed-width, icon-only entry, about 48pt like Icon only tasks. Tasks share the width left of the bar (see M9 for the order). R5's equal share then means the width left for tasks.
+- **Button:** a fixed-width, icon-only entry, about 48pt like Icon only tasks, on every bar and in every display mode, with a system icon. Tasks share the width left of the bar (see M9 for the order). R5's equal share then means the width left for tasks; When full decides on that width and Icon only tasks pack from just after the button. Hovering it shows no preview, and right-click offers Settings… and Quit IonizedBar.
 - **Applications:** the `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, and in their `Utilities` folder, sorted by name, each with its icon and name.
 - **Search:** fuzzy matching over application names only (see Description). The search field has focus when the panel opens, and an empty search lists everything.
 - **Description:** macOS bundles have no standard description field. The M8 spike (2026-11-03) read 125 bundles from the three folders: Spotlight `kMDItemDescription` was empty on all 125, and Info.plist `CFBundleGetInfoString` was empty on 109, a copyright or version line on 12 and a real description on 3 (all third-party, none among the 65 system apps). Not usable, so search covers names only.
 - **Opening an app:** a click, or Return on the selected row, opens it with `NSWorkspace.openApplication` and closes the panel. Esc or a click outside closes the panel too, and keys go back to the frontmost app.
 - **Keyboard:** the launcher is the first stop of ⌃⌥B keyboard mode. A bar is never empty anymore, so ⌃⌥B with no tasks now focuses the launcher button instead of doing nothing.
-- **Accessibility:** the button and rows are VoiceOver elements labelled with the app name, and the panel honors *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*, like the bar.
+- **Accessibility:** the button is a VoiceOver button whose label says what it does, the rows are VoiceOver elements labelled with the app name, and the panel honors *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*, like the bar.
 
 ## After v1: pinned apps (M9)
 Pinning keeps an app's icon on the bar while it's closed, and clicking the icon opens the app. The bar reads, from the left: launcher (M8), pinned icons, tasks.

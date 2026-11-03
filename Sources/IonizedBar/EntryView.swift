@@ -13,6 +13,8 @@ struct EntryActions {
     /// Previews are on and Screen Recording is granted. Asked afresh each time: the grant can change while the app runs.
     let canPreview: @MainActor () -> Bool
     let preview: PreviewController
+    /// Takes the clicked button, whose bar the launcher panel opens above.
+    let openLauncher: @MainActor (NSView) -> Void
 }
 
 final class EntryView: NSView {

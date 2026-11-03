@@ -18,7 +18,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M5 – Release | 🚧 | 1/3 |
 | M6 – Window preview | 🚧 | 5/6 |
 | M7 – Settings | ✅ | 6/6 |
-| M8 – App launcher | 🚧 | 3/6 |
+| M8 – App launcher | 🚧 | 4/6 |
 | M9 – Pin applications | ⬜ | 0/6 |
 | M10 – Re-order tasks | ⬜ | 0/5 |
 
@@ -199,9 +199,16 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Spike: which description can apps provide (`CFBundleGetInfoString`, `kMDItemDescription`)? Result: 3 of 125 bundles, so search covers names only
 - [x] Application list: `.app` bundles from `/Applications`, `/System/Applications` and `~/Applications` and their `Utilities` folder, sorted by name (`listApplications`); the icon is loaded from the bundle URL by the panel
 - [x] Fuzzy matching over names in `IonizedBarCore`, with checks
-- [ ] Launcher button at the left of every bar, with tasks laid out and grouped in the width left
+- [x] Launcher button at the left of every bar, with tasks laid out and grouped in the width left (real pointer unverified, joins the M8 manual pass)
 - [ ] Launcher panel: search field, list, click and Return open the app, Esc and a click outside close it, keys go back to the frontmost app
 - [ ] ⌃⌥B keyboard mode and VoiceOver, Reduce Motion, Reduce Transparency and contrast on the panel; manual pass
+
+### M8 manual pass
+- [ ] The button shows on every bar, also with no tasks and before Accessibility is granted, with a readable icon in light and dark
+- [ ] Hovering highlights it and shows no preview; moving from an entry to it closes that entry's preview
+- [ ] A click on it doesn't take key from the frontmost app; right-click and control-click offer Settings… and Quit IonizedBar without counting as a click
+- [ ] Icon only tasks start right after it; with many tasks, When full groups them as the width left runs out, on each bar's own width
+- [ ] VoiceOver reads it as a button, first in the bar, and opens its menu
 
 ### M9 – Pin applications
 - [ ] Saved pins: ordered bundle identifiers in `UserDefaults`
@@ -296,3 +303,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M6 task 13: no code change for Reduce Motion, Reduce Transparency or contrast on the preview panel, as for the bar (which has no transparency code either). The panel has no animation (`orderFrontRegardless` and `orderOut` show and hide at once), so there is nothing to reduce. Its `NSVisualEffectView` is expected to turn opaque with Reduce Transparency and to adapt to Increase Contrast on its own, and the labels use the dynamic `labelColor` and `secondaryLabelColor`; none of this is verified. VoiceOver: the panel never becomes key or main, its icon is hidden from VoiceOver, and the entry's label is untouched. Added "M6 manual pass" (the items earlier tasks marked for it, the accessibility settings, and the grant-on-upgrade question), a "Window previews" section to the README, and fixed the 2026-11-02 log lines that still read as if the spike were open. The box stays unticked until the user runs the pass. M6 stays at 5/6.
 - 2026-11-03 — M8 spike: read-only scan of 125 `.app` bundles (plist and `mdls`, nothing launched). `kMDItemDescription` is empty on all, `CFBundleGetInfoString` has a real description on 3 (third-party), none on the 65 system apps. Decision: search covers names only. M8 at 1/6.
 - 2026-11-03 — M8 task 15: `listApplications(in:)` and `fuzzyFilter(_:query:name:)` in `IonizedBarCore/Applications.swift`. The list reads each of the three folders and its `Utilities` folder (that is where `/System/Applications/Utilities` apps such as Terminal live), skips hidden entries, sorts with `localizedStandardCompare`, and is blocking, so the caller runs it off the main thread. Matching is names only, case and accent insensitive, ranked exact, prefix, word prefix, substring, typo, scattered letters; ties by shorter name. A typo is an edit distance (insertion, deletion, substitution or adjacent swap) of 1 from 4 characters and 2 from 8, measured against name pieces starting at a word start; under 4 characters only exact, prefix and scattered letters match. An empty query returns everything. The checks use real app names and failed first on behaviour (6 failures with a substring-only stub), then pass; a read-only scratch run on the 124 real bundles found Terminal for "term", Activity Monitor for "activty", Google Chrome for "chrmoe" and Slack for "slck". Not verified: the panel (Tasks 16 and 17). M8 at 3/6.
+- 2026-11-03 — M8 task 16: `LauncherButton`, a fixed 48pt icon-only button with the system symbol `square.grid.3x3.fill`, sits at the left of every bar in every display mode. It's a VoiceOver button labelled "Open application launcher", first in the bar's accessibility children. It isn't an `EntryView`: no preview, no window action, no AX call, and it never takes key. A click, or VoiceOver's press, calls `EntryActions.openLauncher` with the button; `BarManager` leaves that hook empty until the panel arrives, so a click does nothing yet. Its right-click is the bar's menu (Settings… and Quit IonizedBar), which the space right of the tasks keeps too. `taskSlot(barWidth:pinnedWidth:)` and `launcherWidth` in `IonizedBarCore`, with checks (failing first on behaviour with a stub), give where tasks start and the width they share; entry width, Icon only packing and When full all use it, and M9 passes `pinnedWidth`. Keyboard mode is unchanged and walks tasks only, so ⌃⌥B with no tasks still does nothing and an emptied bar still ends keyboard mode, until the task that makes the button focusable. Build, checks and bundle pass. A scratch harness driving the real `BarPanel` with fake windows and panels never put on screen passes its 46 assertions in all three display modes (failing first without the button). The app was not launched, so real pointer events, the icon's look and VoiceOver itself are unverified and go on the new M8 manual pass. M8 at 4/6.

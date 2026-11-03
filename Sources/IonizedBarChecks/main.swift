@@ -586,6 +586,27 @@ do {
     check("fuzzyFilter_ofUnrelatedQuery_findsNothing", found("photoshop").isEmpty)
 }
 
+// taskSlot
+do {
+    // Given a 1000pt bar, When asking where its tasks go, Then they start after the launcher and share the rest
+    let slot = taskSlot(barWidth: 1000)
+    check("taskSlot_startsAfterTheLauncher", slot.x == launcherWidth && launcherWidth == 48)
+    check("taskSlot_sharesTheWidthLeft", slot.width == 952)
+    // Given M9's pinned icons, Then they sit between the launcher and the tasks
+    let withPins = taskSlot(barWidth: 1000, pinnedWidth: 96)
+    check("taskSlot_withPinnedIcons_startsAfterThem", withPins.x == 144 && withPins.width == 856)
+    check("taskSlot_ofBarNarrowerThanLauncher_hasNoWidth", taskSlot(barWidth: 10).width == 0)
+
+    // Given a width where the full bar would still fit but the width left doesn't
+    check("entryWidth_ofWidthLeft_isAnEqualShareOfIt",
+          entryWidth(barWidth: slot.width, entryCount: 8) == EntryWidth(width: 119, isIconOnly: false))
+    let counts: [(pid: Int32, count: Int)] = [(1, 5), (2, 3)]
+    check("appsToGroup_whenFullOfWholeBar_groupsNothing",
+          appsToGroup(windowCounts: counts, barWidth: 1000, mode: .whenFull, minEntryWidth: 120).isEmpty)
+    check("appsToGroup_whenFullOfWidthLeft_groups",
+          appsToGroup(windowCounts: counts, barWidth: slot.width, mode: .whenFull, minEntryWidth: 120) == [1])
+}
+
 // listApplications
 do {
     // Given a folder with two apps, a non-app, and a Utilities subfolder holding an app

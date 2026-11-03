@@ -28,7 +28,7 @@ A window that ends up over the bar is moved up, and shrunk if it doesn't fit bel
 
 ## Dock
 
-The Dock can't be removed, so the app hides it the usual way: it sets `autohide` to true and `autohide-delay` to 1000 seconds in `com.apple.dock`, then runs `killall Dock`. It does this only once it has the Accessibility permission, since the bar is empty until then. The Dock can still be glimpsed at the screen edge.
+The Dock can't be removed, so the app hides it the usual way: it sets `autohide` to true and `autohide-delay` to 1000 seconds in `com.apple.dock`, then runs `killall Dock`. It does this only once it has the Accessibility permission, since the bar shows no tasks until then. The Dock can still be glimpsed at the screen edge.
 
 Your original values are saved in the app's own prefs first, and a key that wasn't set is deleted again on restore rather than given a default. They come back on a normal quit, and on `SIGTERM` or `SIGINT`.
 

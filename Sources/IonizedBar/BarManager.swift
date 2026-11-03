@@ -14,7 +14,8 @@ final class BarManager {
         },
         // Preflight never prompts, and the setting comes first so that with previews off it isn't called.
         canPreview: { [unowned self] in settings.showsPreviews && CGPreflightScreenCaptureAccess() },
-        preview: preview
+        preview: preview,
+        openLauncher: { _ in }
     )
     // The one place a capture is asked for, always after `EntryView.previewWindow` checks the setting and the grant.
     private lazy var preview = PreviewController { [unowned self] in await thumbnail(of: $0) }
