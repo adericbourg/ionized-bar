@@ -533,6 +533,8 @@ do {
     // Given the pointer on the panel or on the entry, Then it is not in the gap
     check("isInPreviewGap_ofPointOnThePanel_isFalse", !isInPreviewGap(CGPoint(x: 120, y: 40), entry: entry, panel: panel))
     check("isInPreviewGap_ofPointOnTheEntry_isFalse", !isInPreviewGap(CGPoint(x: 120, y: 35), entry: entry, panel: panel))
+    // Given a stale panel frame below the entry's top edge (hidden panel on another screen), Then it is not in the gap, and doesn't trap
+    check("isInPreviewGap_ofPanelBelowTheEntry_isFalse", !isInPreviewGap(CGPoint(x: 120, y: 38), entry: entry, panel: CGRect(x: 4, y: -500, width: 320, height: 100)))
 }
 
 // fittedSize
