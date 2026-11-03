@@ -3,11 +3,11 @@ import Carbon.HIToolbox
 
 /// A fixed-width icon button on the bar. Not an `EntryView`: it stands for no window, so it has no preview, no window action and makes no AX call.
 class BarIconButton: NSView {
-    let actions: EntryActions
+    let manager: BarManager
     private var isHovered = false { didSet { needsDisplay = true } }
 
-    init(image: NSImage?, label: String, actions: EntryActions) {
-        self.actions = actions
+    init(image: NSImage?, label: String, manager: BarManager) {
+        self.manager = manager
         super.init(frame: .zero)
         let icon = NSImageView()
         icon.image = image
@@ -41,7 +41,7 @@ class BarIconButton: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) {
-        guard actions.preview.dragged == nil else { return }
+        guard manager.preview.dragged == nil else { return }
         isHovered = true
     }
 
@@ -60,7 +60,7 @@ class BarIconButton: NSView {
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        actions.preview.dismiss()
+        manager.preview.dismiss()
         return contextMenu()
     }
 
@@ -106,13 +106,13 @@ class BarIconButton: NSView {
     }
 
     private func showMenu() {
-        actions.preview.dismiss()
+        manager.preview.dismiss()
         guard let menu = contextMenu() else { return }
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: bounds.height + menu.size.height), in: self)
     }
 
     private func press() {
-        actions.preview.dismiss()
+        manager.preview.dismiss()
         (window as? BarPanel)?.endKeyboardMode()
         open()
     }

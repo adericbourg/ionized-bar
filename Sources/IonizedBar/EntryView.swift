@@ -2,28 +2,6 @@ import AppKit
 import Carbon.HIToolbox
 import IonizedBarCore
 
-struct EntryActions {
-    let raise: (TrackedWindow) -> Void
-    let minimize: (TrackedWindow) -> Void
-    let restore: (TrackedWindow) -> Void
-    let close: (TrackedWindow) -> Void
-    let openSettings: @MainActor () -> Void
-    let showsPreviews: @MainActor () -> Bool
-    let setShowsPreviews: @MainActor (Bool) -> Void
-    /// Previews are on and Screen Recording is granted. Asked afresh each time: the grant can change while the app runs.
-    let canPreview: @MainActor () -> Bool
-    let preview: PreviewController
-    /// Takes the clicked button, whose bar the launcher panel opens above.
-    let openLauncher: @MainActor (NSView) -> Void
-    /// Nil for an app with no bundle identifier, which can't be pinned.
-    let bundleID: @MainActor (TrackedWindow) -> String?
-    let pins: @MainActor () -> [String]
-    let setPins: @MainActor ([String]) -> Void
-    let openPinnedApp: @MainActor (String) -> Void
-    /// Moves `items[from]` to index `to`, `items` being the bar's current entries.
-    let moveEntry: @MainActor ([BarItem<TrackedWindow>], _ from: Int, _ to: Int) -> Void
-}
-
 final class EntryView: NSView {
     enum Press {
         case none, pressed(at: NSPoint), dragging, abandoned
@@ -34,7 +12,7 @@ final class EntryView: NSView {
     private static let countGap: CGFloat = 2
     static let focusRingInset: CGFloat = 3
 
-    private let actions: EntryActions
+    private let manager: BarManager
     private var item: BarItem<TrackedWindow>
     private let icon = NSImageView()
     private let title = NSTextField(labelWithString: "")
@@ -50,9 +28,9 @@ final class EntryView: NSView {
         }
     }
 
-    init(item: BarItem<TrackedWindow>, actions: EntryActions) {
+    init(item: BarItem<TrackedWindow>, manager: BarManager) {
         self.item = item
-        self.actions = actions
+        self.manager = manager
         super.init(frame: .zero)
         icon.image = NSRunningApplication(processIdentifier: item.windows[0].pid)?.icon
         title.lineBreakMode = .byTruncatingTail
@@ -77,7 +55,7 @@ final class EntryView: NSView {
             title.stringValue = display == .content ? window.title : window.appName
             title.isHidden = isIconOnly
             // The preview panel shows the title, so a tooltip would stack with it.
-            let newToolTip = isTitleShown || actions.canPreview() ? nil : window.title
+            let newToolTip = isTitleShown || manager.canPreview ? nil : window.title
             if toolTip != newToolTip { toolTip = newToolTip }
         case .group(_, let windows):
             let label = "\(windows[0].appName) (\(windows.count))"
@@ -90,11 +68,11 @@ final class EntryView: NSView {
 
     /// The window a preview would show: none on a group, with previews off or without Screen Recording.
     var previewWindow: TrackedWindow? {
-        guard actions.canPreview(), case .window(let window) = item else { return nil }
+        guard manager.canPreview, case .window(let window) = item else { return nil }
         return window
     }
 
-    func showPreview() { actions.preview.show(for: self) }
+    func showPreview() { manager.preview.show(for: self) }
 
     private var accessibilityText: String {
         switch item {
@@ -157,7 +135,7 @@ final class EntryView: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) {
-        guard actions.preview.dragged == nil else { return }
+        guard manager.preview.dragged == nil else { return }
         isHovered = true
         // The grant can have changed since the last snapshot, and the tooltip depends on it.
         updateText()
@@ -166,7 +144,7 @@ final class EntryView: NSView {
 
     override func mouseExited(with event: NSEvent) {
         isHovered = false
-        actions.preview.pointerLeft(self)
+        manager.preview.pointerLeft(self)
     }
 
     // Keeps the icon and title out of event dispatch: a control-click on the title opens no menu otherwise.
@@ -207,11 +185,11 @@ final class EntryView: NSView {
 
     override func otherMouseUp(with event: NSEvent) {
         // A group ignores it, so a stray click can't close several windows.
-        if event.buttonNumber == 2 && isInside(event), case .window(let window) = item { actions.close(window) }
+        if event.buttonNumber == 2 && isInside(event), case .window(let window) = item { manager.windowTracker.close(window) }
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        actions.preview.dismiss()
+        manager.preview.dismiss()
         return contextMenu()
     }
 
@@ -263,7 +241,7 @@ final class EntryView: NSView {
     }
 
     private func showContextMenu() {
-        actions.preview.dismiss()
+        manager.preview.dismiss()
         popUpAbove(contextMenu())
     }
 
@@ -273,13 +251,13 @@ final class EntryView: NSView {
     }
 
     func performClickAction() {
-        actions.preview.dismiss()
+        manager.preview.dismiss()
         switch item {
         case .window(let window):
             switch clickAction(isActive: window.isFocused, isMinimized: window.isMinimized) {
-            case .raise: actions.raise(window)
-            case .minimize: actions.minimize(window)
-            case .restore: actions.restore(window)
+            case .raise: manager.windowTracker.raise(window)
+            case .minimize: manager.windowTracker.minimize(window)
+            case .restore: manager.windowTracker.restore(window)
             }
         case .group(_, let windows):
             popUpAbove(windowList(windows))
@@ -309,15 +287,15 @@ final class EntryView: NSView {
             menu.addItem(withTitle: "Close", action: #selector(closeWindows), keyEquivalent: "")
             menu.addItem(withTitle: "Minimize", action: #selector(minimizeWindow), keyEquivalent: "").isEnabled = !window.isMinimized
             let previews = menu.addItem(withTitle: "Show window previews", action: #selector(togglePreviews), keyEquivalent: "")
-            previews.state = actions.showsPreviews() ? .on : .off
+            previews.state = manager.showsPreviews ? .on : .off
         case .group:
             menu.addItem(withTitle: "Close All Windows", action: #selector(closeWindows), keyEquivalent: "")
         }
         let maybeBar = superview as? BarContentView
         menu.addItem(withTitle: "Move Left", action: #selector(moveEntryLeft), keyEquivalent: "").isEnabled = maybeBar?.canMove(self, by: -1) == true
         menu.addItem(withTitle: "Move Right", action: #selector(moveEntryRight), keyEquivalent: "").isEnabled = maybeBar?.canMove(self, by: 1) == true
-        let maybeBundleID = actions.bundleID(item.windows[0])
-        if let pinTitle = pinMenuTitle(bundleID: maybeBundleID, pins: actions.pins()) {
+        let maybeBundleID = NSRunningApplication(processIdentifier: item.windows[0].pid)?.bundleIdentifier
+        if let pinTitle = pinMenuTitle(bundleID: maybeBundleID, pins: manager.pins) {
             menu.addItem(withTitle: pinTitle, action: #selector(togglePin), keyEquivalent: "").representedObject = maybeBundleID
         }
         menu.addItem(withTitle: "Quit \(appName)", action: #selector(quitApp), keyEquivalent: "")
@@ -330,19 +308,19 @@ final class EntryView: NSView {
 
     @objc private func pickWindow(_ sender: NSMenuItem) {
         guard let window = sender.representedObject as? TrackedWindow else { return }
-        if window.isMinimized { actions.restore(window) } else { actions.raise(window) }
+        if window.isMinimized { manager.windowTracker.restore(window) } else { manager.windowTracker.raise(window) }
     }
 
-    @objc private func openSettings() { actions.openSettings() }
-    @objc private func togglePreviews() { actions.setShowsPreviews(!actions.showsPreviews()) }
-    @objc private func closeWindows() { item.windows.forEach(actions.close) }
-    @objc private func minimizeWindow() { item.windows.forEach(actions.minimize) }
+    @objc private func openSettings() { manager.settingsWindow.show() }
+    @objc private func togglePreviews() { manager.setShowsPreviews(!manager.showsPreviews) }
+    @objc private func closeWindows() { item.windows.forEach(manager.windowTracker.close) }
+    @objc private func minimizeWindow() { item.windows.forEach(manager.windowTracker.minimize) }
     @objc private func moveEntryLeft() { (superview as? BarContentView)?.move(self, by: -1) }
     @objc private func moveEntryRight() { (superview as? BarContentView)?.move(self, by: 1) }
     @objc private func togglePin(_ sender: NSMenuItem) {
         guard let bundleID = sender.representedObject as? String else { return }
-        let pins = actions.pins()
-        actions.setPins(pins.contains(bundleID) ? unpinning(bundleID, in: pins) : pinning(bundleID, in: pins))
+        let pins = manager.pins
+        manager.setPins(pins.contains(bundleID) ? unpinning(bundleID, in: pins) : pinning(bundleID, in: pins))
     }
 
     @objc private func quitApp() { NSRunningApplication(processIdentifier: item.windows[0].pid)?.terminate() }

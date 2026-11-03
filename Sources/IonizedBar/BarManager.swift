@@ -3,39 +3,7 @@ import IonizedBarCore
 
 @MainActor
 final class BarManager {
-    private lazy var actions = EntryActions(
-        raise: windowTracker.raise, minimize: windowTracker.minimize, restore: windowTracker.restore, close: windowTracker.close,
-        openSettings: settingsWindow.show,
-        showsPreviews: { [unowned self] in settings.showsPreviews },
-        setShowsPreviews: { [unowned self] in
-            var newSettings = settings
-            newSettings.showsPreviews = $0
-            apply(newSettings)
-        },
-        // Preflight never prompts, and the setting comes first so that with previews off it isn't called.
-        canPreview: { [unowned self] in settings.showsPreviews && !launcher.isOpen && CGPreflightScreenCaptureAccess() },
-        preview: preview,
-        openLauncher: { [unowned self] in launcher.toggle(above: $0) },
-        bundleID: { NSRunningApplication(processIdentifier: $0.pid)?.bundleIdentifier },
-        pins: { [unowned self] in pins },
-        setPins: { [unowned self] in
-            pins = $0
-            UserDefaults.standard.set($0, forKey: BarManager.pinsKey)
-            update(windowsByDisplay: latestWindowsByDisplay)
-        },
-        openPinnedApp: { bundleID in
-            guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
-                log("Could not open \(bundleID): not installed")
-                return
-            }
-            BarManager.openApp(at: url)
-        },
-        moveEntry: { [unowned self] items, from, to in
-            taskOrder.move(items, from: from, to: to, key: \.element)
-            update(windowsByDisplay: latestWindowsByDisplay)
-        }
-    )
-    private lazy var launcher = LauncherController(
+    private(set) lazy var launcher = LauncherController(
         listApps: {
             listApplications(in: ["/Applications", "/System/Applications", NSHomeDirectory() + "/Applications"].map { URL(fileURLWithPath: $0) })
         },
@@ -48,11 +16,11 @@ final class BarManager {
         openApp: { BarManager.openApp(at: $0) }
     )
     // The one place a capture is asked for, always after `EntryView.previewWindow` checks the setting and the grant.
-    private lazy var preview = PreviewController { [unowned self] in await thumbnail(of: $0) }
+    private(set) lazy var preview = PreviewController { [unowned self] in await thumbnail(of: $0) }
     // Memory only, never on disk. A minimized window can't be captured (-3811), so it shows its last image.
     private var lastCaptures: [AXUIElement: CGImage] = [:]
-    private let windowTracker: WindowTracker
-    private let settingsWindow: SettingsWindow
+    let windowTracker: WindowTracker
+    let settingsWindow: SettingsWindow
     private var panels: [UInt32: BarPanel] = [:]
     private var settings = Settings.load()
     private var latestWindowsByDisplay: [UInt32: [TrackedWindow]] = [:]
@@ -60,7 +28,7 @@ final class BarManager {
     private var taskOrder = TaskOrder<AXUIElement>()
     // Apart from `Settings`: the settings window reports a whole `Settings` and would overwrite a list it doesn't edit.
     private static let pinsKey = "pinnedBundleIDs"
-    private var pins = UserDefaults.standard.stringArray(forKey: BarManager.pinsKey) ?? []
+    private(set) var pins = UserDefaults.standard.stringArray(forKey: BarManager.pinsKey) ?? []
 
     init(windowTracker: WindowTracker) {
         self.windowTracker = windowTracker
@@ -92,7 +60,7 @@ final class BarManager {
             if let panel = panels[id] {
                 panel.setFrame(frame, display: true)
             } else {
-                let panel = BarPanel(frame: frame, actions: actions)
+                let panel = BarPanel(frame: frame, manager: self)
                 panels[id] = panel
                 panel.orderFrontRegardless()
             }
@@ -105,6 +73,38 @@ final class BarManager {
         let mouse = NSEvent.mouseLocation
         guard let id = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) })?.displayID else { return }
         panels[id]?.beginKeyboardMode()
+    }
+
+    var showsPreviews: Bool { settings.showsPreviews }
+
+    func setShowsPreviews(_ isOn: Bool) {
+        var newSettings = settings
+        newSettings.showsPreviews = isOn
+        apply(newSettings)
+    }
+
+    /// Previews are on and Screen Recording is granted. Asked afresh each time: the grant can change while the app runs.
+    /// Preflight never prompts, and the setting comes first so that with previews off it isn't called.
+    var canPreview: Bool { settings.showsPreviews && !launcher.isOpen && CGPreflightScreenCaptureAccess() }
+
+    func setPins(_ newPins: [String]) {
+        pins = newPins
+        UserDefaults.standard.set(newPins, forKey: BarManager.pinsKey)
+        update(windowsByDisplay: latestWindowsByDisplay)
+    }
+
+    func openPinnedApp(_ bundleID: String) {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            log("Could not open \(bundleID): not installed")
+            return
+        }
+        BarManager.openApp(at: url)
+    }
+
+    /// Moves `items[from]` to index `to`, `items` being the bar's current entries.
+    func moveEntry(_ items: [BarItem<TrackedWindow>], from: Int, to: Int) {
+        taskOrder.move(items, from: from, to: to, key: \.element)
+        update(windowsByDisplay: latestWindowsByDisplay)
     }
 
     private static func openApp(at url: URL) {

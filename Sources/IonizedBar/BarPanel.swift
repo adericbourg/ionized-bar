@@ -34,9 +34,9 @@ final class BarPanel: NSPanel {
     private let content: BarContentView
     private let preview: PreviewController
 
-    init(frame: CGRect, actions: EntryActions) {
-        content = BarContentView(actions: actions)
-        preview = actions.preview
+    init(frame: CGRect, manager: BarManager) {
+        content = BarContentView(manager: manager)
+        preview = manager.preview
         super.init(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         let frosted = setUpFloating()
         hasShadow = false

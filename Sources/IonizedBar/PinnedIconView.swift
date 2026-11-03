@@ -6,20 +6,20 @@ final class PinnedIconView: BarIconButton {
     let bundleID: String
     private var press = EntryView.Press.none
 
-    init(bundleID: String, actions: EntryActions) {
+    init(bundleID: String, manager: BarManager) {
         self.bundleID = bundleID
         let maybeURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
         let maybeImage = maybeURL.map { NSWorkspace.shared.icon(forFile: $0.path) }
         maybeImage?.size = NSSize(width: EntryView.iconSize, height: EntryView.iconSize)
         let name = maybeURL.map { FileManager.default.displayName(atPath: $0.path) } ?? bundleID
-        super.init(image: maybeImage, label: name, actions: actions)
+        super.init(image: maybeImage, label: name, manager: manager)
         setAccessibilityLabel("\(name), pinned")
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    override func open() { actions.openPinnedApp(bundleID) }
+    override func open() { manager.openPinnedApp(bundleID) }
 
     override func mouseDown(with event: NSEvent) {
         press = event.modifierFlags.contains(.control) ? .none : .pressed(at: event.locationInWindow)
@@ -64,7 +64,7 @@ final class PinnedIconView: BarIconButton {
         return menu
     }
 
-    @objc private func unpin() { actions.setPins(unpinning(bundleID, in: actions.pins())) }
+    @objc private func unpin() { manager.setPins(unpinning(bundleID, in: manager.pins)) }
     @objc private func movePinLeft() { (superview as? BarContentView)?.move(self, by: -1) }
     @objc private func movePinRight() { (superview as? BarContentView)?.move(self, by: 1) }
 }

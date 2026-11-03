@@ -41,7 +41,7 @@ final class BarContentView: NSView {
         var to: Int
     }
 
-    private let actions: EntryActions
+    private let manager: BarManager
     private let launcher: LauncherButton
     private var entries: [EntryKey: EntryView] = [:]
     private var ordered: [EntryView] = []
@@ -62,9 +62,9 @@ final class BarContentView: NSView {
     private static let groupWhenFullBelow: CGFloat = 120
     private var isMotionReduced: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
-    init(actions: EntryActions) {
-        self.actions = actions
-        launcher = LauncherButton(actions: actions)
+    init(manager: BarManager) {
+        self.manager = manager
+        launcher = LauncherButton(manager: manager)
         super.init(frame: .zero)
         addSubview(launcher)
         setAccessibilityElement(true)
@@ -128,7 +128,7 @@ final class BarContentView: NSView {
         for (key, entry) in gone {
             entries[key] = nil
             leaving[key] = entry
-            actions.preview.dismiss(for: entry)
+            manager.preview.dismiss(for: entry)
             animate({ entry.animator().alphaValue = 0 }) { [weak self] in
                 MainActor.assumeIsolated { self?.finishLeaving(entry) }
             }
@@ -165,7 +165,7 @@ final class BarContentView: NSView {
     override func accessibilityChildren() -> [Any]? { focusStops }
 
     private func addPinnedIcon(_ bundleID: String) -> PinnedIconView {
-        let icon = PinnedIconView(bundleID: bundleID, actions: actions)
+        let icon = PinnedIconView(bundleID: bundleID, manager: manager)
         icon.alphaValue = 0
         addSubview(icon)
         animate { icon.animator().alphaValue = 1 }
@@ -186,7 +186,7 @@ final class BarContentView: NSView {
     }
 
     private func addEntry(_ item: BarItem<TrackedWindow>) -> EntryView {
-        let entry = EntryView(item: item, actions: actions)
+        let entry = EntryView(item: item, manager: manager)
         entry.alphaValue = 0
         addSubview(entry)
         animate { entry.animator().alphaValue = 1 }
@@ -216,7 +216,7 @@ final class BarContentView: NSView {
     /// One slot, through the same move as a drop there.
     func move(_ entry: EntryView, by offset: Int) {
         guard canMove(entry, by: offset), let from = ordered.firstIndex(of: entry) else { return }
-        actions.moveEntry(items, from, from + offset)
+        manager.moveEntry(items, from: from, to: from + offset)
     }
 
     /// Among the pins this bar shows. False for an icon fading out.
@@ -227,7 +227,7 @@ final class BarContentView: NSView {
 
     func move(_ icon: PinnedIconView, by offset: Int) {
         guard canMove(icon, by: offset), let from = pinnedIcons.firstIndex(of: icon) else { return }
-        actions.setPins(movingPin(in: actions.pins(), shown: pins, from: from, to: from + offset))
+        manager.setPins(movingPin(in: manager.pins, shown: pins, from: from, to: from + offset))
     }
 
     /// False for an entry already fading out.
@@ -244,7 +244,7 @@ final class BarContentView: NSView {
         guard let from = row.firstIndex(of: dragged.view) else { return false }
         let pressX = convert(start, from: nil).x
         maybeDrag = Drag(dragged: dragged, grabOffset: pressX - dragged.view.frame.minX, pointerX: pressX, to: from)
-        actions.preview.dragged = dragged.view
+        manager.preview.dragged = dragged.view
         needsLayout = true
         return true
     }
@@ -264,8 +264,8 @@ final class BarContentView: NSView {
         finishDrag()
         guard place.to != place.from else { return }
         switch drag.dragged {
-        case .entry: actions.moveEntry(items, place.from, place.to)
-        case .pin: actions.setPins(movingPin(in: actions.pins(), shown: pins, from: place.from, to: place.to))
+        case .entry: manager.moveEntry(items, from: place.from, to: place.to)
+        case .pin: manager.setPins(movingPin(in: manager.pins, shown: pins, from: place.from, to: place.to))
         }
     }
 
@@ -276,7 +276,7 @@ final class BarContentView: NSView {
 
     private func finishDrag() {
         maybeDrag = nil
-        actions.preview.dragged = nil
+        manager.preview.dragged = nil
         needsLayout = true
     }
 
@@ -350,7 +350,7 @@ final class BarContentView: NSView {
             if entry.frame == .zero {
                 entry.frame = target
             } else if entry.frame != target {
-                actions.preview.dismiss(for: entry)
+                manager.preview.dismiss(for: entry)
                 animate { entry.animator().frame = target }
             }
         }
@@ -366,7 +366,7 @@ final class BarContentView: NSView {
         return menu
     }
 
-    @objc private func openSettings() { actions.openSettings() }
+    @objc private func openSettings() { manager.settingsWindow.show() }
 
     // Backing alignment changes with the scale.
     override func viewDidChangeBackingProperties() {
