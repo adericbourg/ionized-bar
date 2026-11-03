@@ -2,6 +2,10 @@ import AppKit
 @preconcurrency import ApplicationServices
 import IonizedBarCore
 
+// What LSUIElement does in the bundle; a bare `swift run` binary has no Info.plist and would stay .prohibited,
+// so no regular window (Settings, onboarding) could show.
+NSApplication.shared.setActivationPolicy(.accessory)
+
 let windowTracker = WindowTracker { windows, aliveWindows in
     Task { @MainActor in WindowModel.update(windows, aliveWindows: aliveWindows, barManager: barManager, pusher: windowPusher) }
 }
