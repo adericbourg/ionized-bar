@@ -7,6 +7,9 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     private static let padding: CGFloat = 10
     private static let rowHeight: CGFloat = 28
     private static let rowID = NSUserInterfaceItemIdentifier("app")
+    private static let editActions = [
+        "x": #selector(NSText.cut(_:)), "c": #selector(NSText.copy(_:)), "v": #selector(NSText.paste(_:)), "a": #selector(NSText.selectAll(_:))
+    ]
 
     private let searchField = NSSearchField()
     private let scrollView = NSScrollView()
@@ -65,6 +68,16 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     override func resignKey() {
         super.resignKey()
         onDismiss()
+    }
+
+    // With no main menu, nothing maps these keys to the search field.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+           let action = event.charactersIgnoringModifiers.flatMap({ Self.editActions[$0] }) {
+            NSApp.sendAction(action, to: nil, from: self)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
     }
 
     func show(in frame: CGRect) {

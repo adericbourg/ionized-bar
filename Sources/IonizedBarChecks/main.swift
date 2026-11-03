@@ -649,7 +649,7 @@ do {
     list.moveSelection(by: 1)
     check("moveSelection_belowBottom_staysOnBottom", list.selected == slack)
 
-    // When a fresh read arrives with the selected app still in it, and a new one above it
+    // When a fresh read arrives with the selected app still in it, and an app above it gone
     let zoom = app("Zoom", "/Applications/Zoom.app")
     list.setApps([safari, slack, zoom])
     // Then the selection stays on that app, even if its row moved
