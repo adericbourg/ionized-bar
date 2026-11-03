@@ -1,189 +1,180 @@
-# ionized-bar — Product brief
+# ionized-bar: product brief
 
-## Context
-uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macOS. It should list one entry per open window, have one bar per display that shows only that display's windows, use equal-width entries, and take the Dock's place. The repo is empty (`main`, no commits). License: **GPLv3**. Target: **macOS 27.2+ only**. Distribution: **Homebrew cask** in `github.com/adericbourg/homebrew-tap`.
+This brief describes what IonizedBar does and why. To install or use it, see the [README](../README.md). To build or release it, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
+## Vision
 
-## Product vision
 > A taskbar that shows the windows you have open, on the screen where they are. Nothing more.
 
-## MVP scope (must-have)
-| # | Requirement | Acceptance criteria |
+uBar and boringBar don't fit the need: a KDE Plasma–style taskbar for macOS, with one entry per open window and one bar per display that shows only that display's windows.
+
+- **Platform:** macOS 27.2 or later, Apple silicon. One OS version keeps the test surface small.
+- **License:** GPLv3.
+- **Distribution:** a Homebrew cask in `adericbourg/homebrew-tap`.
+
+## Taskbar
+
+| Behaviour | What it does | Why |
 |---|---|---|
-| 1 | Taskbar | Horizontal bar at the bottom of the screen. Each entry shows the app icon and the window title. The active window is highlighted. |
-| 2 | One bar per display | Connecting or disconnecting a display adds or removes its bar within about 1s. The bar follows changes to resolution and arrangement. |
-| 3 | Per-display tasks | A window shows on the bar of the display that holds most of its area. Moving a window to another screen moves its entry within about 1s. |
-| 4 | Real windows only | Tasks are windows: no windowless apps (for example, Finder with no windows shows no task). Pinned icons (M9) are not tasks. Minimized windows **are** shown, dimmed, as in KDE. Panels, sheets and utility windows are excluded (`AXStandardWindow` only). |
-| 5 | Equal width | All entries share the bar's width equally, up to a max width. Titles get truncated. Below a minimum width only the icon shows (no wrapping). |
-| 6 | Replaces the Dock | On launch, the app saves your Dock prefs, then sets `autohide=true` and a very large `autohide-delay`. On a normal quit or crash, it restores them. |
-| 7 | Launch at login | `SMAppService.mainApp` toggle, on by default after onboarding. |
-| 8 | Current Space only | Only windows on the active Space are listed. The list updates when you switch Spaces. |
-| 9 | Push windows away | Any window that overlaps the bar gets resized or moved by AX so it stays above the bar. Maximize and zoom must not cover the bar. |
+| Taskbar | A horizontal bar at the bottom of the screen. Each entry shows the app icon and the window title, and the active window is highlighted. | The window is the unit of work, as in KDE. |
+| One bar per display | Connecting or disconnecting a display adds or removes its bar within about 1 s. The bar follows resolution and arrangement changes. | Each screen shows what is on it. |
+| Per-display tasks | A window shows on the bar of the display that holds most of its area. Moving it to another screen moves its entry within about 1 s. | A window straddling two displays still needs one answer. |
+| Real windows only | Tasks are standard windows (`AXStandardWindow`). Panels, sheets, utility windows and windowless apps have no task. Minimized windows do, dimmed. | Finder with no windows is not a task, and a minimized window is still open. |
+| Equal width | Entries share the bar's width equally, up to about 220 pt. Titles truncate. Below about 48 pt only the icon shows. | Positions stay predictable, and a few windows don't stretch across the screen. |
+| Current Space only | Only windows on the active Space are listed, and the list updates on a Space switch. | The bar shows what you can see. |
 
-**Interactions (KDE parity, MVP):** clicking an entry raises and focuses that window. Clicking the active entry minimizes it. Clicking a minimized entry restores it. Middle-click closes the window. Right-click opens a menu: Close, Minimize, Quit app. The right-click menu of an entry or of the empty bar also has "Quit IonizedBar", under "Settings…".
+**Interactions**, as in KDE:
 
-**Accessibility (app UI):** every entry is a VoiceOver element with the window title, the app name and its state (active or minimized). The bar can be reached from the keyboard with ⌃⌥B. This follows the spirit of WCAG 2.2 AA (contrast, focus visible).
+- A click raises and focuses the window.
+- A click on the active entry minimizes it.
+- A click on a minimized entry restores it.
+- A middle-click closes the window.
+- A right-click opens a menu: Close, Minimize, Quit the app, Settings… and Quit IonizedBar. The empty bar offers the last two.
 
-## Look & feel
-- **Material:** frosted glass, using `NSVisualEffectView` with `blendingMode = .behindWindow`, `state = .active` and the `.hudWindow` material. The bar and the launcher panel are always dark, even in Light mode and over a light backdrop (the user prefers darker): they use the dark appearance and a dark tint over the material, which alone turns mid-grey over white. The preview panel follows the system light or dark appearance.
-  - Alternative: the native Liquid Glass (`NSGlassEffectView`) was prototyped in M2 and not kept.
-- **Bar:** 36pt high with no rounded corners, flush with the bottom edge of each display. A 1px hairline separates it from the content above.
-- **Entry:** 16pt icon plus the window title in the system font (13pt), padded 8pt, with a 4pt corner radius on hover and active states.
-  - **Active:** tinted background in the system accent color.
-  - **Hover:** subtle highlight.
-  - **Minimized:** title and icon shown at about 50% opacity, title in the regular font.
-  - **Icon-only mode:** the icon is centered and the title moves to a tooltip.
-- **Max entry width:** about 220pt, so a few windows don't stretch across the whole screen. The shrink threshold below which only the icon shows is about 48pt.
-- **Accessibility:** honor *Reduce Transparency* (switch to an opaque background; `NSVisualEffectView` does this for you) and *Increase Contrast*. Text over the glass must keep a contrast ratio of at least 4.5:1 (WCAG AA), so it uses label colors that adapt to vibrancy, never hard-coded grey.
-- **Motion:** entries animate in, out and when resized in under 150ms. Animations are off when *Reduce Motion* is on.
+## Replacing the Dock
 
-## Non-goals (v1)
-Widgets (tray, clock), windows from all Spaces, a top or side bar position, theming, multiple rows. Each one is a candidate for a later version. Window thumbnails on hover, grouping windows by app, an app launcher, pinned apps, re-ordering tasks and a Plasma-style launcher layout are planned after v1, see below.
+The Dock can't be removed, because it hosts Cmd-Tab, Mission Control and Spaces. Autohide with a very long delay is the usual workaround, so the Dock can still be glimpsed at the screen edge.
 
-## After v1: window preview (M6)
-Hovering an entry shows a panel above it with the app icon and name, the window title and a thumbnail of that window. A preview always shows one window, so a group entry (M7) has no preview: its window list takes that place.
+- **Hiding:** the app saves the Dock prefs, then sets `autohide` to true and `autohide-delay` to 1000 s through `CFPreferences`, and runs `killall Dock`. It waits for the Accessibility permission, since the bar shows no tasks until then.
+- **Restoring:** a normal quit, `SIGTERM` or `SIGINT` restores the saved values. A key that wasn't set is deleted, not given a default.
+- **After a crash:** the saved values live in the app's own prefs, so the next launch recovers them instead of saving the hidden values as the originals.
+- **Leftovers:** an `autohide-delay` of 60 s or more means another taskbar or a lost state left the Dock hidden. The app doesn't treat it as a preference, so a quit leaves the Dock visible.
 
-- **Opt-in:** off by default, toggled by a "Show window previews" item in the entry's right-click menu. The bar works fully without Screen Recording, and macOS only prompts when previews are turned on. With previews off, nothing appears and the icon-only tooltip stays as it is. If the permission is denied, no preview appears.
-- **Showing and dismissing:** the panel appears after about 300ms of hover, and also on keyboard focus. Esc dismisses it, and it stays open while the pointer is over it (WCAG 1.4.13). Esc works whichever app is frontmost, and that app gets the key too: a global key monitor can only observe. With previews on and the permission granted, a window entry has no tooltip, since the panel shows its title.
-- **Display-only:** clicking the panel does nothing. Clicks stay on the entry.
-- **Minimized windows:** never captured live: macOS lists them but fails the capture (verified on macOS 27.2), so the panel shows the last captured image. With no captured image, the panel shows the header only.
-- **Cache:** in memory only, never written to disk. It's filled on hover and drops an image when its window closes, so a window minimized with its yellow button and never hovered shows the header only.
-- **Ambiguous match:** if the window can't be identified with certainty, the panel shows the header only. Showing another window's content is worse than showing none.
-- **Accessibility:** the panel honors *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*, like the bar.
+## Pushing windows off the bar
 
-## After v1: settings (M7)
-A settings window, opened with "Settings…" from the right-click menu of an entry or of the empty bar. Settings are global, apply immediately and are saved in `UserDefaults`. The defaults keep the behavior of v1.
+A window that overlaps the bar is resized or moved through the Accessibility API (AX), so maximizing and zooming don't cover the bar.
+
+- **Target:** the screen's frame minus the bar, and never above the top of `NSScreen.visibleFrame`, so a push doesn't go under the menu bar.
+- **Timing:** no push while a mouse button is held or before the frame has settled, so the app doesn't fight a drag.
+- **Fullscreen:** fullscreen windows are left alone.
+- **Windows that resist:** a window left over the bar, by its minimum size or its app, is not pushed again until its frame changes. This avoids jitter with apps that reposition themselves.
+- **Two displays:** a window is only checked against the bar of its assigned display.
+
+## Start at login
+
+The app registers itself with `SMAppService.mainApp` once, when Accessibility is first granted. "Start at login" in Settings shows the real status and applies at once. It is not saved separately, and a relaunch doesn't turn it back on.
+
+## Settings
+
+A settings window opens with "Settings…" from a right-click menu. Settings are global, apply at once and are saved in `UserDefaults`.
 
 - **Group windows:** Never (default), When full or Always. Each bar decides for itself, because bars differ in width.
-  - **When full:** apps merge when entries would drop below about 120pt (48pt in Icon only mode). The app with the most windows merges first, and merging stops once entries fit. On a tie, the later app on the bar merges first. If merging every app isn't enough, entries shrink as usual.
-- **Show tasks as:** Icon only, App name or Content (default, the window title). When the title isn't shown, it moves to a tooltip. VoiceOver reads it in every mode.
-  - **Icon only:** compact entries of about 48pt, packed from the left. This is the one exception to R5's equal share of the bar's width.
-- **Start at login:** the R7 toggle. It shows the real `SMAppService` status and applies at once; it is not saved in `UserDefaults`. The app registers itself once when Accessibility is first granted, and never again after that.
-- **Group entry:** all of an app's windows on that bar (2 or more), placed where the app's first window was. It shows the icon, app name and window count, or the icon and count in Icon only mode. It's highlighted if any of its windows has focus, and dimmed only if all of them are minimized.
-- **Group interactions:** a click opens a native menu above the entry that lists the windows. The focused window has a checkmark, and minimized windows say so. Picking a window raises or restores it. Middle-click does nothing, so a stray click can't close several windows. Right-click offers Close all windows, Quit, Settings… and Quit IonizedBar.
+- **When full:** apps merge when entries would drop below about 120 pt, or 48 pt with Icon only. The app with the most windows merges first, and merging stops once entries fit. On a tie, the later app on the bar merges first.
+- **Show tasks as:** Icon only, App name or Content (default, the window title). A title that isn't shown moves to a tooltip, and VoiceOver reads it in every mode.
+- **Icon only:** compact entries of about 48 pt, packed from the left. This is the one exception to the equal width.
+- **Keep pinned app icons visible:** see [Pinned apps](#pinned-apps).
+- **Start at login:** see [Start at login](#start-at-login).
 
-## After v1: app launcher (M8)
-A button always at the left of the bar, on every bar. It opens a panel above it that lists applications, with a search field. M11 adds the sidebar, the favorites and the footer; recent apps are not planned.
+### Group entries
 
-- **Button:** a fixed-width, icon-only entry, about 48pt like Icon only tasks, on every bar and in every display mode, with a system icon. Tasks share the width left of the bar (see M9 for the order). R5's equal share then means the width left for tasks; When full decides on that width and Icon only tasks pack from just after the button. Hovering it shows no preview, and right-click offers Settings… and Quit IonizedBar.
-- **Applications:** the `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, and in their `Utilities` folder, sorted by name, each with its icon and name.
-- **Search:** fuzzy matching over application names only (see Description). The search field has focus when the panel opens, and an empty search lists everything.
-- **Description:** macOS bundles have no standard description field. The M8 spike (2026-11-03) read 125 bundles from the three folders: Spotlight `kMDItemDescription` was empty on all 125, and Info.plist `CFBundleGetInfoString` was empty on 109, a copyright or version line on 12 and a real description on 3 (all third-party, none among the 65 system apps). Not usable, so search covers names only.
-- **Opening an app:** a click, or Return on the selected row, opens it with `NSWorkspace.openApplication` and closes the panel. Esc or a click outside closes the panel too, and keys go back to the frontmost app.
-- **Keyboard:** the launcher is the first stop of ⌃⌥B keyboard mode. A bar is never empty anymore, so ⌃⌥B with no tasks now focuses the launcher button instead of doing nothing.
-- **Accessibility:** the button is a VoiceOver button whose label says what it does, the rows are VoiceOver elements labelled with the app name, and the panel honors *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*, like the bar.
+A group entry holds all of an app's windows on that bar (2 or more), placed where the app's first window was.
 
-## After v1: pinned apps (M9)
-Pinning keeps an app's icon on the bar while it's closed, and clicking the icon opens the app. The bar reads, from the left: launcher (M8), pinned icons, tasks.
+- It shows the icon, app name and window count, or the icon and count with Icon only.
+- It is highlighted if any of its windows has focus, and dimmed only if all of them are minimized.
+- A click opens a native menu that lists the windows. The focused window has a checkmark, and minimized windows say so.
+- A middle-click does nothing, so a stray click can't close several windows.
+- A right-click offers Close All Windows, the move and pin items, Quit the app, Settings… and Quit IonizedBar.
 
-- **Pinning:** "Pin" in the right-click menu of a task or of a group entry, since a pin belongs to the app and not to a window. "Unpin" replaces it when the app is pinned, and is also in the right-click menu of a pinned icon. A task whose app has no bundle identifier has no Pin item.
-- **Pinned icon:** a fixed-width, icon-only entry, about 36pt, with a 28pt icon and the app name as tooltip. A click opens the app with `NSWorkspace.openApplication`: a running app comes to the front and decides whether to reopen a window, no new window is forced.
-- **Saved as:** an ordered list of bundle identifiers in `UserDefaults`, global to all bars, in pinning order until re-ordered (M12). A pin whose app is no longer installed isn't shown, and stays saved.
-- **Setting "Keep pinned app icons visible":** a checkbox in the settings window, off by default.
-  - **On:** the pinned icon is always visible, even when the app is open.
-  - **Off:** the pinned icon disappears as the app opens, then only the task is visible.
-- **Hiding is per bar:** with the setting off, an icon hides on a bar only if that bar shows a task for the app. It stays on other displays, on Spaces without the app's windows, and for a running app with no windows, so an app can always be reached from any bar.
-- **Keyboard:** pinned icons are in ⌃⌥B keyboard mode, between the launcher and the tasks. Shift-F10 opens their menu.
-- **Accessibility:** a pinned icon is a VoiceOver button labelled with the app name and "pinned".
+## Window previews
 
-## After v1: re-order tasks (M10)
-Dragging a task along its bar changes its place on that bar. Only the entry moves: the window itself is neither raised nor moved.
+Hovering an entry shows a panel above it with the app icon and name, the window title and a thumbnail. A group entry has no preview, because a preview shows one window and the window list takes that place.
 
-- **Scope:** an entry moves within its own bar. It can't be dragged to another bar, because R3 ties an entry to its window's display. A drag past the end of the task area stops at the end.
-- **Click or drag:** a drag starts once the pointer has moved about 4pt, and its mouse-up is not a click. Dropping an entry back where it started changes nothing. Esc doesn't cancel a drag, because the panel is never key. In keyboard mode, where it is, keys are ignored during a drag and the drop ends keyboard mode, as a click does. A right or middle click during a drag does nothing. A window opening or closing during a drag doesn't end it, unless the dragged entry itself goes, as when its window closes or grouping changes it: the drag then ends with no move and no click.
-- **Order:** kept in memory only, so it's lost on quit: AX window elements don't survive a restart, and public APIs have no stable window id. A new window still goes last. A window that leaves and returns (Space switch, another display) keeps its place. A window moved to another display lands there by that same place, not last, since it isn't new.
-- **Group entry (M7):** drags as one, and its windows stay next to each other if the bar later ungroups. The order inside a group's window list can't be dragged.
-- **Launcher and pinned icons (M8, M9):** the launcher can't be dragged, pinned icons only among themselves (M12), and a task can't be dropped before them.
-- **Without dragging:** "Move Left" and "Move Right" in the right-click menu of a task or group entry, disabled at the ends. WCAG 2.2 AA 2.5.7 asks for an alternative to dragging. The menu also covers keyboard mode (Shift-F10) and VoiceOver, so there's no new shortcut.
-- **Motion:** the other entries slide apart in under 150ms, and jump with *Reduce Motion* on. A drag dismisses the M6 preview and shows no new one until the drop.
+- **Opt-in:** off by default, through "Show window previews" in a window entry's menu. The bar works fully without Screen Recording, and macOS only prompts when previews are turned on. If the permission is denied, no preview appears.
+- **Showing and dismissing:** the panel appears after about 300 ms of hover, and on keyboard focus. Esc dismisses it, and it stays open under the pointer (WCAG 1.4.13). A global key monitor can only observe, so the frontmost app gets the Esc too.
+- **Display-only:** a click on the panel does nothing.
+- **Minimized windows:** macOS lists them but fails the capture, so the panel shows the last captured image, or the header only if there is none.
+- **Cache:** in memory only, never on disk. It fills on hover and drops an image when its window closes.
+- **Ambiguous match:** public APIs can't map an AX element to a `CGWindowID`, so a window is matched by process ID and bounds within 2 pt. If two windows match, the panel shows the header only, because showing another window's content is worse than showing none.
+- **Capture rate:** one capture per hover, not per mouse move, so the bar doesn't stutter.
 
-## After v1: Plasma-style launcher (M11)
-The launcher panel (M8) takes the layout of Plasma's launcher: a full-width search field on top, a sidebar on the left, apps on the right, and a footer with Restart and Shut Down. Places, the account picture and name, Sleep and Leave are not planned.
+## App launcher
 
-- **Sidebar:** Favorites, All Applications, then the categories that have apps. Resting the pointer on an item or clicking it switches view.
-- **Favorites:** the apps pinned on the bar (M9), in the same order, as an icon grid. Pins can be outside the launcher's folders (Finder, for one). Pinning stays in the bar's menus. The other views are the M8 list.
-- **Opening view:** Favorites, or All Applications when nothing is pinned. Each opening starts over.
-- **Categories:** from the optional `LSApplicationCategoryType` key of each bundle's `Info.plist`, the only category macOS has. 90 of 122 apps declared one on 2026-11-03, and most of its values hold an app or two, so they merge:
+A button at the left of every bar opens a panel in the layout of Plasma's launcher: a search field on top, a sidebar on the left, apps on the right, and a footer with Restart and Shut Down. Places, the account picture, Sleep and Leave are left out.
 
-  | Group | `public.app-category.*` |
-  |---|---|
-  | Development | `developer-tools` |
-  | Education | `education`, `reference`, `books` |
-  | Games | `games`, `*-games` |
-  | Graphics | `graphics-design`, `photography` |
-  | Internet | `social-networking`, `news` |
-  | Multimedia | `music`, `video`, `entertainment` |
-  | Office | `productivity`, `business`, `finance` |
-  | Utilities | `utilities` |
-  | Other, always last | any other value, or none |
+- **Button:** fixed at about 48 pt, in every display mode. Tasks share the width left, and a bar is never empty.
+- **Applications:** the `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, and in their `Utilities` folder, sorted by name.
+- **Search:** fuzzy matching over names only, because almost no bundle has a usable description. Typing searches all apps from any view.
+- **Sidebar:** Favorites, All Applications, then the categories that have apps.
+- **Favorites:** the pinned apps, in the same order, as an icon grid. It is the opening view, or All Applications when nothing is pinned.
+- **Hover:** the pointer and the arrow keys share one highlight, as in Plasma. A sidebar item switches view after 150 ms, so crossing the sidebar on the way to an app doesn't replace the list.
+- **Restart and Shut Down:** these ask `loginwindow` for the macOS confirmation dialog and never act directly.
 
-- **Search:** typing searches all apps and shows the list, from any view. Clearing it returns to the view, and picking a view ends the search.
-- **Hover:** the pointer and the arrow keys share one highlight, as in Plasma, so Return opens the last row hovered. A pointer off the rows leaves it where it is. A sidebar item highlights at once and switches view after 150ms, so crossing the sidebar on the way to an app doesn't replace the list. During a search it only highlights, and a click ends the search.
-- **Restart and Shut Down:** ask `loginwindow` for the macOS confirmation dialog (`aevt`/`rrst` and `aevt`/`rsdn`), never acting directly. The dialog's own countdown applies. The M11 spike showed it from an `LSUIElement` app, above the bar, with no Automation prompt (macOS 27.2).
-- **Keyboard:** focus starts in the search field, and the arrow keys act on the apps from there, so typing always works. Tab goes through the search field, the sidebar, Restart and Shut Down. In the sidebar, Up and Down switch view, and Right, Return or Space go to its apps. Left comes back to the sidebar when no text is typed, in the grid from its first column only. Esc closes the panel from anywhere.
-- **Accessibility:** grid items are VoiceOver buttons labelled with the app name, and a view change is announced. The panel keeps honoring *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*.
+**Categories** come from the optional `LSApplicationCategoryType` key in each bundle's `Info.plist`, the only category macOS has. Most of its values hold an app or two, so they merge:
 
-## After v1: re-order pins (M12)
-Dragging a pinned icon along the bar changes its place among the pins. The interaction is the task drag of M10: the same threshold, click rules, event handling during a drag, motion, and resistance past the ends.
+| Group | `public.app-category.*` |
+|---|---|
+| Development | `developer-tools` |
+| Education | `education`, `reference`, `books` |
+| Games | `games`, `*-games` |
+| Graphics | `graphics-design`, `photography` |
+| Internet | `social-networking`, `news` |
+| Multimedia | `music`, `video`, `entertainment` |
+| Office | `productivity`, `business`, `finance` |
+| Utilities | `utilities` |
+| Other, always last | any other value, or none |
 
-- **Scope:** a pin stays between the launcher and the tasks. Past the first or last pin the icon follows with growing resistance, less than one icon width beyond, so it can overlap the launcher or the first task. A drop there lands on the nearest end pin.
-- **Order:** the saved pin list (M9), so unlike the task order it is global to all bars, survives a relaunch and also orders the launcher's Favorites (M11).
-- **Hidden pins:** a pin not shown on this bar (app not installed, or "Keep pinned app icons visible" off with a task here) keeps its saved place. The moved pin lands next to the one it passed.
-- **Mid-drag:** if the dragged pin leaves the bar, as when its app opens a window with the setting off, the drag ends with no move and no click.
-- **Without dragging:** "Move Left" and "Move Right" in the pinned icon's right-click menu, among the pins shown on that bar and disabled at the ends (WCAG 2.2 AA 2.5.7).
+## Pinned apps
 
-## Technical direction
-- **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
-- **Bar window:** borderless, non-activating `NSPanel`, one per `NSScreen`, placed at `.statusBar` level. It joins all Spaces (`canJoinAllSpaces`, `stationary`) except fullscreen ones (`fullScreenNone`), so a fullscreen window covers the display, and it does not show in Cmd-Tab (`LSUIElement`).
-- **Window model:** KVO on `NSWorkspace.runningApplications` for app launch and terminate (the launch and terminate notifications skip `LSUIElement` apps), plus one `AXObserver` per app for created, destroyed, moved, resized, title changed, minimized and focused. `CGWindowListCopyWindowInfo` is used only to cross-check what's on screen. No Screen Recording permission, except for opt-in previews (M6): titles come from AX.
-- **Preview capture (M6):** ScreenCaptureKit (`SCScreenshotManager` with `SCContentFilter(desktopIndependentWindow:)`), since `CGWindowListCreateImage` is unavailable in the macOS 15+ SDK. An entry's window is matched to an `SCWindow` by pid and bounds within 2pt, the same rule as the Space check, because public APIs cannot map an AX element to a `CGWindowID`.
-- **Display assignment:** the largest intersection between the window frame and `NSScreen.frame` (after converting AX top-left coordinates to Cocoa bottom-left).
-- **Push windows away:** when a window moves or resizes and its frame overlaps the bar's strip, set `kAXSize` and `kAXPosition` so it fits the screen's frame minus the bar. The top limit is `NSScreen.visibleFrame`'s top, so a push never goes under the menu bar. A window straddling two displays is only checked against the bar of its assigned display. No push while a mouse button is held or before the frame has settled, and none for fullscreen windows. A window a push leaves over the bar is not pushed again until its frame changes.
-- **Dock handling:** `defaults` domain `com.apple.dock`, then `killall Dock` to apply. The original values are saved in the app's own prefs so a crash can be recovered on the next launch.
-- **Permissions onboarding:** check `AXIsProcessTrusted()`. If it's false, show a single-window guide and poll until the grant is given.
-- **Re-ordering (M10):** mouse tracking in the existing entry views rather than `NSDraggingSource`, since nothing leaves the bar and no pasteboard is needed. The order decision is pure logic in `IonizedBarCore`, with checks. It is one relative order of all windows that each bar projects onto its own: a move changes the place of the moved windows only, plus the other windows of a group it passes, which close up behind that group's first window, so other bars and windows on another Space or display are undisturbed, and a window coming back finds its place whatever closed meanwhile. An entry goes when the tracker's `kAXUIElementDestroyedNotification` or the app's exit drops the window, not when a snapshot leaves it out. Windows of a moved group that are elsewhere at that moment (another Space or display) stay where they were.
+Pinning keeps an app's icon on the bar while the app is closed. The bar reads, from the left: launcher, pinned icons, tasks.
 
-## Risks
-| Risk | Impact | Mitigation |
-|---|---|---|
-| The Dock can't truly be removed (it hosts Cmd-Tab, Mission Control, Spaces) | The Dock can still be glimpsed at the edge | Autohide plus a huge delay is the industry-standard hack. Document it. |
-| Self-signed cask: Gatekeeper quarantine | Bad experience on install | Accepted for v1, see *Known issues*. The cask's `postflight_steps` removes the quarantine attribute; the README documents `xattr -d com.apple.quarantine` for a manual zip install. The grants survive upgrades since releases are signed with a stable self-signed certificate |
-| Push-away fights apps that enforce a minimum size or reposition themselves (Electron apps, games, fullscreen) | Windows jitter, or the bar gets covered | Debounce. Skip fullscreen windows. Keep a per-app opt-out list (post-MVP) |
-| AX latency or hangs with unresponsive apps | Bar freezes | Run AX calls off the main thread with `AXUIElementSetMessagingTimeout` |
-| macOS 27 changes behavior | Breakage | Use public APIs only. Pinning one OS version keeps the test surface small |
-| Preview (M6): same-app windows with the same frame can't be told apart | A thumbnail could show the wrong window | Show the header only when the match is ambiguous |
-| Preview (M6): `SCScreenshotManager` capture is async and can lag | The panel feels slow, or the bar stutters | Capture once per hover, not on every mouse move |
-| Preview (M6): the Screen Recording grant is probably lost on upgrade, like Accessibility (unverified) | Previews stop working after an update | Check during M6. Same fix as the Accessibility grant, see *Known issues* |
-| Launcher and pins (M8, M9) take bar width | Tasks shrink sooner, and many pins can leave little room for them | The entry width and the When full grouping both use the width left for tasks. Tasks shrink as usual; pins never do |
-| Launcher (M8): apps provide no usable description | Search can't match on what an app does | Checked in the M8 spike: 3 of 125 bundles have one, so search covers names only |
-| Re-order (M10): a drag can fire a click or raise a window | Dropping an entry minimizes or raises a window by accident | The 4pt threshold, and a manual check |
+- **Pinning:** "Pin" and "Unpin" are in the menu of a task or group, since a pin belongs to the app and not to a window. "Unpin" is also in the icon's menu. An app with no bundle identifier can't be pinned.
+- **Icon:** about 36 pt wide with a 28 pt icon, and the app name as tooltip. A click opens the app. A running app comes to the front and decides whether to reopen a window.
+- **Saved as:** an ordered list of bundle identifiers in `UserDefaults`, global to all bars. A pin whose app is no longer installed isn't shown, and stays saved.
+- **"Keep pinned app icons visible":** off by default. On, the icon always shows. Off, it hides on a bar that shows a task for the app.
+- **Hiding is per bar:** the icon stays on other displays, on Spaces without the app's windows, and for a running app with no windows, so an app can always be reached from any bar.
+- **Width:** pins keep their width. Tasks shrink and group in the width left.
 
-## Milestones
-1. **M0 – Bootstrap:** `LICENSE` (GPLv3), README, `docs/PRODUCT.md`, an empty SwiftPM app, CI build on GitHub Actions.
-2. **M1 – Window model (headless):** AX observers plus display assignment, with the output logged. Checks for display assignment, coordinate conversion and the equal-width layout math.
-3. **M2 – Bars:** one panel per screen, entries, click interactions.
-4. **M3 – Dock replacement and launch at login:** save and restore the Dock, `SMAppService`, onboarding.
-5. **M4 – Push windows away.**
-6. **M5 – Release:** archive, zip, and a cask in `adericbourg/homebrew-tap`.
-7. **M6 – Window preview:** opt-in thumbnail panel on hover, after v1. Depends on the M2 entries and their hover state.
-8. **M7 – Settings:** window grouping and task display, after v1. Depends on the M2 interactions.
-9. **M8 – App launcher:** a button at the left of the bar and an application list with fuzzy search, after v1. Depends on the M2 bars and keyboard mode.
-10. **M9 – Pin applications:** pinned icons on the bar and the "Keep pinned app icons visible" setting, after v1. Depends on the M7 settings window, and on M8 for the bar's order and task width.
-11. **M10 – Re-order tasks:** drag and drop a task on its bar, with "Move Left" and "Move Right" as the alternative, after v1. Depends on the M2 entries and interactions and on the M7 group entries.
-12. **M11 – Plasma-style launcher:** the sidebar, favorites and footer in the launcher panel, and hover on its rows, after v1. Depends on M8 and M9.
-13. **M12 – Re-order pins:** drag and drop a pinned icon among the pins, with "Move Left" and "Move Right" as the alternative, after v1. Depends on M9 and M10.
+## Re-ordering
 
-## Verification (per milestone, once implemented)
-- A check executable (`swift run IonizedBarChecks`) for the pure logic, because Command Line Tools have no working test framework (no `TestingMacros` plugin, no XCTest): screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation. CI runs it too. If it can't load on the runner's older macOS, lower the minimum from 27.2 to 27.0.
-- Manual checklist on 2 displays: open, close, move and minimize windows, then check each bar. Plug and unplug a display. Switch Spaces. Quit the app and check the Dock comes back. Kill it with `kill -9`, relaunch, and check the Dock comes back. Log out and in to check launch at login. Maximize a window to check it doesn't cover the bar.
-- `brew install --cask adericbourg/tap/ionized-bar` on a clean user account.
-- Manual checklist for M6: previews on and off, a minimized window, two same-app windows with the same frame, keyboard focus and Esc (also with another app frontmost), and the Screen Recording grant being denied.
-- Manual checklist for M7: every display mode with every grouping mode, and settings surviving a relaunch. Going past and back under the When full threshold, with each bar deciding on its own. Picking and restoring from a group's list, by mouse and keyboard. Opening settings with no windows open, closing with Cmd-W, and using them with VoiceOver.
-- Manual checklist for M8: the button on every bar, in every display mode and with no tasks. Fuzzy search with typos and partial names, opening an app by mouse and keyboard, Esc and a click outside, keys going back to the frontmost app, and VoiceOver.
-- Manual checklist for M9: pin and unpin from a task, a group entry and a pinned icon. The icon opening a closed app and raising a running one. The setting on and off, with the app open on one display only, on another Space, and running with no windows. Pins surviving a relaunch, an uninstalled pinned app, and VoiceOver and keyboard on a pinned icon.
-- Manual checklist for M10: drag a task and a group entry in every display mode, with and without grouping. A plain click and a small pointer slip still act as a click, and a drop neither raises nor minimizes a window. A drag past either end, and a window opening or closing during a drag. The order across a Space switch, a window moved to another display and back, and ungrouping. "Move Left" and "Move Right" by mouse, keyboard and VoiceOver, disabled at the ends. Reduce Motion, and a drag with a preview showing.
-- Manual checklist for M11: hover on every kind of item with another app frontmost, a still pointer while using the arrow keys, each view with no pins and with a pin outside the launcher's folders, both power dialogs and their Cancel, the Dock coming back after a confirmed restart, Tab and VoiceOver through the panel.
-- Manual checklist for M12: a real drag with another app frontmost, a plain click and a small slip, rubber band past both ends, a drop on all bars, in Favorites and after a relaunch, hidden pins, the dragged app opening a window mid-drag, "Move Left" and "Move Right" by mouse, keyboard and VoiceOver, and Reduce Motion.
+Dragging a task or a pinned icon along the bar changes its place. Only the entry moves: the window is neither raised nor moved.
 
-## Known issues (to fix later)
-- **Gatekeeper quarantine on install.** The self-signed certificate (which keeps the TCC grants across upgrades, see README *Signing certificate*) is not trusted by Gatekeeper. The fix is a Developer ID with notarization (paid, so out of reach for now). Until then, the cask's `postflight_steps` runs `xattr -dr com.apple.quarantine` on the installed app (allowed in a third-party tap, not in homebrew/cask), and the README documents the same command for a manual zip install.
+- **Click or drag:** a drag starts once the pointer has moved about 4 pt, and its mouse-up is not a click. This keeps a drop from raising or minimizing a window.
+- **Ends:** past the first or last place, the entry follows with growing resistance and lands on the nearest end on release.
+- **Without dragging:** "Move Left" and "Move Right" in the right-click menu, disabled at the ends (WCAG 2.2 AA 2.5.7). The menu also covers keyboard mode and VoiceOver, so there is no new shortcut.
+- **Motion:** the other entries slide apart in under 150 ms, and jump with Reduce Motion on.
+
+**Tasks** stay on their own bar, because a task belongs to its window's display.
+
+- The order is kept in memory only and is lost on quit. AX window elements don't survive a restart, and public APIs have no stable window ID.
+- A new window goes last. A window that leaves and returns (Space switch, another display) keeps its place.
+- A group drags as one, and its windows stay next to each other if the bar later ungroups.
+
+**Pins** stay between the launcher and the tasks.
+
+- The order is the saved pin list, so it is global to all bars, survives a relaunch and also orders Favorites.
+- A pin hidden on this bar keeps its saved place.
+
+## Look and feel
+
+- **Material:** frosted glass (`NSVisualEffectView`, `.hudWindow`). The native Liquid Glass was prototyped and not kept.
+- **Appearance:** the bar and the launcher are always dark, with a dark tint over the material, which alone turns mid-grey over white. The preview panel follows the system appearance.
+- **Bar:** 36 pt high, flush with the bottom edge, with a hairline along its top.
+- **Entry:** a rounded tile with a 16 pt icon and the title in the 13 pt system font.
+- **Entry states:** active uses the system accent color, hover a subtle highlight, and minimized about 50% opacity.
+- **Motion:** entries animate in, out and on resize in under 150 ms.
+
+## Accessibility
+
+The app follows the spirit of WCAG 2.2 AA.
+
+- **VoiceOver:** every entry is an element with the window title, the app name and its state. Launcher rows and pinned icons have labels, and the launcher announces results and view changes.
+- **Keyboard:** ⌃⌥B reaches the bar. It walks the launcher, the pinned icons and the tasks, and Shift-F10 opens the menus.
+- **System settings:** the bar and its panels honor Reduce Motion, Reduce Transparency and Increase Contrast.
+- **Contrast:** text keeps a ratio of at least 4.5:1, using label colors rather than hard-coded grey.
+
+## Technical decisions
+
+- **Swift 6 and AppKit, SwiftPM, bundled by a script:** development happens with Command Line Tools only, no Xcode.
+- **No sandbox:** the AX APIs require it.
+- **Bar window:** a borderless, non-activating `NSPanel` per `NSScreen` at `.statusBar` level, so the bar never takes focus. It joins all Spaces except fullscreen ones, so a fullscreen window covers the display.
+- **App tracking:** KVO on `NSWorkspace.runningApplications`, because the launch and terminate notifications skip `LSUIElement` apps.
+- **Window tracking:** one `AXObserver` per app. Titles come from AX, so the bar needs no Screen Recording. `CGWindowListCopyWindowInfo` only cross-checks what is on screen.
+- **Unresponsive apps:** AX calls use a 0.25 s messaging timeout, so a hung app can't freeze the bar.
+- **Preview capture:** `SCScreenshotManager`, since `CGWindowListCreateImage` is unavailable in the macOS 15+ SDK.
+- **Re-ordering:** mouse tracking in the entry views rather than `NSDraggingSource`, since nothing leaves the bar. One relative order of all windows is projected onto each bar, so a move doesn't disturb other bars or windows on another Space.
+- **Pure logic in `IonizedBarCore`:** a check executable tests it, because Command Line Tools have no working test framework.
+- **Self-signed certificate:** the Transparency, Consent and Control (TCC) database then pins grants to the identifier and certificate, not to each build's hash, so they survive upgrades. Gatekeeper doesn't trust it, and a fix needs a paid Developer ID with notarization. Until then the cask removes the quarantine attribute, which a third-party tap may do. See [Signing certificate](DEVELOPMENT.md#signing-certificate).
+
+## Out of scope
+
+Widgets (tray, clock), windows from all Spaces, a top or side bar position, theming, multiple rows, and recent apps in the launcher.
