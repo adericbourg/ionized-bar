@@ -64,7 +64,7 @@ brew install --cask adericbourg/tap/ionized-bar
 
 Releases are signed with a self-signed certificate, so the Accessibility and Screen Recording grants survive upgrades. Coming from an ad-hoc build (before signing, or a local build without the certificate), grant them once more: if IonizedBar already shows ON but the bar stays empty, run `tccutil reset Accessibility io.github.adericbourg.ionized-bar` and grant it again.
 
-Gatekeeper quarantines the download, since the certificate is not trusted by Apple (see [Known issues](docs/PRODUCT.md#known-issues-to-fix-later)). If macOS refuses to open the app, remove the quarantine attribute once:
+The certificate is not trusted by Apple and the app is not notarized (see [Known issues](docs/PRODUCT.md#known-issues-to-fix-later)), so Gatekeeper would refuse to open a quarantined download. The cask removes the quarantine attribute after installing, so installing from the tap means trusting it to bypass Gatekeeper for this app. If you install the zip from the release page by hand, remove the attribute yourself once:
 
 ```sh
 xattr -d com.apple.quarantine /Applications/IonizedBar.app

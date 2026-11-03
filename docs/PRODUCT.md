@@ -112,7 +112,7 @@ Dragging a task along its bar changes its place on that bar. Only the entry move
 | Risk | Impact | Mitigation |
 |---|---|---|
 | The Dock can't truly be removed (it hosts Cmd-Tab, Mission Control, Spaces) | The Dock can still be glimpsed at the edge | Autohide plus a huge delay is the industry-standard hack. Document it. |
-| Self-signed cask: Gatekeeper quarantine | Bad experience on install | Accepted for v1, see *Known issues*. Document `xattr -d com.apple.quarantine`. The grants survive upgrades since releases are signed with a stable self-signed certificate |
+| Self-signed cask: Gatekeeper quarantine | Bad experience on install | Accepted for v1, see *Known issues*. The cask's `postflight_steps` removes the quarantine attribute; the README documents `xattr -d com.apple.quarantine` for a manual zip install. The grants survive upgrades since releases are signed with a stable self-signed certificate |
 | Push-away fights apps that enforce a minimum size or reposition themselves (Electron apps, games, fullscreen) | Windows jitter, or the bar gets covered | Debounce. Skip fullscreen windows. Keep a per-app opt-out list (post-MVP) |
 | AX latency or hangs with unresponsive apps | Bar freezes | Run AX calls off the main thread with `AXUIElementSetMessagingTimeout` |
 | macOS 27 changes behavior | Breakage | Use public APIs only. Pinning one OS version keeps the test surface small |
@@ -147,4 +147,4 @@ Dragging a task along its bar changes its place on that bar. Only the entry move
 - Manual checklist for M10: drag a task and a group entry in every display mode, with and without grouping. A plain click and a small pointer slip still act as a click, and a drop neither raises nor minimizes a window. A drag past either end, and a window opening or closing during a drag. The order across a Space switch, a window moved to another display and back, and ungrouping. "Move Left" and "Move Right" by mouse, keyboard and VoiceOver, disabled at the ends. Reduce Motion, and a drag with a preview showing.
 
 ## Known issues (to fix later)
-- **Gatekeeper quarantine on install.** The self-signed certificate (which keeps the TCC grants across upgrades, see README *Signing certificate*) is not trusted by Gatekeeper. The fix is a Developer ID with notarization. Until then, the cask `caveats` and the README document the workaround.
+- **Gatekeeper quarantine on install.** The self-signed certificate (which keeps the TCC grants across upgrades, see README *Signing certificate*) is not trusted by Gatekeeper. The fix is a Developer ID with notarization (paid, so out of reach for now). Until then, the cask's `postflight_steps` runs `xattr -dr com.apple.quarantine` on the installed app (allowed in a third-party tap, not in homebrew/cask), and the README documents the same command for a manual zip install.
