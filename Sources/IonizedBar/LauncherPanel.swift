@@ -13,7 +13,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
     private let searchField = NSSearchField()
     private let scrollView = NSScrollView()
-    private let table = NSTableView()
+    private let table = HoverTableView()
     private let noMatchLabel = NSTextField(labelWithString: LauncherList.noMatchMessage)
     private var list = LauncherList()
     private let onOpen: (InstalledApp) -> Void
@@ -60,6 +60,10 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         table.delegate = self
         table.target = self
         table.action = #selector(rowClicked)
+        table.onHover = { [unowned self] row in
+            list.select(index: row)
+            selectListedRow()
+        }
         scrollView.documentView = table
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = false
@@ -114,8 +118,12 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         showSelection()
     }
 
-    private func showSelection() {
+    private func selectListedRow() {
         table.selectRowIndexes(list.selectedIndex.map { IndexSet(integer: $0) } ?? [], byExtendingSelection: false)
+    }
+
+    private func showSelection() {
+        selectListedRow()
         if let selectedIndex = list.selectedIndex { table.scrollRowToVisible(selectedIndex) }
     }
 
@@ -175,6 +183,30 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
     // The selection follows `list`: a drag over the rows must not move it away from what Return opens.
     func selectionShouldChange(in tableView: NSTableView) -> Bool { false }
+}
+
+/// Reports the row under the pointer. Only real pointer events do: arrow keys scrolling the list under a still
+/// pointer must not take the selection back. The wheel counts because it brings another row under a still pointer.
+private final class HoverTableView: NSTableView {
+    var onHover: ((Int) -> Void)?
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        // Always active: this app is never the active one while the panel is open.
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .activeAlways, .inVisibleRect], owner: self))
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func mouseMoved(with event: NSEvent) {
+        onHover?(row(at: convert(event.locationInWindow, from: nil)))
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        super.scrollWheel(with: event)
+        if let window { onHover?(row(at: convert(window.mouseLocationOutsideOfEventStream, from: nil))) }
+    }
 }
 
 /// The table is never first responder, which would otherwise draw the selection in the dim, unfocused style.
