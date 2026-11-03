@@ -52,6 +52,11 @@ final class WindowTracker: @unchecked Sendable {
     private var dirty: Set<pid_t> = []
     /// Moved or resized since the last refresh: the AX frame and the CG bounds may disagree for now.
     private var moving: Set<AXUIElement> = []
+    /// Passed the last Space check. A window starts leaving the CG list before its app posts anything (measured on a
+    /// minimize), so only a fresh read of its app can drop it: another app's refresh would judge it on a stale state.
+    // shortcut: a window moved to another Space with no AX notification keeps its entry until its app is read again; re-check every window on a timer if that shows up.
+    private var onSpace: Set<AXUIElement> = []
+    private var trailingPids: Set<pid_t> = []
     private var frontmost: pid_t?
     private var debounce: Timer?
     private var refreshDeadline: Date?
@@ -96,7 +101,7 @@ final class WindowTracker: @unchecked Sendable {
         onThread { [self] in
             guard apps[pid] != nil else { return }
             drop(pid)
-            publish()
+            publish(rechecking: [])
         }
     }
 
@@ -282,19 +287,23 @@ final class WindowTracker: @unchecked Sendable {
         dirty = []
         refreshDeadline = nil
         read(pids)
-        publish()
+        publish(rechecking: pids)
         moving = []
         // Re-evaluates the Space check on what the first publish let through or filtered too early:
         // the CG list lags behind AX after a move, a Space switch or a deminiaturize.
         trailingPublish?.invalidate()
-        trailingPublish = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [self] _ in publish() }
+        trailingPids.formUnion(pids)
+        trailingPublish = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [self] _ in
+            publish(rechecking: trailingPids)
+            trailingPids = []
+        }
     }
 
     private func retryReads() {
         retryTimer = nil
         let pids = retrying
         read(pids)
-        if retrying != pids { publish() }
+        if retrying != pids { publish(rechecking: pids) }
     }
 
     /// A failed read keeps the cache and moves to the retry timer, so a hung app costs at most
@@ -314,19 +323,24 @@ final class WindowTracker: @unchecked Sendable {
         }
     }
 
-    private func publish() {
+    /// `rechecking`: the apps just read, whose windows can fail the Space check; the others keep a pass they already have.
+    private func publish(rechecking pids: Set<pid_t>) {
         let onScreen = onScreenWindows()
-        onChange(apps.keys.flatMap { pid in
+        var passed: Set<AXUIElement> = []
+        let windows = apps.keys.flatMap { pid in
             let isAppHidden = NSRunningApplication(processIdentifier: pid)?.isHidden ?? false
             return apps[pid]!.windows.compactMap { cached -> TrackedWindow? in
                 var window = cached.window
                 guard isRealWindow(subrole: cached.subrole, isMinimized: window.isMinimized, isAppHidden: isAppHidden) else { return nil }
                 // A failed read leaves a stale frame. Measured on TextEdit: the first read after a minimize fails.
-                guard retrying.contains(pid) || moving.contains(window.element) || isOnCurrentSpace(pid: pid, frame: window.frame, isMinimized: window.isMinimized, isAppHidden: isAppHidden, onScreen: onScreen) else { return nil }
+                guard (!pids.contains(pid) && onSpace.contains(window.element)) || retrying.contains(pid) || moving.contains(window.element) || isOnCurrentSpace(pid: pid, frame: window.frame, isMinimized: window.isMinimized, isAppHidden: isAppHidden, onScreen: onScreen) else { return nil }
+                passed.insert(window.element)
                 window.isFocused = window.isFocused && pid == frontmost
                 return window
             }
-        }.sorted { $0.order < $1.order }, Set(apps.values.flatMap(\.orders.keys)))
+        }
+        onSpace = passed
+        onChange(windows.sorted { $0.order < $1.order }, Set(apps.values.flatMap(\.orders.keys)))
     }
 
     /// Reads only the owner and the bounds: nothing here needs Screen Recording.
