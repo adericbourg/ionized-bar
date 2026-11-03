@@ -77,8 +77,8 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
     // With no main menu, nothing maps these keys to the search field.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-           let action = event.charactersIgnoringModifiers.flatMap({ Self.editActions[$0] }) {
+        if event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock) == .command,
+           let action = event.charactersIgnoringModifiers.flatMap({ Self.editActions[$0.lowercased()] }) {
             NSApp.sendAction(action, to: nil, from: self)
             return true
         }

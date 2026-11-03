@@ -272,6 +272,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 
 ### Final review manual checks
 - [ ] Launcher: hold Return on the launcher button from ⌃⌥B: the panel opens and stays open, no app opens until Return is pressed again
+- [ ] Caps Lock on: ⌘X, ⌘C, ⌘V and ⌘A in the launcher's search field, and ⌘W on the Settings and onboarding windows, work as with Caps Lock off; ⌘⇧W closes nothing
 
 ## Known issues (tracked)
 
@@ -371,3 +372,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M2: the user picked frosted glass, always dark: the bar and the launcher panel set `appearance` to `.darkAqua` on their window, even in Light mode, while the preview panels keep following the system. The `IONIZED_BAR_MATERIAL=liquid` switch and its Liquid Glass branch are gone; PRODUCT.md's Material bullet says so. Build, checks and bundle pass. Not verified, the app was not launched: the dark look, the contrast of titles and of the accent highlight on the dark material, in Light mode, by eye.
 - 2026-11-03 — Manual passes of M2, M3, M4, M6, M8 and M9 run by the user, all passed; M2, M3, M4, M6, M8 and M9 done.
 - 2026-11-03 — Final review fix: holding Return on the launcher button opened the panel, then the key repeat reached the search field and opened the top app. The search field's Return now ignores repeats (`NSEvent.isARepeat`). Build, checks and bundle pass. Not verified, the app was not launched: the held key on a real keyboard, on the new final review manual checks list.
+- 2026-11-03 — Final review fix: with Caps Lock on, ⌘X, ⌘C, ⌘V and ⌘A did nothing in the launcher's search field, nor ⌘W on the Settings and onboarding windows, because the modifier check compared the flags with Caps Lock in them. The three checks now drop Caps Lock and compare the key in lower case. Build, checks and bundle pass, and a scratch run on synthetic key events gives ⌘W with Caps Lock a match and ⌘⇧W none. Not verified, the app was not launched: the keys on a real keyboard, on the final review manual checks list.

@@ -78,7 +78,8 @@ final class SettingsWindow: NSWindow {
 
     // With no main menu, nothing maps Cmd-W to closing the window.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command, event.charactersIgnoringModifiers == "w" {
+        if event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock) == .command,
+           event.charactersIgnoringModifiers?.lowercased() == "w" {
             close()
             return true
         }
