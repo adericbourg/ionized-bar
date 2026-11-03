@@ -78,7 +78,7 @@ Pinning keeps an app's icon on the bar while it's closed, and clicking the icon 
 
 - **Pinning:** "Pin" in the right-click menu of a task or of a group entry, since a pin belongs to the app and not to a window. "Unpin" replaces it when the app is pinned, and is also in the right-click menu of a pinned icon. A task whose app has no bundle identifier has no Pin item.
 - **Pinned icon:** a fixed-width, icon-only entry, about 48pt, with the app name as tooltip. A click opens the app with `NSWorkspace.openApplication`: a running app comes to the front and decides whether to reopen a window, no new window is forced.
-- **Saved as:** an ordered list of bundle identifiers in `UserDefaults`, global to all bars, in pinning order. Reordering is not planned. A pin whose app is no longer installed isn't shown, and stays saved.
+- **Saved as:** an ordered list of bundle identifiers in `UserDefaults`, global to all bars, in pinning order until re-ordered (M12). A pin whose app is no longer installed isn't shown, and stays saved.
 - **Setting "Keep pinned app icons visible":** a checkbox in the settings window, off by default.
   - **On:** the pinned icon is always visible, even when the app is open.
   - **Off:** the pinned icon disappears as the app opens, then only the task is visible.
@@ -93,7 +93,7 @@ Dragging a task along its bar changes its place on that bar. Only the entry move
 - **Click or drag:** a drag starts once the pointer has moved about 4pt, and its mouse-up is not a click. Dropping an entry back where it started changes nothing. Esc doesn't cancel a drag, because the panel is never key. In keyboard mode, where it is, keys are ignored during a drag and the drop ends keyboard mode, as a click does. A right or middle click during a drag does nothing. A window opening or closing during a drag doesn't end it, unless the dragged entry itself goes, as when its window closes or grouping changes it: the drag then ends with no move and no click.
 - **Order:** kept in memory only, so it's lost on quit: AX window elements don't survive a restart, and public APIs have no stable window id. A new window still goes last. A window that leaves and returns (Space switch, another display) keeps its place. A window moved to another display lands there by that same place, not last, since it isn't new.
 - **Group entry (M7):** drags as one, and its windows stay next to each other if the bar later ungroups. The order inside a group's window list can't be dragged.
-- **Launcher and pinned icons (M8, M9):** can't be dragged, and a task can't be dropped before them.
+- **Launcher and pinned icons (M8, M9):** the launcher can't be dragged, pinned icons only among themselves (M12), and a task can't be dropped before them.
 - **Without dragging:** "Move Left" and "Move Right" in the right-click menu of a task or group entry, disabled at the ends. WCAG 2.2 AA 2.5.7 asks for an alternative to dragging. The menu also covers keyboard mode (Shift-F10) and VoiceOver, so there's no new shortcut.
 - **Motion:** the other entries slide apart in under 150ms, and jump with *Reduce Motion* on. A drag dismisses the M6 preview and shows no new one until the drop.
 
@@ -101,7 +101,7 @@ Dragging a task along its bar changes its place on that bar. Only the entry move
 The launcher panel (M8) takes the layout of Plasma's launcher: a full-width search field on top, a sidebar on the left, apps on the right, and a footer with Restart and Shut Down. Places, the account picture and name, Sleep and Leave are not planned.
 
 - **Sidebar:** Favorites, All Applications, then the categories that have apps. A click switches view.
-- **Favorites:** the apps pinned on the bar (M9), in pinning order, as an icon grid. Pins can be outside the launcher's folders (Finder, for one). Pinning stays in the bar's menus. The other views are the M8 list.
+- **Favorites:** the apps pinned on the bar (M9), in the same order, as an icon grid. Pins can be outside the launcher's folders (Finder, for one). Pinning stays in the bar's menus. The other views are the M8 list.
 - **Opening view:** Favorites, or All Applications when nothing is pinned. Each opening starts over.
 - **Categories:** from the optional `LSApplicationCategoryType` key of each bundle's `Info.plist`, the only category macOS has. 90 of 122 apps declared one on 2026-11-03, and most of its values hold an app or two, so they merge:
 
@@ -122,6 +122,15 @@ The launcher panel (M8) takes the layout of Plasma's launcher: a full-width sear
 - **Restart and Shut Down:** ask `loginwindow` for the macOS confirmation dialog (`aevt`/`rrst` and `aevt`/`rsdn`), never acting directly. The dialog's own countdown applies. The M11 spike showed it from an `LSUIElement` app, above the bar, with no Automation prompt (macOS 27.2).
 - **Keyboard:** focus starts in the search field, and the arrow keys act on the apps from there, so typing always works. Tab goes through the search field, the sidebar, Restart and Shut Down. In the sidebar, Up and Down switch view, and Right, Return or Space go to its apps. Left comes back to the sidebar when no text is typed, in the grid from its first column only. Esc closes the panel from anywhere.
 - **Accessibility:** grid items are VoiceOver buttons labelled with the app name, and a view change is announced. The panel keeps honoring *Reduce Motion*, *Reduce Transparency* and *Increase Contrast*.
+
+## After v1: re-order pins (M12)
+Dragging a pinned icon along the bar changes its place among the pins. The interaction is the task drag of M10: the same threshold, click rules, event handling during a drag, motion, and resistance past the ends.
+
+- **Scope:** a pin stays between the launcher and the tasks. Past the first or last pin the icon follows with growing resistance, less than one icon width beyond, so it can overlap the launcher or the first task. A drop there lands on the nearest end pin.
+- **Order:** the saved pin list (M9), so unlike the task order it is global to all bars, survives a relaunch and also orders the launcher's Favorites (M11).
+- **Hidden pins:** a pin not shown on this bar (app not installed, or "Keep pinned app icons visible" off with a task here) keeps its saved place. The moved pin lands next to the one it passed.
+- **Mid-drag:** if the dragged pin leaves the bar, as when its app opens a window with the setting off, the drag ends with no move and no click.
+- **Without dragging:** "Move Left" and "Move Right" in the pinned icon's right-click menu, among the pins shown on that bar and disabled at the ends (WCAG 2.2 AA 2.5.7).
 
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).
@@ -162,6 +171,7 @@ The launcher panel (M8) takes the layout of Plasma's launcher: a full-width sear
 10. **M9 – Pin applications:** pinned icons on the bar and the "Keep pinned app icons visible" setting, after v1. Depends on the M7 settings window, and on M8 for the bar's order and task width.
 11. **M10 – Re-order tasks:** drag and drop a task on its bar, with "Move Left" and "Move Right" as the alternative, after v1. Depends on the M2 entries and interactions and on the M7 group entries.
 12. **M11 – Plasma-style launcher:** the sidebar, favorites and footer in the launcher panel, and hover on its rows, after v1. Depends on M8 and M9.
+13. **M12 – Re-order pins:** drag and drop a pinned icon among the pins, with "Move Left" and "Move Right" as the alternative, after v1. Depends on M9 and M10.
 
 ## Verification (per milestone, once implemented)
 - A check executable (`swift run IonizedBarChecks`) for the pure logic, because Command Line Tools have no working test framework (no `TestingMacros` plugin, no XCTest): screen assignment, flipping coordinates between top-left and bottom-left origins, the entry width formula (shrink, then icon-only threshold), and the overlap and fit computation. CI runs it too. If it can't load on the runner's older macOS, lower the minimum from 27.2 to 27.0.
@@ -173,6 +183,7 @@ The launcher panel (M8) takes the layout of Plasma's launcher: a full-width sear
 - Manual checklist for M9: pin and unpin from a task, a group entry and a pinned icon. The icon opening a closed app and raising a running one. The setting on and off, with the app open on one display only, on another Space, and running with no windows. Pins surviving a relaunch, an uninstalled pinned app, and VoiceOver and keyboard on a pinned icon.
 - Manual checklist for M10: drag a task and a group entry in every display mode, with and without grouping. A plain click and a small pointer slip still act as a click, and a drop neither raises nor minimizes a window. A drag past either end, and a window opening or closing during a drag. The order across a Space switch, a window moved to another display and back, and ungrouping. "Move Left" and "Move Right" by mouse, keyboard and VoiceOver, disabled at the ends. Reduce Motion, and a drag with a preview showing.
 - Manual checklist for M11: hover on every kind of item with another app frontmost, a still pointer while using the arrow keys, each view with no pins and with a pin outside the launcher's folders, both power dialogs and their Cancel, the Dock coming back after a confirmed restart, Tab and VoiceOver through the panel.
+- Manual checklist for M12: a real drag with another app frontmost, a plain click and a small slip, rubber band past both ends, a drop on all bars, in Favorites and after a relaunch, hidden pins, the dragged app opening a window mid-drag, "Move Left" and "Move Right" by mouse, keyboard and VoiceOver, and Reduce Motion.
 
 ## Known issues (to fix later)
 - **Gatekeeper quarantine on install.** The self-signed certificate (which keeps the TCC grants across upgrades, see README *Signing certificate*) is not trusted by Gatekeeper. The fix is a Developer ID with notarization (paid, so out of reach for now). Until then, the cask's `postflight_steps` runs `xattr -dr com.apple.quarantine` on the installed app (allowed in a third-party tap, not in homebrew/cask), and the README documents the same command for a manual zip install.

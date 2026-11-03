@@ -869,6 +869,29 @@ do {
           visiblePins(pins, keepsVisible: false, taskBundleIDs: [], installedBundleIDs: ["a", "c"]) == ["a", "c"])
 }
 
+// movingPin
+do {
+    // Given every pin shown on the bar
+    let pins = ["a", "b", "c", "d"]
+    check("movingPin_toTheRight_landsAfterThePinPassed",
+          movingPin(in: pins, shown: pins, from: 0, to: 2) == ["b", "c", "a", "d"])
+    check("movingPin_toTheLeft_landsBeforeThePinPassed",
+          movingPin(in: pins, shown: pins, from: 3, to: 1) == ["a", "d", "b", "c"])
+    // Given "b" hidden on this bar, Then it stays where it is relative to the pins that don't move
+    check("movingPin_withHiddenPins_keepsThemInPlace",
+          movingPin(in: pins, shown: ["a", "c", "d"], from: 2, to: 1) == ["a", "b", "d", "c"]
+          && movingPin(in: pins, shown: ["a", "c", "d"], from: 0, to: 1) == ["b", "c", "a", "d"])
+    check("movingPin_toItsOwnPlace_changesNothing", movingPin(in: pins, shown: pins, from: 1, to: 1) == pins)
+    check("movingPin_ofIndexOutOfRange_changesNothing",
+          movingPin(in: pins, shown: pins, from: 4, to: 0) == pins && movingPin(in: pins, shown: pins, from: 0, to: 4) == pins)
+    // Given a pin removed since the bar last showed it, Then it doesn't come back
+    check("movingPin_ofPinNoLongerSaved_changesNothing",
+          movingPin(in: ["a", "b"], shown: ["a", "b", "x"], from: 2, to: 0) == ["a", "b"])
+    // Given a pin passed that was removed since, Then there is nothing to land next to
+    check("movingPin_pastPinNoLongerSaved_changesNothing",
+          movingPin(in: ["a", "b"], shown: ["a", "x", "b"], from: 0, to: 1) == ["a", "b"])
+}
+
 // pinMenuTitle
 do {
     // Given an app that is not pinned, then one that is

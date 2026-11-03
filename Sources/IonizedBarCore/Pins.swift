@@ -7,6 +7,15 @@ public func unpinning(_ bundleID: String, in pins: [String]) -> [String] {
     pins.filter { $0 != bundleID }
 }
 
+/// `shown[from]` moved to index `to` of `shown`, the pins one bar shows. Pins hidden on that bar keep their place.
+public func movingPin(in pins: [String], shown: [String], from: Int, to: Int) -> [String] {
+    guard shown.indices.contains(from), shown.indices.contains(to), from != to else { return pins }
+    var rest = pins.filter { $0 != shown[from] }
+    guard rest.count < pins.count, let anchor = rest.firstIndex(of: shown[to]) else { return pins }
+    rest.insert(shown[from], at: anchor + (to > from ? 1 : 0))
+    return rest
+}
+
 /// The pinned icons one bar shows, in pinning order. An uninstalled pin is hidden, not dropped from `pins`.
 /// With `keepsVisible` off, an app with a task on this bar hides its icon; tasks on other bars don't.
 public func visiblePins(

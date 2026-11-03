@@ -25,7 +25,7 @@ struct EntryActions {
 }
 
 final class EntryView: NSView {
-    private enum Press {
+    enum Press {
         case none, pressed(at: NSPoint), dragging, abandoned
     }
 

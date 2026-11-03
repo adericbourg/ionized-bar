@@ -106,7 +106,7 @@ final class PreviewController {
     private lazy var panel = PreviewPanel { [unowned self] in pointerLeft() }
     private var entry: EntryView?
     /// No preview starts during a drag. Weak: a bar closed mid-drag gets no mouse-up, and mustn't leave previews off.
-    weak var dragged: EntryView? {
+    weak var dragged: NSView? {
         didSet { dismiss() }
     }
     private var showing: Task<Void, Never>?

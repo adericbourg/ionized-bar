@@ -15,8 +15,27 @@ private enum EntryKey: Hashable {
 }
 
 final class BarContentView: NSView {
+    @MainActor private enum Dragged {
+        case entry(EntryView)
+        case pin(PinnedIconView)
+
+        var view: NSView {
+            switch self {
+            case .entry(let entry): entry
+            case .pin(let icon): icon
+            }
+        }
+
+        func abandon() {
+            switch self {
+            case .entry(let entry): entry.abandonDrag()
+            case .pin(let icon): icon.abandonDrag()
+            }
+        }
+    }
+
     private struct Drag {
-        let entry: EntryView
+        let dragged: Dragged
         let grabOffset: CGFloat
         var pointerX: CGFloat
         var to: Int
@@ -114,7 +133,7 @@ final class BarContentView: NSView {
                 MainActor.assumeIsolated { self?.finishLeaving(entry) }
             }
         }
-        if let maybeDrag, !ordered.contains(maybeDrag.entry) { cancelDrag() }
+        if let maybeDrag, !focusStops.contains(maybeDrag.dragged.view) { cancelDrag() }
         if let focusedIndex, !focusStops.contains(where: { $0 === maybeFocused }) {
             window?.makeFirstResponder(focusStops[min(focusedIndex, focusStops.count - 1)])
         }
@@ -200,12 +219,32 @@ final class BarContentView: NSView {
         actions.moveEntry(items, from, from + offset)
     }
 
+    /// Among the pins this bar shows. False for an icon fading out.
+    func canMove(_ icon: PinnedIconView, by offset: Int) -> Bool {
+        guard let index = pinnedIcons.firstIndex(of: icon) else { return false }
+        return offset < 0 ? canMoveLeft(itemAt: index) : canMoveRight(itemAt: index, itemCount: pinnedIcons.count)
+    }
+
+    func move(_ icon: PinnedIconView, by offset: Int) {
+        guard canMove(icon, by: offset), let from = pinnedIcons.firstIndex(of: icon) else { return }
+        actions.setPins(movingPin(in: actions.pins(), shown: pins, from: from, to: from + offset))
+    }
+
     /// False for an entry already fading out.
     func beginDrag(_ entry: EntryView, pressedAt start: NSPoint) -> Bool {
-        guard let from = ordered.firstIndex(of: entry) else { return false }
+        startDrag(.entry(entry), in: ordered, pressedAt: start)
+    }
+
+    /// False for an icon already fading out.
+    func beginDrag(_ icon: PinnedIconView, pressedAt start: NSPoint) -> Bool {
+        startDrag(.pin(icon), in: pinnedIcons, pressedAt: start)
+    }
+
+    private func startDrag(_ dragged: Dragged, in row: [NSView], pressedAt start: NSPoint) -> Bool {
+        guard let from = row.firstIndex(of: dragged.view) else { return false }
         let pressX = convert(start, from: nil).x
-        maybeDrag = Drag(entry: entry, grabOffset: pressX - entry.frame.minX, pointerX: pressX, to: from)
-        actions.preview.dragged = entry
+        maybeDrag = Drag(dragged: dragged, grabOffset: pressX - dragged.view.frame.minX, pointerX: pressX, to: from)
+        actions.preview.dragged = dragged.view
         needsLayout = true
         return true
     }
@@ -223,11 +262,15 @@ final class BarContentView: NSView {
         guard let drag = maybeDrag else { return }
         let place = dragPlace(drag)
         finishDrag()
-        if place.to != place.from { actions.moveEntry(items, place.from, place.to) }
+        guard place.to != place.from else { return }
+        switch drag.dragged {
+        case .entry: actions.moveEntry(items, place.from, place.to)
+        case .pin: actions.setPins(movingPin(in: actions.pins(), shown: pins, from: place.from, to: place.to))
+        }
     }
 
     func cancelDrag() {
-        maybeDrag?.entry.abandonDrag()
+        maybeDrag?.dragged.abandon()
         finishDrag()
     }
 
@@ -237,25 +280,32 @@ final class BarContentView: NSView {
         needsLayout = true
     }
 
+    // What the dragged view moves along: pins stay between the launcher and the tasks, tasks stay after the pins.
+    private func dragRow(_ drag: Drag) -> (views: [NSView], slotX: CGFloat, width: CGFloat) {
+        switch drag.dragged {
+        case .entry: (ordered, slot.x, layoutWidth.width)
+        case .pin: (pinnedIcons, launcherWidth, pinnedIconWidth)
+        }
+    }
+
     private func dragPlace(_ drag: Drag) -> (x: CGFloat, from: Int, to: Int) {
-        let slot = self.slot
-        let width = layoutWidth.width
-        let from = ordered.firstIndex(of: drag.entry) ?? 0
-        let x = draggedEntryX(pointerX: drag.pointerX, grabOffset: drag.grabOffset, slotX: slot.x, entryWidth: width, entryCount: ordered.count)
-        return (x, from, dragTargetIndex(entryX: x, from: from, slotX: slot.x, entryWidth: width, entryCount: ordered.count))
+        let row = dragRow(drag)
+        let from = row.views.firstIndex(of: drag.dragged.view) ?? 0
+        let x = draggedEntryX(pointerX: drag.pointerX, grabOffset: drag.grabOffset, slotX: row.slotX, entryWidth: row.width, entryCount: row.views.count)
+        return (x, from, dragTargetIndex(entryX: x, from: from, slotX: row.slotX, entryWidth: row.width, entryCount: row.views.count))
     }
 
     private func placeDragged(_ drag: Drag) {
-        let rect = CGRect(x: dragPlace(drag).x, y: 0, width: layoutWidth.width, height: bounds.height)
-        drag.entry.frame = backingAlignedRect(rect, options: .alignAllEdgesNearest)
+        let rect = CGRect(x: dragPlace(drag).x, y: 0, width: dragRow(drag).width, height: bounds.height)
+        drag.dragged.view.frame = backingAlignedRect(rect, options: .alignAllEdgesNearest)
     }
 
     // Not addSubview: it takes the view out of the window for a moment, which could end the drag it's receiving.
-    private func raise(_ entry: EntryView) {
+    private func raise(_ view: NSView) {
         sortSubviews({ a, b, raised in
             if Unmanaged.passUnretained(a).toOpaque() == raised { return .orderedDescending }
             return Unmanaged.passUnretained(b).toOpaque() == raised ? .orderedAscending : .orderedSame
-        }, context: Unmanaged.passUnretained(entry).toOpaque())
+        }, context: Unmanaged.passUnretained(view).toOpaque())
     }
 
     private var layoutWidth: EntryWidth {
@@ -267,7 +317,22 @@ final class BarContentView: NSView {
     override func layout() {
         super.layout()
         launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
-        for (index, icon) in pinnedIcons.enumerated() {
+        var shownIcons = pinnedIcons
+        var shown = ordered
+        if var drag = maybeDrag {
+            let place = dragPlace(drag)
+            drag.to = place.to
+            maybeDrag = drag
+            switch drag.dragged {
+            case .entry: shown.insert(shown.remove(at: place.from), at: place.to)
+            case .pin: shownIcons.insert(shownIcons.remove(at: place.from), at: place.to)
+            }
+            placeDragged(drag)
+            // Here rather than once: a view added during the drag goes on top.
+            raise(drag.dragged.view)
+        }
+        for (index, icon) in shownIcons.enumerated() {
+            if icon === maybeDrag?.dragged.view { continue }
             let target = backingAlignedRect(CGRect(x: launcherWidth + CGFloat(index) * pinnedIconWidth, y: 0, width: pinnedIconWidth, height: bounds.height), options: .alignAllEdgesNearest)
             if icon.frame == .zero {
                 icon.frame = target
@@ -278,19 +343,9 @@ final class BarContentView: NSView {
         let slot = self.slot
         let isIconOnlyMode = settings.taskDisplay == .iconOnly
         let layoutWidth = self.layoutWidth
-        var shown = ordered
-        if var drag = maybeDrag {
-            let place = dragPlace(drag)
-            drag.to = place.to
-            maybeDrag = drag
-            shown.insert(shown.remove(at: place.from), at: place.to)
-            placeDragged(drag)
-            // Here rather than once: an entry added during the drag goes on top.
-            raise(drag.entry)
-        }
         for (index, entry) in shown.enumerated() {
             entry.isIconOnly = isIconOnlyMode || layoutWidth.isIconOnly
-            if entry === maybeDrag?.entry { continue }
+            if entry === maybeDrag?.dragged.view { continue }
             let target = backingAlignedRect(CGRect(x: slot.x + CGFloat(index) * layoutWidth.width, y: 0, width: layoutWidth.width, height: bounds.height), options: .alignAllEdgesNearest)
             if entry.frame == .zero {
                 entry.frame = target

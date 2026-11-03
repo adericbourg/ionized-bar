@@ -40,7 +40,10 @@ class BarIconButton: NSView {
         NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4).fill()
     }
 
-    override func mouseEntered(with event: NSEvent) { isHovered = true }
+    override func mouseEntered(with event: NSEvent) {
+        guard actions.preview.dragged == nil else { return }
+        isHovered = true
+    }
 
     override func mouseExited(with event: NSEvent) { isHovered = false }
 

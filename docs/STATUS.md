@@ -22,6 +22,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M9 – Pin applications | ✅ | 6/6 |
 | M10 – Re-order tasks | 🚧 | 4/5 |
 | M11 – Plasma-style launcher | ✅ | 6/6 |
+| M12 – Re-order pins | 🚧 | 3/4 |
 
 ## Requirements
 
@@ -301,6 +302,24 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] Caps Lock on: ⌘X, ⌘C, ⌘V and ⌘A in the launcher's search field, and ⌘W on the Settings and onboarding windows, work as with Caps Lock off; ⌘⇧W closes nothing
 - [ ] VoiceOver on a preview panel: the thumbnail reads "Preview of" the window title, or of the app name when the title is empty
 
+### M12 – Re-order pins
+- [x] Order decision in `IonizedBarCore`, with checks (`movingPin`: both directions, hidden pins, stale indexes and pins)
+- [x] Drag on pinned icons with the task drag's code: threshold, icons sliding apart, rubber band, drop, no click after a drag
+- [x] "Move Left" and "Move Right" in the pinned icon's menu
+- [ ] Manual pass
+
+### M12 manual pass
+- [ ] A real drag with another app frontmost: no key or activation taken, and the drop opens no app
+- [ ] A plain click and a 4pt slip still open the app; control-click and right-click still open the menu
+- [ ] Past both ends: the icon follows with growing resistance, overlapping the launcher or the first task above them, and snaps back on release to the nearest end pin
+- [ ] The launcher can't be dragged, and a task still can't be dropped before the pins
+- [ ] A drop shows on all bars and in Favorites, and survives a relaunch
+- [ ] "Keep pinned app icons visible" off: re-ordering with a pin hidden on this bar keeps it in place on the others; the dragged app opening a window mid-drag ends the drag with no move and no click
+- [ ] No preview during a pin drag, and the hover highlight is right on the launcher, pins and entries during and after one
+- [ ] Keyboard mode: a drag from ⌃⌥B's focus, keys ignored during it, keys back to the frontmost app after the drop
+- [ ] "Move Left" and "Move Right" by right-click, Shift-F10 and VoiceOver's Show Menu: one place, disabled at the first and last pins shown on that bar
+- [ ] Reduce Motion: the other icons jump
+
 ## Known issues (tracked)
 
 | Issue | Status |
@@ -420,3 +439,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M11: keyboard and VoiceOver on the new launcher. Focus stays in the search field, so typing always works, and the arrow keys act on the apps from there. Tab goes through the sidebar and the footer. The user's first run found no way from a category to its apps, as Return was the only way and nothing showed it, so Right now goes to the apps and Left comes back when no text is typed. A view change is announced. Verified: the checks (red first for the announcement), the build and the user's run of the keyboard paths and VoiceOver on the bundled app. M11 stays open at 5/6 until the rest of its manual pass is run.
 - 2026-11-03 — M11: the user ran the rest of the manual pass and reported it passing, so the milestone is done at 6/6.
 - 2026-11-03 — Fix: a restored window stayed behind the frontmost app's window until a second click. Deminiaturizing blocks the app past the 0.25s AX messaging timeout, so `AXMain` and `AXRaise` timed out with -25204, and on Firefox `AXFrontmost` returned success with no activation. Sending the raise first did not help, because raising a minimized window starts the deminiaturize itself. `restore` now raises when `kAXWindowDeminiaturizedNotification` arrives. Measured on Firefox: the notification came 527ms after the click, then the raise had no errors and Firefox became frontmost. The active highlight therefore appears after the animation, about 0.7s after the click. Verified: build, checks, and the manual repro with Firefox and Zentty. Not verified: hidden app, two windows of one app, group list.
+- 2026-11-03 — M12 added: pinned icons re-order by drag, through the task drag's code in `BarContentView`, so threshold, rubber band and event handling are shared; the launcher still can't be dragged. `movingPin` in `IonizedBarCore` maps a move among the pins a bar shows onto the saved list, so pins hidden there keep their place. "Move Left" and "Move Right" in the pinned icon's menu. `BarIconButton` shows no new hover highlight during any drag. Verified: build and checks. Not verified: everything needing a real pointer, see the M12 manual pass.
