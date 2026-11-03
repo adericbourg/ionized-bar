@@ -49,19 +49,9 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         self.onPower = onPower
         self.onDismiss = onDismiss
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
-        level = .statusBar
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
-        hidesOnDeactivate = false
-        isOpaque = false
-        backgroundColor = .clear
-        isMovable = false
         appearance = NSAppearance(named: .darkAqua)
-        let frosted = NSVisualEffectView()
-        frosted.blendingMode = .behindWindow
-        frosted.state = .active
-        frosted.material = .hudWindow
+        let frosted = setUpFloating()
         frosted.maskImage = PreviewPanel.roundedMask
-        contentView = frosted
 
         searchField.placeholderString = "Search applications"
         searchField.setAccessibilityLabel("Search applications")

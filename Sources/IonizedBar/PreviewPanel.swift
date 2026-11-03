@@ -20,18 +20,8 @@ final class PreviewPanel: NSPanel {
     init(onPointerExit: @escaping () -> Void) {
         self.onPointerExit = onPointerExit
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
-        level = .statusBar
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
-        hidesOnDeactivate = false
-        isOpaque = false
-        backgroundColor = .clear
-        isMovable = false
-        let frosted = NSVisualEffectView()
-        frosted.blendingMode = .behindWindow
-        frosted.state = .active
-        frosted.material = .hudWindow
+        let frosted = setUpFloating()
         frosted.maskImage = Self.roundedMask
-        contentView = frosted
         appName.font = .boldSystemFont(ofSize: 13)
         windowTitle.font = .systemFont(ofSize: 12)
         windowTitle.textColor = .secondaryLabelColor

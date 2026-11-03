@@ -457,3 +457,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — Audit cut: inlined `pinnedAccessibilityLabel`, a one-line helper with one caller.
 - 2026-11-03 — Audit cut: `LastCaptureCache` replaced by a dictionary in `BarManager`.
 - 2026-11-03 — Audit cut: the onboarding and settings windows share `AppWindow`, which holds their setup, `show()` and Cmd-W.
+- 2026-11-03 — Audit cut: the bar, preview and launcher panels share `setUpFloating()`, so the window level, Space behaviour and frosted view are set in one place.

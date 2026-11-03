@@ -11,6 +11,25 @@ func makeDarkTint(cornerRadius: CGFloat = 0) -> NSView {
     return tint
 }
 
+extension NSPanel {
+    /// What the bar, the preview and the launcher share. Returns the frosted content view.
+    func setUpFloating() -> NSVisualEffectView {
+        level = .statusBar
+        // Without fullScreenNone, canJoinAllSpaces also puts the panel on fullscreen Spaces, above the fullscreen window.
+        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
+        hidesOnDeactivate = false
+        isOpaque = false
+        backgroundColor = .clear
+        isMovable = false
+        let frosted = NSVisualEffectView()
+        frosted.blendingMode = .behindWindow
+        frosted.state = .active
+        frosted.material = .hudWindow
+        contentView = frosted
+        return frosted
+    }
+}
+
 final class BarPanel: NSPanel {
     private let content: BarContentView
     private let preview: PreviewController
@@ -19,29 +38,18 @@ final class BarPanel: NSPanel {
         content = BarContentView(actions: actions)
         preview = actions.preview
         super.init(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        level = .statusBar
-        // Without fullScreenNone, canJoinAllSpaces also puts the panel on fullscreen Spaces, above the fullscreen window.
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
-        hidesOnDeactivate = false
-        isOpaque = false
-        backgroundColor = .clear
+        let frosted = setUpFloating()
         hasShadow = false
-        isMovable = false
         becomesKeyOnlyIfNeeded = true
         isReleasedWhenClosed = false
         appearance = NSAppearance(named: .darkAqua)
         let surface = BarSurface(content: content)
-        let frosted = NSVisualEffectView()
-        frosted.blendingMode = .behindWindow
-        frosted.state = .active
-        frosted.material = .hudWindow
         let tint = makeDarkTint()
         tint.frame = frosted.bounds
         frosted.addSubview(tint)
         surface.frame = frosted.bounds
         surface.autoresizingMask = [.width, .height]
         frosted.addSubview(surface)
-        contentView = frosted
     }
 
     override var canBecomeKey: Bool { true }
