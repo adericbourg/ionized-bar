@@ -3,13 +3,15 @@ import IonizedBarCore
 
 /// An app kept on the bar while closed. Takes no window action: a click opens the app, which decides whether to show a window.
 final class PinnedIconView: BarIconButton {
+    private static let iconSize: CGFloat = 28
+
     let bundleID: String
 
     init(bundleID: String, manager: BarManager) {
         self.bundleID = bundleID
         let maybeURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
         let maybeImage = maybeURL.map { NSWorkspace.shared.icon(forFile: $0.path) }
-        maybeImage?.size = NSSize(width: EntryView.iconSize, height: EntryView.iconSize)
+        maybeImage?.size = NSSize(width: Self.iconSize, height: Self.iconSize)
         let name = maybeURL.map { FileManager.default.displayName(atPath: $0.path) } ?? bundleID
         super.init(image: maybeImage, label: name, manager: manager)
         setAccessibilityLabel("\(name), pinned")

@@ -77,7 +77,7 @@ A button always at the left of the bar, on every bar. It opens a panel above it 
 Pinning keeps an app's icon on the bar while it's closed, and clicking the icon opens the app. The bar reads, from the left: launcher (M8), pinned icons, tasks.
 
 - **Pinning:** "Pin" in the right-click menu of a task or of a group entry, since a pin belongs to the app and not to a window. "Unpin" replaces it when the app is pinned, and is also in the right-click menu of a pinned icon. A task whose app has no bundle identifier has no Pin item.
-- **Pinned icon:** a fixed-width, icon-only entry, about 48pt, with the app name as tooltip. A click opens the app with `NSWorkspace.openApplication`: a running app comes to the front and decides whether to reopen a window, no new window is forced.
+- **Pinned icon:** a fixed-width, icon-only entry, about 36pt, with a 28pt icon and the app name as tooltip. A click opens the app with `NSWorkspace.openApplication`: a running app comes to the front and decides whether to reopen a window, no new window is forced.
 - **Saved as:** an ordered list of bundle identifiers in `UserDefaults`, global to all bars, in pinning order until re-ordered (M12). A pin whose app is no longer installed isn't shown, and stays saved.
 - **Setting "Keep pinned app icons visible":** a checkbox in the settings window, off by default.
   - **On:** the pinned icon is always visible, even when the app is open.

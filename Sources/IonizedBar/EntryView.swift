@@ -3,7 +3,7 @@ import IonizedBarCore
 
 final class EntryView: BarButton {
     private static let padding: CGFloat = 8
-    static let iconSize: CGFloat = 16
+    private static let iconSize: CGFloat = 16
     private static let countGap: CGFloat = 2
 
     private var item: BarItem<TrackedWindow>

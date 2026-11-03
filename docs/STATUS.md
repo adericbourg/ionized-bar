@@ -464,3 +464,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — Audit cut: removed `EntryActions`, a struct of closures with one instance. The bar views now hold the `BarManager`.
 - 2026-11-03 — Audit cut: `LauncherController` takes no injected closures: it lists the apps and finds the favorites itself.
 - 2026-11-03 — Audit cut: `BarButton` holds what task entries and icon buttons shared (hover, focus, keys, menu, press and drag), and `BarContentView` loses its `Dragged` enum and overloads. Not yet checked by hand.
+- 2026-11-03 — Pinned icons are tighter and bigger: a 28pt icon (was 16pt) in a 36pt-wide button (was 48pt), so 4pt of margin per side instead of 16pt. Launcher and task icons unchanged. Checks updated (failing first) and passing, bundle builds. The app was not launched, so the look is not yet checked by hand.

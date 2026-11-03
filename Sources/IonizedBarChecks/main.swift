@@ -861,10 +861,10 @@ do {
 
 // pinnedIconWidth
 do {
-    // Given two pinned icons of about 48pt, Then tasks start after them and pins never shrink, even with no width left
+    // Given two pinned icons of about 36pt, Then tasks start after them and pins never shrink, even with no width left
     let slot = taskSlot(barWidth: 1000, pinnedWidth: 2 * pinnedIconWidth)
-    check("pinnedIconWidth_isAbout48Points", pinnedIconWidth == 48)
-    check("taskSlot_withTwoPinnedIcons_startsAfterThem", slot.x == 144 && slot.width == 856)
+    check("pinnedIconWidth_isAbout36Points", pinnedIconWidth == 36)
+    check("taskSlot_withTwoPinnedIcons_startsAfterThem", slot.x == 120 && slot.width == 880)
     check("taskSlot_withMorePinsThanFit_hasNoWidth", taskSlot(barWidth: 100, pinnedWidth: 3 * pinnedIconWidth).width == 0)
 }
 
