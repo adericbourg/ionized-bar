@@ -1,13 +1,19 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
-    paths: [Support/Info.plist]
   workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to increase
+        type: choice
+        options: [patch, minor, major]
+        default: minor
 
 permissions:
   contents: write
+
+# Two runs at once would compute the same version
+concurrency: release
 
 jobs:
   release:
@@ -21,23 +27,15 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
-      - name: Release only a version that has no tag yet
+      - run: swift run IonizedBarChecks
+      - name: Increase the version
         id: version
+        env:
+          BUMP: ${{ inputs.bump }}
         run: |
-          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)
-          if ! [[ "$version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
-            echo "Unexpected version '$version' in Info.plist" >&2
-            exit 1
-          fi
-          if gh release view "v$version" >/dev/null 2>&1; then
-            echo "v$version is already released, nothing to do"
-          else
-            echo "tag=v$version" >> "$GITHUB_OUTPUT"
-          fi
-      - if: steps.version.outputs.tag
-        run: swift run IonizedBarChecks
+          version=$(./scripts/bump-version.sh "$BUMP")
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
       - name: Import the signing certificate
-        if: steps.version.outputs.tag
         env:
           SIGNING_CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
           SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
@@ -53,18 +51,22 @@ jobs:
           # Lets codesign use the key without a UI prompt
           security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" >/dev/null
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
-      - if: steps.version.outputs.tag
-        run: ./scripts/archive.sh
+      - run: ./scripts/archive.sh
       - name: Refuse an ad-hoc build, which would lose the users' grants
-        if: steps.version.outputs.tag
         run: codesign -dr - build/IonizedBar.app 2>&1 | grep -q 'certificate leaf'
       - name: Delete the signing keychain
         if: always()
         run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
-      - if: steps.version.outputs.tag
+      # Pushed only once the build passed, so a failed run leaves the version unchanged; fails if main moved meanwhile
+      - name: Commit the version and release it
         env:
           TAG: ${{ steps.version.outputs.tag }}
-        run: gh release create "$TAG" build/IonizedBar-*.zip --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: release $TAG" Support/Info.plist
+          git push origin HEAD:main
+          gh release create "$TAG" build/IonizedBar-*.zip --target "$(git rev-parse HEAD)" --title "$TAG" --generate-notes
 
   cask:
     needs: release
