@@ -2,59 +2,129 @@
 
 A KDE Plasma–style taskbar for macOS that replaces the Dock.
 
+![The bar at the bottom of the screen, with the launcher button, pinned icons and one entry per open window](docs/images/bar.png)
+
 - One bar per display, showing only the windows on that display
 - One entry per open window, or per app if you group them, all with the same width
+- An app launcher with fuzzy search, and pinned apps
+- Optional window previews on hover
 - Hides the Dock while running and restores it on quit
 - Moves or resizes windows that overlap the bar, so maximizing doesn't cover it
-- Starts at login
 
-> Status: the bars exist, the Dock is hidden while the app runs, and windows are pushed off the bar. Nothing to install yet. See [docs/PRODUCT.md](docs/PRODUCT.md) for scope, design and roadmap, and [docs/STATUS.md](docs/STATUS.md) for implementation progress.
+## Install
 
-## Requirements
+You need macOS 27.2 or later on Apple silicon.
 
-macOS 27.2 or later. The app needs the Accessibility permission to list, raise and move windows; a small window explains it and opens the right System Settings pane.
+```sh
+brew install --cask adericbourg/tap/ionized-bar
+```
 
-## Start at login
+The app is self-signed and not notarized, so Gatekeeper would refuse to open it. The cask removes the quarantine attribute after installing, so installing from the tap means trusting it to bypass Gatekeeper for this app.
 
-The first time it has the Accessibility permission, the app adds itself to the login items (`SMAppService`). Turn it off with "Start at login" in Settings; it is not turned back on.
+To install by hand instead:
 
-## App launcher
+1. Download the zip from the [releases page](https://github.com/adericbourg/ionized-bar/releases).
+2. Move `IonizedBar.app` to `/Applications`.
+3. Remove the quarantine attribute:
 
-The button at the left of the bar opens your applications, with a search field that tolerates typos. A sidebar switches between Favorites (your pinned apps, as an icon grid), All Applications and categories. It opens on Favorites, or on All Applications when nothing is pinned, and typing searches all apps from any view.
+```sh
+xattr -d com.apple.quarantine /Applications/IonizedBar.app
+```
 
-The categories come from what each app declares, and apps that declare none are under Other. The pointer and the arrow keys move the same highlight, and Return or a click open an app; Escape or a click outside closes the panel. Tab reaches the sidebar and the footer; in the sidebar, Up and Down switch view, Right goes to its apps and Left comes back. VoiceOver announces the number of results and the selected app. The panel follows Reduce Motion, Reduce Transparency and Increase Contrast.
+## First launch
 
-Restart and Shut Down in the panel's footer show the macOS confirmation dialog. They never act without it.
+1. Open IonizedBar.
+2. Grant the Accessibility permission. A small window explains why and opens the right System Settings pane. The app needs it to list, raise and move windows.
 
-## Pinned apps
+Once the permission is granted:
 
-"Pin" in the right-click menu of a task or a group keeps the app's icon on the bar, between the launcher button and the tasks, on every display. A click on the icon opens the app. In keyboard mode (see Keyboard) Return or Space does the same and Shift-F10 opens its menu; VoiceOver reads it as a button labelled with the app name and "pinned". "Unpin" is in the same menus and in the icon's own. By default, an icon hides on a bar that shows a task for its app.
+- The bar fills with your windows.
+- The Dock hides.
+- The app adds itself to your login items. To stop this, turn off "Start at login" in Settings. It stays off.
 
-## Re-order tasks
+To quit, right-click the bar and pick "Quit IonizedBar". The Dock comes back.
 
-Drag an entry along its bar to change its place there; a group moves as one. "Move Left" and "Move Right" in the right-click menu of a task or a group do the same one place at a time, so they also work in keyboard mode (Shift-F10) and with VoiceOver. The order is kept in memory only and is lost on quit.
+## Use
 
-## Window previews
+### Tasks
 
-Off by default. Turn on "Show window previews" in a window entry's right-click menu; macOS then asks for the Screen Recording permission, used only to capture the hovered window. Hovering an entry (or focusing it with the keyboard) shows its app, title and a thumbnail; Esc dismisses it. A minimized window shows its last captured image, or the header only if it was never hovered. Nothing is written to disk. The panel follows Reduce Motion, Reduce Transparency and Increase Contrast.
+| Action | Result |
+|---|---|
+| Click | Raises the window |
+| Click the active task | Minimizes it |
+| Click a minimized task | Restores it |
+| Middle-click | Closes the window |
+| Right-click | Opens a menu: Close, Minimize, Move Left, Move Right, Pin, Quit the app, Settings… and Quit IonizedBar |
 
-Restart and Shut Down in the panel's footer show the macOS confirmation dialog. They never act without it.
+A click on a group lists its windows. A middle-click on a group does nothing, so a stray click can't close several windows.
 
-## Windows over the bar
+Windows that overlap the bar move up, and shrink if they don't fit. This waits until you release the mouse button. Fullscreen windows are left alone.
 
-A window that ends up over the bar is moved up, and shrunk if it doesn't fit below the menu bar. This waits until the mouse button is released and the frame has held for a moment. Fullscreen windows are left alone. If a push leaves a window over the bar, because of its minimum size or because the app puts it back, it stays there until its frame changes.
+### Launcher
 
-## Dock
+The button at the left of the bar lists your applications.
 
-The Dock can't be removed, so the app hides it the usual way: it sets `autohide` to true and `autohide-delay` to 1000 seconds in `com.apple.dock`, then runs `killall Dock`. It does this only once it has the Accessibility permission, since the bar shows no tasks until then. The Dock can still be glimpsed at the screen edge.
+- Type to search all apps. The search tolerates typos.
+- Pick Favorites (your pinned apps), All Applications or a category in the sidebar. Apps that declare no category are under Other.
+- Press Return or click to open an app.
+- Press Escape or click outside to close the panel.
+- Restart and Shut Down in the footer show the macOS confirmation dialog. They never act without it.
 
-Your original values are saved in the app's own prefs first, and a key that wasn't set is deleted again on restore rather than given a default. They come back on a normal quit, and on `SIGTERM` or `SIGINT`.
+### Pinned apps
 
-`kill -9` or a crash can't restore anything, so the Dock stays hidden until the next launch. That launch treats the saved values as the truth and keeps them: it hides the Dock again and the next quit restores them. Without the permission, it restores them right away.
+- Pick "Pin" in the right-click menu of a task or a group. The app's icon stays on every bar, between the launcher and the tasks.
+- Click the icon to open the app.
+- Pick "Unpin" in the same menus or in the icon's own menu.
 
-An `autohide-delay` of 60 seconds or more is not taken for a preference: it means another taskbar or a lost saved state left the Dock hidden. In that case both keys are saved as not set, so quitting IonizedBar leaves the Dock visible. Running alongside another taskbar (boringBar, uBar) still fights over the Dock, and quitting IonizedBar shows it even if that other taskbar is still running.
+By default, an icon hides on a bar that shows a task for its app. To always show it, turn on "Keep pinned app icons visible" in Settings.
 
-To get the Dock back by hand, for example after a crash followed by uninstalling the app:
+### Re-ordering
+
+- Drag a task or a pinned icon along the bar. A group moves as one.
+- Or pick "Move Left" or "Move Right" in its right-click menu.
+
+The task order is lost on quit. The pin order is saved and applies to all bars.
+
+### Window previews
+
+Previews are off by default.
+
+1. Right-click a task and pick "Show window previews".
+2. Grant the Screen Recording permission when macOS asks. The app uses it only to capture the window you hover.
+
+Hovering a task then shows its app, title and a thumbnail. Press Esc to dismiss it. A minimized window shows its last captured image, or no image if you never hovered it. Nothing is written to disk.
+
+### Settings
+
+Pick "Settings…" in a right-click menu of the bar.
+
+| Setting | Values |
+|---|---|
+| Group windows | Never (default), When full, Always |
+| Show tasks as | Icon only, App name, Content (default, the window title) |
+| Keep pinned app icons visible | Off by default |
+| Start at login | On after the first launch |
+
+### Keyboard
+
+Press ⌃⌥B to focus the bar under the mouse.
+
+| Key | Result |
+|---|---|
+| Tab, Shift-Tab, Left, Right | Moves between the launcher, the pinned icons and the tasks |
+| Return, Space | Clicks |
+| Shift-F10 | Opens the menu |
+| Escape | Leaves the bar |
+
+In the launcher, Tab reaches the sidebar and the footer. In the sidebar, Up and Down switch view, Right goes to its apps and Left comes back.
+
+VoiceOver reads every item on the bar and in the launcher. The bar and its panels follow Reduce Motion, Reduce Transparency and Increase Contrast.
+
+## Get the Dock back
+
+The Dock comes back when you quit the app or uninstall the cask. After a crash it stays hidden until the next launch and quit.
+
+If you removed the app after a crash, restore the Dock by hand. These commands reset its autohide settings, so set them again if you used them:
 
 ```sh
 defaults delete com.apple.dock autohide-delay
@@ -62,57 +132,49 @@ defaults write com.apple.dock autohide -bool false
 killall Dock
 ```
 
-## Installation (planned)
+## Uninstall
 
 ```sh
-brew install --cask adericbourg/tap/ionized-bar
+brew uninstall --cask ionized-bar
 ```
 
-Releases are signed with a self-signed certificate, so the Accessibility and Screen Recording grants survive upgrades. Coming from an ad-hoc build (before signing, or a local build without the certificate), grant them once more: if IonizedBar already shows ON but the bar stays empty, run `tccutil reset Accessibility io.github.adericbourg.ionized-bar` and grant it again.
+This quits the app, which restores the Dock, and removes the login item.
 
-The certificate is not trusted by Apple and the app is not notarized (see [Known issues](docs/PRODUCT.md#known-issues-to-fix-later)), so Gatekeeper would refuse to open a quarantined download. The cask removes the quarantine attribute after installing, so installing from the tap means trusting it to bypass Gatekeeper for this app. If you install the zip from the release page by hand, remove the attribute yourself once:
+## Known limitations
 
-```sh
-xattr -d com.apple.quarantine /Applications/IonizedBar.app
-```
+**Dock**
 
-## Keyboard
+- The Dock can't be removed, only hidden, so it can still be glimpsed at the screen edge.
+- Running alongside another taskbar (boringBar, uBar) fights over the Dock. Quitting IonizedBar shows the Dock even if the other taskbar is still running.
 
-⌃⌥B focuses the bar under the mouse: the active window's entry, or the launcher button if no window is active. Tab, Shift-Tab, Left and Right move between the launcher button, the pinned icons and the entries; Return or Space clicks; Shift-F10 opens the menu; Escape leaves.
+**Windows that show when they shouldn't**
 
-## Build
+- A minimized window on another Space is listed.
+- Two windows of one app with the same frame on different Spaces can both be listed.
+- A hidden app's windows on other Spaces are listed.
+- A hidden app's dialogs, and minimized dialogs, can be listed.
+- Native tabs show as one entry per tab while minimized (seen on TextEdit).
+- The windows of an app that hangs stay listed across a Space switch while it hangs.
 
-Command Line Tools are enough, Xcode is not needed.
+**Slow or stale updates**
 
-```sh
-./scripts/bundle.sh
-open --stderr "$(tty)" build/IonizedBar.app
-```
+- A window moved to another Space with no notification from its app keeps its entry until the app's windows are read again.
+- A minimized task can take more than 1 s to dim.
+- A minimized task can blink out and back, about 1 minimize in 10 (seen on Claude and IntelliJ).
+- An app that fails to attach at launch can stay missing from the bar until you relaunch it.
 
-`bundle.sh` signs with the `IonizedBar Signing` identity when it is in the keychain, and ad-hoc otherwise (with a warning). An ad-hoc build loses the permissions on every rebuild.
+**Fullscreen**
 
-Checks: `swift run IonizedBarChecks` runs the pure-logic checks (no XCTest on Command Line Tools) and exits non-zero on failure.
+- The bar stays above fullscreen that isn't a native fullscreen Space: some games, or Firefox with `full-screen-api.macos-native-full-screen` turned off.
 
-## Releasing
+**Windows that stay over the bar**
 
-Apple silicon only. `./scripts/archive.sh` builds the bundle and zips it into `build/IonizedBar-<version>.zip`, printing the path and its sha256 (for the cask). To release: run the Release workflow from the Actions tab on `main` and pick the part to increase: `patch`, `minor` (default) or `major`. It runs the checks, sets the next version in `Support/Info.plist` with `./scripts/bump-version.sh` (both `CFBundleShortVersionString` and `CFBundleVersion`), builds and signs the zip, then pushes a `chore: release v<version>` commit to `main` and creates the GitHub release `v<version>` on it. Nothing is pushed if a step fails, and the push fails if `main` moved during the run. Don't edit the version by hand. A second job then sets `version` and `sha256` in `Casks/ionized-bar.rb` of `adericbourg/homebrew-tap` and pushes it to that repository's `main`. It needs the `HOMEBREW_TAP_TOKEN` secret: a fine-grained token limited to the tap, with `Contents: Read and write`. The cask must already be on the tap's `main`.
+- A window with a large minimum size, or whose app puts it back, stays over the bar until its frame changes.
 
-### Signing certificate
+## More
 
-Releases are signed with a self-signed certificate (`CN=IonizedBar Signing`). TCC then pins the grants to `identifier + certificate leaf` instead of each build's cdhash. Losing the certificate means every user grants the permissions once more, so keep the `.p12` and its password in a password manager. The Release workflow imports it from the `SIGNING_CERT_P12` (base64 of the `.p12`) and `SIGNING_CERT_PASSWORD` secrets, and refuses to release an ad-hoc build. To create one (valid 10 years), then use the same `.p12` on your Mac so local builds share the grant:
-
-```sh
-openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem -days 3650 -subj "/CN=IonizedBar Signing" \
-  -addext "keyUsage=critical,digitalSignature" -addext "extendedKeyUsage=critical,codeSigning" -addext "basicConstraints=critical,CA:false"
-openssl pkcs12 -export -legacy -inkey key.pem -in cert.pem -name "IonizedBar Signing" -out IonizedBar-signing.p12
-security import IonizedBar-signing.p12 -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign
-base64 -i IonizedBar-signing.p12 | gh secret set SIGNING_CERT_P12
-gh secret set SIGNING_CERT_PASSWORD
-```
-
-`security find-identity -p codesigning` lists it as `CSSMERR_TP_NOT_TRUSTED`; that is expected and does not prevent signing.
-
-After the first release, add the cask to the tap README's table, then on a clean macOS account run `brew install --cask adericbourg/tap/ionized-bar`, open the app, grant Accessibility, uninstall and check the Dock is back.
+- [Product brief](docs/PRODUCT.md): what the app does and why
+- [Development](docs/DEVELOPMENT.md): build from source and release
 
 ## License
 
