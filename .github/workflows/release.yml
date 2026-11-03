@@ -36,8 +36,31 @@ jobs:
           fi
       - if: steps.version.outputs.tag
         run: swift run IonizedBarChecks
+      - name: Import the signing certificate
+        if: steps.version.outputs.tag
+        env:
+          SIGNING_CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
+          SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password=$(openssl rand -base64 24)
+          echo "$SIGNING_CERT_P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$SIGNING_CERT_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/signing.p12"
+          # Lets codesign use the key without a UI prompt
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
       - if: steps.version.outputs.tag
         run: ./scripts/archive.sh
+      - name: Refuse an ad-hoc build, which would lose the users' grants
+        if: steps.version.outputs.tag
+        run: codesign -dr - build/IonizedBar.app 2>&1 | grep -q 'certificate leaf'
+      - name: Delete the signing keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
       - if: steps.version.outputs.tag
         env:
           TAG: ${{ steps.version.outputs.tag }}

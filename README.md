@@ -62,7 +62,7 @@ killall Dock
 brew install --cask adericbourg/tap/ionized-bar
 ```
 
-Known issue: releases are not signed yet, so you have to grant the Accessibility permission again after each upgrade. See [Known issues](docs/PRODUCT.md#known-issues-to-fix-later).
+Releases are signed with a self-signed certificate, so the Accessibility and Screen Recording grants survive upgrades. Coming from an ad-hoc build (before signing, or a local build without the certificate), grant them once more: if IonizedBar already shows ON but the bar stays empty, run `tccutil reset Accessibility io.github.adericbourg.ionized-bar` and grant it again. Gatekeeper still quarantines the download, see [Known issues](docs/PRODUCT.md#known-issues-to-fix-later).
 
 ## Keyboard
 
@@ -77,11 +77,28 @@ Command Line Tools are enough, Xcode is not needed.
 open --stderr "$(tty)" build/IonizedBar.app
 ```
 
+`bundle.sh` signs with the `IonizedBar Signing` identity when it is in the keychain, and ad-hoc otherwise (with a warning). An ad-hoc build loses the permissions on every rebuild.
+
 Checks: `swift run IonizedBarChecks` runs the pure-logic checks (no XCTest on Command Line Tools) and exits non-zero on failure.
 
 ## Releasing
 
 Apple silicon only. `./scripts/archive.sh` builds the bundle and zips it into `build/IonizedBar-<version>.zip`, printing the path and its sha256 (for the cask). To release: bump `CFBundleShortVersionString` and `CFBundleVersion` in `Support/Info.plist`, commit and push to `main`. The Release workflow creates the tag `v<version>` itself, for example `v0.1.0`: when the plist changes on `main` (or when run by hand from the Actions tab), it does nothing if that version already has a release, otherwise it runs the checks and creates the GitHub release with the zip. A second job then sets `version` and `sha256` in `Casks/ionized-bar.rb` of `adericbourg/homebrew-tap` and pushes it to that repository's `main`. It needs the `HOMEBREW_TAP_TOKEN` secret: a fine-grained token limited to the tap, with `Contents: Read and write`. The cask must already be on the tap's `main`.
+
+### Signing certificate
+
+Releases are signed with a self-signed certificate (`CN=IonizedBar Signing`). TCC then pins the grants to `identifier + certificate leaf` instead of each build's cdhash. Losing the certificate means every user grants the permissions once more, so keep the `.p12` and its password in a password manager. The Release workflow imports it from the `SIGNING_CERT_P12` (base64 of the `.p12`) and `SIGNING_CERT_PASSWORD` secrets, and refuses to release an ad-hoc build. To create one (valid 10 years), then use the same `.p12` on your Mac so local builds share the grant:
+
+```sh
+openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem -days 3650 -subj "/CN=IonizedBar Signing" \
+  -addext "keyUsage=critical,digitalSignature" -addext "extendedKeyUsage=critical,codeSigning" -addext "basicConstraints=critical,CA:false"
+openssl pkcs12 -export -legacy -inkey key.pem -in cert.pem -name "IonizedBar Signing" -out IonizedBar-signing.p12
+security import IonizedBar-signing.p12 -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign
+base64 -i IonizedBar-signing.p12 | gh secret set SIGNING_CERT_P12
+gh secret set SIGNING_CERT_PASSWORD
+```
+
+`security find-identity -p codesigning` lists it as `CSSMERR_TP_NOT_TRUSTED`; that is expected and does not prevent signing.
 
 After the first release, add the cask to the tap README's table, then on a clean macOS account run `brew install --cask adericbourg/tap/ionized-bar`, open the app, grant Accessibility, uninstall and check the Dock is back.
 
