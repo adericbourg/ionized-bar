@@ -47,7 +47,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         self.onDismiss = onDismiss
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         level = .statusBar
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
         hidesOnDeactivate = false
         isOpaque = false
         backgroundColor = .clear

@@ -104,6 +104,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Hotkey on a bar with no tasks: the launcher button takes focus (see the M8 manual pass)
 - [x] Hotkey, then a click on an entry: keyboard mode ends and typing reaches the app
 - [x] Hotkey on a fullscreen Space: nothing happens and the fullscreen app keeps keys
+- [x] Fullscreen video in Firefox and Chrome: no bar over the video on its display, the other displays keep theirs, and the bar comes back on leaving or swiping to a normal Space
+- [x] An open launcher or preview when a window goes fullscreen: nothing stays above the fullscreen window
 - [x] Key handback with two displays
 - [x] Key handback with the Settings window open
 - [x] Reduce Transparency
@@ -335,6 +337,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | A minimized entry can still blink out then back, about 1 minimize in 10 (Claude, IntelliJ; cause not logged, probably the app's own read during the animation, which still runs the Space check on `isMinimized=false`) | ⬜ open |
 | A window moved to another Space with no AX notification keeps its entry until its app is read again (the Space check can only drop a window when its own app is read) | ⬜ open, accepted for v1 |
 | An app whose attach fails with an error other than `.cannotComplete` is lost until it is relaunched | ⬜ open, accepted for v1 |
+| Fullscreen that isn't a native fullscreen Space (borderless windows, e.g. some games, or Firefox with `full-screen-api.macos-native-full-screen` turned off) still has the bar above it | ⬜ open, accepted for v1 |
 
 ## Log
 
@@ -440,3 +443,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M11: the user ran the rest of the manual pass and reported it passing, so the milestone is done at 6/6.
 - 2026-11-03 — Fix: a restored window stayed behind the frontmost app's window until a second click. Deminiaturizing blocks the app past the 0.25s AX messaging timeout, so `AXMain` and `AXRaise` timed out with -25204, and on Firefox `AXFrontmost` returned success with no activation. Sending the raise first did not help, because raising a minimized window starts the deminiaturize itself. `restore` now raises when `kAXWindowDeminiaturizedNotification` arrives. Measured on Firefox: the notification came 527ms after the click, then the raise had no errors and Firefox became frontmost. The active highlight therefore appears after the animation, about 0.7s after the click. Verified: build, checks, and the manual repro with Firefox and Zentty. Not verified: hidden app, two windows of one app, group list.
 - 2026-11-03 — M12 added: pinned icons re-order by drag, through the task drag's code in `BarContentView`, so threshold, rubber band and event handling are shared; the launcher still can't be dragged. `movingPin` in `IonizedBarCore` maps a move among the pins a bar shows onto the saved list, so pins hidden there keep their place. "Move Left" and "Move Right" in the pinned icon's menu. `BarIconButton` shows no new hover highlight during any drag. Verified: build and checks. Not verified: everything needing a real pointer, see the M12 manual pass.
+- 2026-11-03 — Fix: the bar showed above a fullscreen video, over its controls. Sampling windows during a Firefox fullscreen showed a real fullscreen Space with the bar still on screen at `.statusBar` level: `canJoinAllSpaces` puts these non-activating panels on fullscreen Spaces too. Added `fullScreenNone` to the bar, launcher and preview panels. Verified: test panels with each behavior in Firefox fullscreen, where only those with `fullScreenNone` left the screen and `isOnActiveSpace` went false, so the hotkey guard holds; build and checks. The user then ran the M2 manual items on the app and reported them passing.

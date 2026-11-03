@@ -21,7 +21,7 @@ final class PreviewPanel: NSPanel {
         self.onPointerExit = onPointerExit
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         level = .statusBar
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
         hidesOnDeactivate = false
         isOpaque = false
         backgroundColor = .clear

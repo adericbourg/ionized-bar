@@ -9,7 +9,8 @@ final class BarPanel: NSPanel {
         preview = actions.preview
         super.init(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         level = .statusBar
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        // Without fullScreenNone, canJoinAllSpaces also puts the panel on fullscreen Spaces, above the fullscreen window.
+        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
         hidesOnDeactivate = false
         isOpaque = false
         backgroundColor = .clear
