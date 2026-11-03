@@ -45,7 +45,7 @@ final class PreviewPanel: NSPanel {
         frosted.addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
     }
 
-    private static var roundedMask: NSImage {
+    static var roundedMask: NSImage {
         let side = cornerRadius * 2 + 1
         let mask = NSImage(size: CGSize(width: side, height: side), flipped: false) { rect in
             NSColor.black.setFill()

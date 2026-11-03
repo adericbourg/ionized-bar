@@ -55,6 +55,12 @@ public func previewFrame(entry: CGRect, size: CGSize, screen: CGRect, gap: CGFlo
     return CGRect(x: x.rounded(), y: (entry.maxY + gap).rounded(), width: size.width, height: size.height)
 }
 
+/// Above `button`, kept on `screen` (its visible frame), and no larger than the room there.
+public func launcherFrame(button: CGRect, size: CGSize, screen: CGRect, gap: CGFloat) -> CGRect {
+    let fitted = CGSize(width: min(size.width, screen.width - 2 * gap), height: min(size.height, screen.maxY - button.maxY - 2 * gap))
+    return previewFrame(entry: button, size: fitted, screen: screen, gap: gap)
+}
+
 /// Whether `point` is in the strip between `entry` and the `panel` above it, within the panel's width.
 public func isInPreviewGap(_ point: CGPoint, entry: CGRect, panel: CGRect) -> Bool {
     point.y >= entry.maxY && point.y < panel.minY && (panel.minX..<panel.maxX).contains(point.x)

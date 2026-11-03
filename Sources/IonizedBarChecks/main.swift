@@ -622,6 +622,88 @@ do {
     check("listApplications_sortsByNameAndIncludesUtilities", apps.map(\.name) == ["alpha", "Terminal", "Zed"])
 }
 
+// LauncherList
+do {
+    let app = { (name: String, path: String) in InstalledApp(name: name, url: URL(fileURLWithPath: path)) }
+    let safari = app("Safari", "/Applications/Safari.app")
+    let slack = app("Slack", "/Applications/Slack.app")
+    let notes = app("Notes", "/System/Applications/Notes.app")
+
+    // Given no apps read yet
+    var list = LauncherList()
+    // Then nothing is selected, and moving does nothing
+    list.moveSelection(by: 1)
+    check("LauncherList_whenEmpty_selectsNothing", list.selected == nil && list.selectedIndex == nil)
+
+    // When the apps arrive
+    list.setApps([notes, safari, slack])
+    // Then all show, with the top row selected
+    check("setApps_withEmptyQuery_listsAllAndSelectsTop", list.rows == [notes, safari, slack] && list.selected == notes)
+
+    // When moving past either end
+    list.moveSelection(by: -1)
+    check("moveSelection_aboveTop_staysOnTop", list.selectedIndex == 0)
+    list.moveSelection(by: 1)
+    check("moveSelection_down_selectsNextRow", list.selected == safari)
+    list.moveSelection(by: 1)
+    list.moveSelection(by: 1)
+    check("moveSelection_belowBottom_staysOnBottom", list.selected == slack)
+
+    // When a fresh read arrives with the selected app still in it, and a new one above it
+    let zoom = app("Zoom", "/Applications/Zoom.app")
+    list.setApps([safari, slack, zoom])
+    // Then the selection stays on that app, even if its row moved
+    check("setApps_withSelectedAppStillListed_keepsItSelected", list.selected == slack && list.selectedIndex == 1)
+
+    // When it arrives without the selected app
+    list.setApps([notes, safari])
+    check("setApps_withoutSelectedApp_selectsTop", list.selectedIndex == 0)
+
+    // When the same name is in two folders: the URL tells them apart
+    let otherNotes = app("Notes", "/Users/me/Applications/Notes.app")
+    list.setApps([notes, otherNotes])
+    list.moveSelection(by: 1)
+    list.setApps([otherNotes, notes])
+    check("setApps_withRepeatedName_keepsSelectionByURL", list.selected == otherNotes && list.selectedIndex == 0)
+
+    // When the query changes
+    list.setApps([notes, safari, slack])
+    list.moveSelection(by: 2)
+    list.setQuery("saf")
+    // Then rows are filtered, and the selection goes back to the top row
+    check("setQuery_filtersAndSelectsTop", list.rows == [safari] && list.selected == safari)
+
+    // When apps arrive while a query is typed
+    list.setApps([notes, safari, slack, app("Safari Preview", "/Applications/Safari Preview.app")])
+    check("setApps_withQuery_keepsFiltering", list.rows.map(\.name) == ["Safari", "Safari Preview"])
+
+    // When nothing matches
+    list.setQuery("qqqq")
+    list.moveSelection(by: 1)
+    // Then there is nothing to open
+    check("setQuery_withNoMatch_selectsNothing", list.rows.isEmpty && list.selected == nil)
+
+    // When the query is cleared
+    list.setQuery("")
+    check("setQuery_empty_listsAllAndSelectsTop", list.rows.count == 4 && list.selectedIndex == 0)
+}
+
+// launcherFrame
+do {
+    let screen = CGRect(x: 1000, y: 0, width: 1000, height: 800)
+    let size = CGSize(width: 360, height: 420)
+    // Given the button at the screen's left edge
+    let button = CGRect(x: 1000, y: 0, width: 48, height: 36)
+    // Then the panel is above it, on that screen, with its full size
+    check("launcherFrame_ofButtonAtLeftEdge_staysOnScreenAboveIt",
+          launcherFrame(button: button, size: size, screen: screen, gap: 4) == CGRect(x: 1004, y: 40, width: 360, height: 420))
+    // Given a screen too short and too narrow for the panel
+    let small = CGRect(x: 0, y: 0, width: 300, height: 200)
+    let fitted = launcherFrame(button: CGRect(x: 0, y: 0, width: 48, height: 36), size: size, screen: small, gap: 4)
+    // Then it shrinks to stay fully on screen, with the gap kept
+    check("launcherFrame_onSmallScreen_shrinksToFit", fitted == CGRect(x: 4, y: 40, width: 292, height: 156))
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

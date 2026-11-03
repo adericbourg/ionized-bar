@@ -3,6 +3,11 @@ import Foundation
 public struct InstalledApp: Sendable, Equatable {
     public let name: String
     public let url: URL
+
+    public init(name: String, url: URL) {
+        self.name = name
+        self.url = url
+    }
 }
 
 /// The `.app` bundles directly in each folder and in its `Utilities` subfolder (`/System/Applications/Utilities`
@@ -55,6 +60,37 @@ private func tier(of q: [Character], in n: [Character]) -> Int? {
     var rest = q[...]
     for c in n where c == rest.first { rest = rest.dropFirst() }
     return rest.isEmpty ? 5 : nil
+}
+
+/// What the launcher panel shows: the apps matching the query, and the row Up, Down and Return act on.
+public struct LauncherList {
+    private var apps: [InstalledApp] = []
+    public private(set) var query = ""
+    public private(set) var rows: [InstalledApp] = []
+    public private(set) var selectedIndex: Int?
+
+    public init() {}
+
+    public var selected: InstalledApp? { selectedIndex.map { rows[$0] } }
+
+    /// A fresh read keeps the selected app, by URL: names repeat across folders.
+    public mutating func setApps(_ apps: [InstalledApp]) {
+        let maybeSelectedURL = selected?.url
+        self.apps = apps
+        rows = fuzzyFilter(apps, query: query, name: \.name)
+        selectedIndex = rows.firstIndex { $0.url == maybeSelectedURL } ?? (rows.isEmpty ? nil : 0)
+    }
+
+    public mutating func setQuery(_ query: String) {
+        self.query = query
+        rows = fuzzyFilter(apps, query: query, name: \.name)
+        selectedIndex = rows.isEmpty ? nil : 0
+    }
+
+    public mutating func moveSelection(by offset: Int) {
+        guard let selectedIndex else { return }
+        self.selectedIndex = min(max(selectedIndex + offset, 0), rows.count - 1)
+    }
 }
 
 /// Optimal string alignment distance: insertion, deletion, substitution and adjacent swap each cost 1.

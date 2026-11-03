@@ -18,6 +18,10 @@ macOS 27.2 or later. The app needs the Accessibility permission to list, raise a
 
 The first time it has the Accessibility permission, the app adds itself to the login items (`SMAppService`). Turn it off with "Start at login" in Settings; it is not turned back on.
 
+## App launcher
+
+The button at the left of the bar opens a list of your applications, with a search field that tolerates typos. Up, Down and Return, or a click, open an app; Escape or a click outside closes the list.
+
 ## Window previews
 
 Off by default. Turn on "Show window previews" in a window entry's right-click menu; macOS then asks for the Screen Recording permission, used only to capture the hovered window. Hovering an entry (or focusing it with the keyboard) shows its app, title and a thumbnail; Esc dismisses it. A minimized window shows its last captured image, or the header only if it was never hovered. Nothing is written to disk. The panel follows Reduce Motion, Reduce Transparency and Increase Contrast.
