@@ -842,6 +842,10 @@ do {
     // Given a mover past either end, Then it clamps; dropped where it started, nothing changes
     check("move_pastTheRightEnd_clamps", shown(moving(seeing("a b c"), on: "a b c", from: 0, to: 99), "a b c") == "b c a")
     check("move_pastTheLeftEnd_clamps", shown(moving(seeing("a b c"), on: "a b c", from: 2, to: -5), "a b c") == "c a b")
+    // Given a mover already at the end it's pushed past, or no items at all, Then nothing changes
+    check("move_ofLastPastTheRightEnd_changesNothing", moving(seeing("a b c"), on: "a b c", from: 2, to: 99).keys == ["a", "b", "c"])
+    check("move_ofFirstPastTheLeftEnd_changesNothing", moving(seeing("a b c"), on: "a b c", from: 0, to: -5).keys == ["a", "b", "c"])
+    check("move_withNoItems_changesNothing", moving(seeing("a b"), on: "", from: 0, to: 0).keys == ["a", "b"])
     let interleaved = seeing("a1 b a2 c")
     check("move_toWhereItStarted_changesNothing", moving(interleaved, on: "a1 b a2 c", mode: .always, from: 0, to: 0).keys == interleaved.keys)
 
@@ -883,6 +887,18 @@ do {
     let beforeStale = stale.keys
     stale.move(staleItems, from: 0, to: 2, key: \.name)
     check("move_ontoAGoneWindow_changesNothing", stale.keys == beforeStale)
+    // Given a mover, or a passed group's other window, closed since the items were built, Then neither comes back
+    stale.move(staleItems, from: 2, to: 0, key: \.name)
+    check("move_ofAGoneWindow_changesNothing", stale.keys == beforeStale)
+    var staleGroup = seeing("b a1 a2 c")
+    let staleGroupItems = items(staleGroup, "b a1 a2 c", mode: .always)
+    staleGroup.update(seen: ["b", "a1", "c"], alive: ["b", "a1", "c"])
+    staleGroup.move(staleGroupItems, from: 0, to: 1, key: \.name)
+    check("move_pastGroupWithAGoneWindow_changesNothing", staleGroup.keys == ["b", "a1", "c"])
+
+    // Given an app listing a window twice, When moving it, Then nothing traps
+    check("move_ofGroupWithDuplicateWindow_movesIt", shown(moving(seeing("f e e"), on: "f e e", mode: .always, from: 1, to: 0), "f e e", mode: .always) == "e+e f")
+    check("move_ontoItsOwnDuplicate_changesNothing", moving(seeing("e e f"), on: "e e f", from: 1, to: 0).keys == ["e", "f"])
 
     // Given three items, Then each end can't move past itself
     check("canMoveLeft_atTheStart_isFalse", !canMoveLeft(itemAt: 0))

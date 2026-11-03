@@ -359,7 +359,9 @@ final class WindowTracker: @unchecked Sendable {
         guard focusedError == .success || isAbsent(focusedError) else { return nil }
 
         var windows: [CachedWindow] = []
-        for element in elements {
+        // Apps supply this list, and a window listed twice would be two entries with one identity.
+        var listed: Set<AXUIElement> = []
+        for element in elements where listed.insert(element).inserted {
             var values: CFArray?
             let error = AXUIElementCopyMultipleAttributeValues(element, Self.windowAttributes as CFArray, AXCopyMultipleAttributeOptions(rawValue: 0), &values)
             guard error == .success else {

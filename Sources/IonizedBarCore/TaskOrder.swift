@@ -1,6 +1,7 @@
 /// The user-set order of tasks, as one relative order of all windows that each bar projects onto its own.
-/// A move only changes the place of the windows it moves, so the other bars' windows and those away
-/// (another Space or display) stay put relative to everything else, and come back to their place.
+/// A move only changes the place of the windows it moves, and of the other windows of a group it passes,
+/// so the other bars' windows and those away (another Space or display) stay put relative to everything
+/// else, and come back to their place.
 public struct TaskOrder<Key: Hashable> {
     public private(set) var keys: [Key] = []
 
@@ -16,7 +17,7 @@ public struct TaskOrder<Key: Hashable> {
     }
 
     public func sorted<Window>(_ windows: [Window], key: (Window) -> Key) -> [Window] {
-        let ranks = Dictionary(uniqueKeysWithValues: keys.enumerated().map { ($0.element, $0.offset) })
+        let ranks = Dictionary(keys.enumerated().map { ($0.element, $0.offset) }, uniquingKeysWith: { first, _ in first })
         return windows.sorted { ranks[key($0), default: .max] < ranks[key($1), default: .max] }
     }
 
@@ -26,14 +27,18 @@ public struct TaskOrder<Key: Hashable> {
         guard items.indices.contains(from), to != from else { return }
         let mover = items[from].windows.map(key)
         let passed = items[to].windows.map(key)
-        // Gone since `items` was built: nothing left to land next to.
-        guard let anchor = passed.first, keys.contains(anchor) else { return }
+        guard let anchor = passed.first else { return }
         let isMovingRight = to > from
         // A group sits at its first window, and other entries can sit between that and its last one.
         // Past a group, its other windows close up so that the mover lands right after the whole entry.
         let block = isMovingRight ? passed.dropFirst() + mover : mover
-        keys.removeAll { block.contains($0) }
-        keys.insert(contentsOf: block, at: keys.firstIndex(of: anchor)! + (isMovingRight ? 1 : 0))
+        // A window closed since `items` was built must not come back, and with no anchor there's nothing to land next to.
+        // No anchor also covers an app listing a window twice as two entries, moved onto its own copy.
+        guard block.allSatisfy(keys.contains) else { return }
+        var rest = keys.filter { !block.contains($0) }
+        guard let anchorIndex = rest.firstIndex(of: anchor) else { return }
+        rest.insert(contentsOf: block, at: anchorIndex + (isMovingRight ? 1 : 0))
+        keys = rest
     }
 }
 
