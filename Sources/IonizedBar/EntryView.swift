@@ -21,7 +21,7 @@ final class EntryView: NSView {
     private static let padding: CGFloat = 8
     private static let iconSize: CGFloat = 16
     private static let countGap: CGFloat = 2
-    private static let focusRingInset: CGFloat = 3
+    static let focusRingInset: CGFloat = 3
 
     private let actions: EntryActions
     private var item: BarItem<TrackedWindow>
@@ -200,14 +200,9 @@ final class EntryView: NSView {
     }
 
     override func keyDown(with event: NSEvent) {
-        let content = superview as? BarContentView
         switch Int(event.keyCode) {
-        case kVK_Tab: content?.moveFocus(from: self, by: event.modifierFlags.contains(.shift) ? -1 : 1)
-        case kVK_LeftArrow: content?.moveFocus(from: self, by: -1)
-        case kVK_RightArrow: content?.moveFocus(from: self, by: 1)
         case kVK_Return, kVK_Space: performClickAction()
         case kVK_F10 where event.modifierFlags.contains(.shift): showContextMenu()
-        case kVK_Escape: (window as? BarPanel)?.endKeyboardMode()
         default: super.keyDown(with: event)
         }
     }

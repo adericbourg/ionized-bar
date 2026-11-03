@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 
 /// Not an `EntryView`: it stands for no window, so it has no preview, no window action and makes no AX call.
 final class LauncherButton: NSView {
@@ -18,6 +19,7 @@ final class LauncherButton: NSView {
         icon.setAccessibilityElement(false)
         addSubview(icon)
         toolTip = Self.label
+        focusRingType = .exterior
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
         setAccessibilityLabel(Self.label)
@@ -55,6 +57,36 @@ final class LauncherButton: NSView {
         return (superview as? BarContentView)?.barMenu()
     }
 
+    override var acceptsFirstResponder: Bool { true }
+
+    // Follows acceptsFirstResponder by default, which would make every click take key from the frontmost app.
+    override var needsPanelToBecomeKey: Bool { false }
+
+    // Inset, as in EntryView: the button fills the bar's height.
+    override func drawFocusRingMask() {
+        NSBezierPath(roundedRect: bounds.insetBy(dx: EntryView.focusRingInset, dy: EntryView.focusRingInset), xRadius: 4, yRadius: 4).fill()
+    }
+
+    override var focusRingMaskBounds: NSRect { bounds }
+
+    override func becomeFirstResponder() -> Bool {
+        needsDisplay = true
+        return super.becomeFirstResponder()
+    }
+
+    override func resignFirstResponder() -> Bool {
+        needsDisplay = true
+        return super.resignFirstResponder()
+    }
+
+    override func keyDown(with event: NSEvent) {
+        switch Int(event.keyCode) {
+        case kVK_Return, kVK_Space: open()
+        case kVK_F10 where event.modifierFlags.contains(.shift): showMenu()
+        default: super.keyDown(with: event)
+        }
+    }
+
     override func accessibilityPerformPress() -> Bool {
         open()
         return true
@@ -62,11 +94,14 @@ final class LauncherButton: NSView {
 
     // Deferred: a menu's tracking would otherwise hold the accessibility reply until the menu closes.
     override func accessibilityPerformShowMenu() -> Bool {
-        Task { @MainActor in
-            guard let menu = (superview as? BarContentView)?.barMenu() else { return }
-            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: bounds.height + menu.size.height), in: self)
-        }
+        Task { @MainActor in showMenu() }
         return true
+    }
+
+    private func showMenu() {
+        actions.preview.dismiss()
+        guard let menu = (superview as? BarContentView)?.barMenu() else { return }
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: bounds.height + menu.size.height), in: self)
     }
 
     private func open() {

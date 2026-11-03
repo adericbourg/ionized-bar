@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import IonizedBarCore
 
 private enum EntryKey: Hashable {
@@ -67,7 +68,7 @@ final class BarContentView: NSView {
             minEntryWidth: settings.taskDisplay == .iconOnly ? Self.iconOnlyWidth : Self.groupWhenFullBelow
         )
         let maybeFocused = window?.firstResponder as? EntryView
-        let focusedIndex = ordered.firstIndex { $0 === maybeFocused }
+        let focusedIndex = focusStops.firstIndex { $0 === maybeFocused }
         var gone = entries
         ordered = items.map { item in
             let key = EntryKey(item)
@@ -86,24 +87,34 @@ final class BarContentView: NSView {
             }
         }
         if let maybeFocused, let focusedIndex, !ordered.contains(maybeFocused) {
-            if ordered.isEmpty {
-                (window as? BarPanel)?.endKeyboardMode()
-            } else {
-                window?.makeFirstResponder(ordered[min(focusedIndex, ordered.count - 1)])
-            }
+            window?.makeFirstResponder(focusStops[min(focusedIndex, focusStops.count - 1)])
         }
         needsLayout = true
     }
 
-    var initialFocusEntry: EntryView? { ordered.first(where: \.isActive) ?? ordered.first }
+    // In visual order, without the entries fading out: Tab order and VoiceOver's order.
+    private var focusStops: [NSView] { [launcher] + ordered }
 
-    func moveFocus(from entry: EntryView, by offset: Int) {
-        guard let index = ordered.firstIndex(of: entry) else { return }
-        window?.makeFirstResponder(ordered[(index + offset + ordered.count) % ordered.count])
+    var initialFocusStop: NSView { ordered.first(where: \.isActive) ?? focusStops[0] }
+
+    // A stop handles the keys that act on it and leaves these to come up the responder chain.
+    override func keyDown(with event: NSEvent) {
+        switch Int(event.keyCode) {
+        case kVK_Tab: moveFocus(by: event.modifierFlags.contains(.shift) ? -1 : 1)
+        case kVK_LeftArrow: moveFocus(by: -1)
+        case kVK_RightArrow: moveFocus(by: 1)
+        case kVK_Escape: (window as? BarPanel)?.endKeyboardMode()
+        default: super.keyDown(with: event)
+        }
     }
 
-    // In visual order, without the entries fading out.
-    override func accessibilityChildren() -> [Any]? { [launcher] + ordered }
+    private func moveFocus(by offset: Int) {
+        let stops = focusStops
+        guard let index = stops.firstIndex(where: { $0 === window?.firstResponder }) else { return }
+        window?.makeFirstResponder(stops[(index + offset + stops.count) % stops.count])
+    }
+
+    override func accessibilityChildren() -> [Any]? { focusStops }
 
     private func addEntry(_ item: BarItem<TrackedWindow>) -> EntryView {
         let entry = EntryView(item: item, actions: actions)

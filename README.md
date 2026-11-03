@@ -58,7 +58,7 @@ Known issue: releases are not signed yet, so you have to grant the Accessibility
 
 ## Keyboard
 
-⌃⌥B focuses the bar under the mouse. Tab, Shift-Tab, Left and Right move between entries; Return or Space clicks; Shift-F10 opens the menu; Escape leaves.
+⌃⌥B focuses the bar under the mouse: the active window's entry, or the launcher button if no window is active. Tab, Shift-Tab, Left and Right move between the launcher button and the entries; Return or Space clicks; Shift-F10 opens the menu; Escape leaves.
 
 ## Build
 

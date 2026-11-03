@@ -55,7 +55,9 @@ final class BarPanel: NSPanel {
     @discardableResult
     override func makeFirstResponder(_ responder: NSResponder?) -> Bool {
         let isMade = super.makeFirstResponder(responder)
-        if isKeyWindow, let entry = responder as? EntryView { entry.showPreview() }
+        if isKeyWindow {
+            if let entry = responder as? EntryView { entry.showPreview() } else { preview.dismiss() }
+        }
         return isMade
     }
 
@@ -68,9 +70,9 @@ final class BarPanel: NSPanel {
 
     func beginKeyboardMode() {
         // False on a fullscreen Space, where the bar is not shown.
-        guard isOnActiveSpace, let entry = content.initialFocusEntry else { return }
+        guard isOnActiveSpace else { return }
         makeKey()
-        makeFirstResponder(entry)
+        makeFirstResponder(content.initialFocusStop)
     }
 
     func endKeyboardMode() {
