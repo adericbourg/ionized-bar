@@ -31,7 +31,7 @@ let tracker = AppTracker(
 let dock = defaultsDockStore()
 restoreDockOnTermination { restoreDock(dock) }
 
-// The one place that runs once Accessibility is granted, on the main thread; later M3 and M4 steps hook in here.
+// The one place that runs once Accessibility is granted, on the main thread.
 @MainActor func onAccessibilityTrusted() {
     log("Accessibility trusted; tracking apps")
     tracker.start()

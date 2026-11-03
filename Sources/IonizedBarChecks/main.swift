@@ -541,7 +541,7 @@ do {
     let slot = taskSlot(barWidth: 1000)
     check("taskSlot_startsAfterTheLauncher", slot.x == launcherWidth && launcherWidth == 48)
     check("taskSlot_sharesTheWidthLeft", slot.width == 952)
-    // Given M9's pinned icons, Then they sit between the launcher and the tasks
+    // Given pinned icons, Then they sit between the launcher and the tasks
     let withPins = taskSlot(barWidth: 1000, pinnedWidth: 96)
     check("taskSlot_withPinnedIcons_startsAfterThem", withPins.x == 144 && withPins.width == 856)
     check("taskSlot_ofBarNarrowerThanLauncher_hasNoWidth", taskSlot(barWidth: 10).width == 0)
