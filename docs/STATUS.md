@@ -12,7 +12,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ✅ | 5/5 |
-| M2 – Bars | 🚧 | 5/6 |
+| M2 – Bars | 🚧 | 6/6 |
 | M3 – Dock replacement and launch at login | 🚧 | 4/4 |
 | M4 – Push windows away | 🚧 | 3/3 |
 | M5 – Release | 🚧 | 1/3 |
@@ -70,8 +70,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Entry view: icon, title, active, minimized and hover states (R1)
 - [x] Equal-width layout with icon-only fallback (R5)
 - [x] Interactions: click, click on active, middle-click, context menu
-- [ ] Frosted glass vs Liquid Glass prototype, pick one
-  - Compare: `open --env IONIZED_BAR_MATERIAL=liquid --stderr "$(tty)" build/IonizedBar.app` (Liquid Glass); without the env, frosted (default).
+- [x] Frosted glass vs Liquid Glass prototype, pick one
 - [x] VoiceOver labels, keyboard access, Reduce Transparency and Reduce Motion
 
 ### M2 manual pass
@@ -111,7 +110,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] Adjacent highlights touching: entries fill the bar height with no inset
 - [ ] Active-entry text contrast on the accent color, across accent colors: `alternateSelectedControlTextColor` on `controlAccentColor` may be under 4.5:1
 - [ ] Hover highlight after entries reflow under a still cursor
-- [ ] First click on the never-key panel, over the title and under `IONIZED_BAR_MATERIAL=liquid`
+- [ ] First click on the never-key panel, over the title
 - [ ] Focus lands on the raised window
 - [ ] A quick second click on an entry
 - [ ] Middle press on one entry and release on another
@@ -366,3 +365,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M10 task 24: dragging an entry re-orders it, by mouse tracking in `EntryView`. Past 4pt from the press, in any direction, the entry follows the pointer above its neighbours and within the first and last slots, which is short of the task area's end when entries pack left; the others slide through the existing `animate`, under 150ms and jumping with Reduce Motion. The drop calls the new `EntryActions.moveEntry` with the items `BarContentView.rebuild` now keeps, so they're always those on show, and dropping back calls nothing. A mouse-up after a drag is no click. A group is one item, so it drags as one. A rebuild during a drag keeps it going with the fresh list, unless the entry goes, which ends it with no move and no click. `PreviewController.dragged`, weak so that a bar closed mid-drag can't leave previews off, dismisses the preview and holds new ones back. `BarPanel.sendEvent` ignores keys, right clicks and middle clicks during a drag, and another left press ends a drag whose mouse-up never came. Keyboard mode stays on during a drag and ends at the drop. `isPastDragThreshold`, `draggedEntryX` and `dragTargetIndex` in `IonizedBarCore`: 27 checks, 18 failing first on behaviour with stubs, the other 9 being what a stub happens to satisfy. A scratch harness passes its 97 assertions on the real panel, content and entry views and preview controller, with events through the real `NSWindow.sendEvent` on panels ordered in off-screen without activating, since AppKit doesn't dispatch to a panel that isn't ordered in, plus the real `BarManager` for the move: clicks, the slip, control and right clicks reaching `menu(for:)`, both ends, rebuilds, the entry going, keyboard mode, two bars. Mutations of the guards made it fail. It patched `animate` to apply at once and synthesized its events. Build, checks and bundle pass. Not verified, on the M10 manual pass: real pointer events and non-activating delivery with another app frontmost, the slide's look and duration, Reduce Motion, tooltips, hover during a real drag, and a When full drop whose entries differ from what the drag showed. M10 at 4/5. Move Left and Move Right are Task 25.
 - 2026-11-03 — M10 task 25: "Move Left" and "Move Right" in the right-click menu of a task and a group entry, after Close and Minimize; the launcher and pinned icons don't get them. They ask the bar, which decides through `canMoveLeft` and `canMoveRight` on the entry's place in the shown items and calls the same `EntryActions.moveEntry` as a drop, one slot over, so the result is what a drag of one slot gives and the slide goes through the existing `animate`. The decision is made twice: when the menu is built, to disable the ends, and again when the item fires, on the bar as it is then, so a menu left open while windows open or close moves the entry from where it now is, and does nothing if it's now at the end or fading out. The actions are not named `moveLeft:` and `moveRight:`, which are `NSResponder`'s arrow-key actions. Keyboard mode and VoiceOver reach them through the existing Shift-F10 and Show Menu paths, so there's no new shortcut; the entry view is kept across the rebuild, so focus stays on it and keyboard mode stays on, as after the other menu items. No new pure logic, so no new check. A scratch harness passes its 33 assertions on the real panel, content and entry views and the real `BarManager`, with two bars: enabled state at both ends and in the middle, the order matching `TaskOrder.move` for one slot, ends and stale menus doing nothing, a fading entry, a group moving as a block, focus and keyboard mode after Shift-F10, the Show Menu path and the other bar left alone; two mutations of the guards made it fail. It patched menus out and `animate` to apply at once. Build, checks and bundle pass. Not verified, on the M10 manual pass: a real menu by mouse, Shift-F10 and VoiceOver, what VoiceOver reads after the move, and Reduce Motion. The box stays unticked until that pass. M10 at 4/5.
 - 2026-11-03 — Fix: the Settings window did not show under `swift run` (no Info.plist, so no `LSUIElement`); `main.swift` now sets the `.accessory` activation policy. Not yet confirmed by a manual run.
+- 2026-11-03 — M2: the user picked frosted glass, always dark: the bar and the launcher panel set `appearance` to `.darkAqua` on their window, even in Light mode, while the preview panels keep following the system. The `IONIZED_BAR_MATERIAL=liquid` switch and its Liquid Glass branch are gone; PRODUCT.md's Material bullet says so. Build, checks and bundle pass. Not verified, the app was not launched: the dark look, the contrast of titles and of the accent highlight on the dark material, in Light mode, by eye.

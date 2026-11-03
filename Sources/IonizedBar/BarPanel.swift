@@ -17,24 +17,16 @@ final class BarPanel: NSPanel {
         isMovable = false
         becomesKeyOnlyIfNeeded = true
         isReleasedWhenClosed = false
+        appearance = NSAppearance(named: .darkAqua)
         let surface = BarSurface(content: content)
-        // ponytail: temporary switch to compare materials by eye; delete it and the losing branch once the user picks.
-        if ProcessInfo.processInfo.environment["IONIZED_BAR_MATERIAL"] == "liquid" {
-            let glass = NSGlassEffectView()
-            glass.style = .regular
-            glass.cornerRadius = 0
-            glass.contentView = surface
-            contentView = glass
-        } else {
-            let frosted = NSVisualEffectView()
-            frosted.blendingMode = .behindWindow
-            frosted.state = .active
-            frosted.material = .hudWindow
-            surface.frame = frosted.bounds
-            surface.autoresizingMask = [.width, .height]
-            frosted.addSubview(surface)
-            contentView = frosted
-        }
+        let frosted = NSVisualEffectView()
+        frosted.blendingMode = .behindWindow
+        frosted.state = .active
+        frosted.material = .hudWindow
+        surface.frame = frosted.bounds
+        surface.autoresizingMask = [.width, .height]
+        frosted.addSubview(surface)
+        contentView = frosted
     }
 
     override var canBecomeKey: Bool { true }

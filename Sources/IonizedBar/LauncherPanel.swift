@@ -30,6 +30,7 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         backgroundColor = .clear
         isMovable = false
         isReleasedWhenClosed = false
+        appearance = NSAppearance(named: .darkAqua)
         let frosted = NSVisualEffectView()
         frosted.blendingMode = .behindWindow
         frosted.state = .active

@@ -25,8 +25,8 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 **Accessibility (app UI):** every entry is a VoiceOver element with the window title, the app name and its state (active or minimized). The bar can be reached from the keyboard with ⌃⌥B. This follows the spirit of WCAG 2.2 AA (contrast, focus visible).
 
 ## Look & feel
-- **Material:** frosted glass, using `NSVisualEffectView` with `blendingMode = .behindWindow`, `state = .active` and the `.hudWindow` material (or `.menu`, to be picked by eye). It follows the system light or dark appearance.
-  - Alternative: the native Liquid Glass (`NSGlassEffectView`, macOS 26+). It looks clearer and more refractive than frosted. Prototype both in M2 and keep one.
+- **Material:** frosted glass, using `NSVisualEffectView` with `blendingMode = .behindWindow`, `state = .active` and the `.hudWindow` material. The bar and the launcher panel are always dark, even in Light mode (the user prefers darker); the preview panel follows the system light or dark appearance.
+  - Alternative: the native Liquid Glass (`NSGlassEffectView`) was prototyped in M2 and not kept.
 - **Bar:** 36pt high with no rounded corners, flush with the bottom edge of each display. A 1px hairline separates it from the content above.
 - **Entry:** 16pt icon plus the window title in the system font (13pt), padded 8pt, with a 4pt corner radius on hover and active states.
   - **Active:** tinted background in the system accent color.
