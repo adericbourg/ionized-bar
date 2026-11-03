@@ -55,7 +55,6 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         isOpaque = false
         backgroundColor = .clear
         isMovable = false
-        isReleasedWhenClosed = false
         appearance = NSAppearance(named: .darkAqua)
         let frosted = NSVisualEffectView()
         frosted.blendingMode = .behindWindow
@@ -136,7 +135,6 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     }
 
     override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
 
     override func cancelOperation(_ sender: Any?) { onDismiss() }
 

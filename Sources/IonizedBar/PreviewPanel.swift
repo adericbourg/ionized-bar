@@ -26,7 +26,6 @@ final class PreviewPanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         isMovable = false
-        isReleasedWhenClosed = false
         let frosted = NSVisualEffectView()
         frosted.blendingMode = .behindWindow
         frosted.state = .active
@@ -55,9 +54,6 @@ final class PreviewPanel: NSPanel {
         mask.resizingMode = .stretch
         return mask
     }
-
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
 
     override func mouseExited(with event: NSEvent) { onPointerExit() }
 
