@@ -462,3 +462,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — Audit cut: removed `PinStore` and `AppIdentities`. Their 30-second cache of `urlForApplication` had no measurement behind it: a repeat lookup takes about 2 µs, so an install or uninstall now shows at the next snapshot.
 - 2026-11-03 — Audit cut: the Dock prefs go through `CFPreferences` rather than the `defaults` tool, and `killall Dock` stays. A scratch domain round-tripped a write, a delete and an absent-key delete, with the same types as `defaults` and values readable both ways. `parseDockPrefs` and its checks are gone. Hiding and restoring the real Dock is not yet checked by hand.
 - 2026-11-03 — Audit cut: removed `EntryActions`, a struct of closures with one instance. The bar views now hold the `BarManager`.
+- 2026-11-03 — Audit cut: `LauncherController` takes no injected closures: it lists the apps and finds the favorites itself.

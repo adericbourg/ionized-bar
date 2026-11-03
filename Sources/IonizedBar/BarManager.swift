@@ -3,18 +3,7 @@ import IonizedBarCore
 
 @MainActor
 final class BarManager {
-    private(set) lazy var launcher = LauncherController(
-        listApps: {
-            listApplications(in: ["/Applications", "/System/Applications", NSHomeDirectory() + "/Applications"].map { URL(fileURLWithPath: $0) })
-        },
-        // Looked up on their own: a pin can be outside the listed folders, as Finder is.
-        favorites: { [unowned self] in
-            pins.compactMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }.map {
-                InstalledApp(name: FileManager.default.displayName(atPath: $0.path), url: $0)
-            }
-        },
-        openApp: { BarManager.openApp(at: $0) }
-    )
+    let launcher = LauncherController()
     // The one place a capture is asked for, always after `EntryView.previewWindow` checks the setting and the grant.
     private(set) lazy var preview = PreviewController { [unowned self] in await thumbnail(of: $0) }
     // Memory only, never on disk. A minimized window can't be captured (-3811), so it shows its last image.
@@ -107,7 +96,7 @@ final class BarManager {
         update(windowsByDisplay: latestWindowsByDisplay)
     }
 
-    private static func openApp(at url: URL) {
+    static func openApp(at url: URL) {
         NSWorkspace.shared.openApplication(at: url, configuration: .init()) { _, maybeError in
             if let maybeError { log("Could not open \(url.lastPathComponent): \(maybeError.localizedDescription)") }
         }

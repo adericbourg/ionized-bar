@@ -10,5 +10,5 @@ final class LauncherButton: BarIconButton {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    override func open() { manager.launcher.toggle(above: self) }
+    override func open() { manager.launcher.toggle(above: self, pins: manager.pins) }
 }

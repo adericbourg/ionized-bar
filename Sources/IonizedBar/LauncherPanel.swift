@@ -639,13 +639,10 @@ private final class AppCell: NSTableCellView {
 final class LauncherController {
     private static let gap: CGFloat = 4
 
-    private let listApps: @Sendable () -> [InstalledApp]
-    private let favorites: @MainActor () -> [InstalledApp]
-    private let openApp: @MainActor (URL) -> Void
     private lazy var panel = LauncherPanel(
         onOpen: { [unowned self] app in
             close()
-            openApp(app.url)
+            BarManager.openApp(at: app.url)
         },
         onDismiss: { [unowned self] in close() },
         onPower: { [unowned self] action in
@@ -658,29 +655,26 @@ final class LauncherController {
 
     var isOpen: Bool { button != nil }
 
-    /// `listApps` runs off the main thread, on each open.
-    init(listApps: @escaping @Sendable () -> [InstalledApp], favorites: @escaping @MainActor () -> [InstalledApp], openApp: @escaping @MainActor (URL) -> Void) {
-        self.listApps = listApps
-        self.favorites = favorites
-        self.openApp = openApp
-    }
-
-    func toggle(above button: NSView) {
+    func toggle(above button: NSView, pins: [String]) {
         let isOpenHere = button === self.button
         close()
-        if !isOpenHere { open(above: button) }
+        if !isOpenHere { open(above: button, pins: pins) }
     }
 
-    private func open(above button: NSView) {
+    private func open(above button: NSView, pins: [String]) {
         guard let window = button.window, let screen = window.screen else { return }
         self.button = button
         let buttonFrame = window.convertToScreen(button.convert(button.bounds, to: nil))
+        // Looked up on their own: a pin can be outside the listed folders, as Finder is.
+        let favorites = pins.compactMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }.map {
+            InstalledApp(name: FileManager.default.displayName(atPath: $0.path), url: $0)
+        }
         // The last list shows at once, and the fresh read replaces it.
-        panel.show(in: launcherFrame(button: buttonFrame, size: LauncherPanel.size, screen: screen.visibleFrame, gap: Self.gap), favorites: favorites())
+        panel.show(in: launcherFrame(button: buttonFrame, size: LauncherPanel.size, screen: screen.visibleFrame, gap: Self.gap), favorites: favorites)
         addMouseMonitors()
-        let listApps = listApps
+        let folders = ["/Applications", "/System/Applications", NSHomeDirectory() + "/Applications"].map { URL(fileURLWithPath: $0) }
         Task { [weak self] in
-            let apps = await Task.detached { listApps() }.value
+            let apps = await Task.detached { listApplications(in: folders) }.value
             self?.panel.update(apps)
         }
     }
