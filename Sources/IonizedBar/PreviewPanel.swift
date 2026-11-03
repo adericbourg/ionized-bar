@@ -39,7 +39,6 @@ final class PreviewPanel: NSPanel {
         for label in [appName, windowTitle] { label.lineBreakMode = .byTruncatingTail }
         icon.setAccessibilityElement(false)
         thumbnail.imageScaling = .scaleProportionallyUpOrDown
-        thumbnail.setAccessibilityLabel("Window preview")
         for view in [icon, appName, windowTitle, thumbnail] { frosted.addSubview(view) }
         // activeAlways: this app is never the active one, and inVisibleRect follows the panel's resizes.
         frosted.addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
@@ -70,6 +69,7 @@ final class PreviewPanel: NSPanel {
         windowTitle.isHidden = window.title.isEmpty
         thumbnail.image = image.map { NSImage(cgImage: $0, size: .zero) }
         thumbnail.isHidden = image == nil
+        thumbnail.setAccessibilityLabel("Preview of \(window.title.isEmpty ? window.appName : window.title)")
 
         let innerWidth = Self.width - 2 * Self.padding
         let thumbnailSize = image.map {
