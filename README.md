@@ -18,6 +18,10 @@ macOS 27.2 or later. The app needs the Accessibility permission to list, raise a
 
 The first time it has the Accessibility permission, the app adds itself to the login items (`SMAppService`). Turn it off with "Start at login" in Settings; it is not turned back on.
 
+## Window previews
+
+Off by default. Turn on "Show window previews" in a window entry's right-click menu; macOS then asks for the Screen Recording permission, used only to capture the hovered window. Hovering an entry (or focusing it with the keyboard) shows its app, title and a thumbnail; Esc dismisses it. A minimized window shows its last captured image, or the header only if it was never hovered. Nothing is written to disk. The panel follows Reduce Motion, Reduce Transparency and Increase Contrast.
+
 ## Windows over the bar
 
 A window that ends up over the bar is moved up, and shrunk if it doesn't fit below the menu bar. This waits until the mouse button is released and the frame has held for a moment. Fullscreen windows are left alone. If a push leaves a window over the bar, because of its minimum size or because the app puts it back, it stays there until its frame changes.
