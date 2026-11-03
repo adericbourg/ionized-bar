@@ -26,6 +26,10 @@ The button at the left of the bar opens a list of your applications, with a sear
 
 "Pin" in the right-click menu of a task or a group keeps the app's icon on the bar, between the launcher button and the tasks, on every display. A click on the icon opens the app. In keyboard mode (see Keyboard) Return or Space does the same and Shift-F10 opens its menu; VoiceOver reads it as a button labelled with the app name and "pinned". "Unpin" is in the same menus and in the icon's own. By default, an icon hides on a bar that shows a task for its app.
 
+## Re-order tasks
+
+Drag an entry along its bar to change its place there; a group moves as one. "Move Left" and "Move Right" in the right-click menu of a task or a group do the same one place at a time, so they also work in keyboard mode (Shift-F10) and with VoiceOver. The order is kept in memory only and is lost on quit.
+
 ## Window previews
 
 Off by default. Turn on "Show window previews" in a window entry's right-click menu; macOS then asks for the Screen Recording permission, used only to capture the hovered window. Hovering an entry (or focusing it with the keyboard) shows its app, title and a thumbnail; Esc dismisses it. A minimized window shows its last captured image, or the header only if it was never hovered. Nothing is written to disk. The panel follows Reduce Motion, Reduce Transparency and Increase Contrast.

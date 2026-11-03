@@ -306,6 +306,9 @@ final class EntryView: NSView {
         case .group:
             menu.addItem(withTitle: "Close All Windows", action: #selector(closeWindows), keyEquivalent: "")
         }
+        let maybeBar = superview as? BarContentView
+        menu.addItem(withTitle: "Move Left", action: #selector(moveEntryLeft), keyEquivalent: "").isEnabled = maybeBar?.canMove(self, by: -1) == true
+        menu.addItem(withTitle: "Move Right", action: #selector(moveEntryRight), keyEquivalent: "").isEnabled = maybeBar?.canMove(self, by: 1) == true
         let maybeBundleID = actions.bundleID(item.windows[0])
         if let pinTitle = pinMenuTitle(bundleID: maybeBundleID, pins: actions.pins()) {
             menu.addItem(withTitle: pinTitle, action: #selector(togglePin), keyEquivalent: "").representedObject = maybeBundleID
@@ -327,6 +330,8 @@ final class EntryView: NSView {
     @objc private func togglePreviews() { actions.setShowsPreviews(!actions.showsPreviews()) }
     @objc private func closeWindows() { item.windows.forEach(actions.close) }
     @objc private func minimizeWindow() { item.windows.forEach(actions.minimize) }
+    @objc private func moveEntryLeft() { (superview as? BarContentView)?.move(self, by: -1) }
+    @objc private func moveEntryRight() { (superview as? BarContentView)?.move(self, by: 1) }
     @objc private func togglePin(_ sender: NSMenuItem) {
         guard let bundleID = sender.representedObject as? String else { return }
         let pins = actions.pins()

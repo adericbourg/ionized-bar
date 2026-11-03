@@ -188,6 +188,18 @@ final class BarContentView: NSView {
 
     var isDragging: Bool { maybeDrag != nil }
 
+    /// False for an entry fading out. Asked again when the menu item fires, as the bar can have changed since the menu opened.
+    func canMove(_ entry: EntryView, by offset: Int) -> Bool {
+        guard let index = ordered.firstIndex(of: entry) else { return false }
+        return offset < 0 ? canMoveLeft(itemAt: index) : canMoveRight(itemAt: index, itemCount: ordered.count)
+    }
+
+    /// One slot, through the same move as a drop there.
+    func move(_ entry: EntryView, by offset: Int) {
+        guard canMove(entry, by: offset), let from = ordered.firstIndex(of: entry) else { return }
+        actions.moveEntry(items, from, from + offset)
+    }
+
     /// False for an entry already fading out.
     func beginDrag(_ entry: EntryView, pressedAt start: NSPoint) -> Bool {
         guard let from = ordered.firstIndex(of: entry) else { return false }
