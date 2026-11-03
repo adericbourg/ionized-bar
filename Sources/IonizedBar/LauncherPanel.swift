@@ -147,7 +147,8 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
             showSelection()
             if let selected = list.selected { announce(selected.name) }
         case #selector(NSResponder.insertNewline(_:)):
-            if let app = list.selected { onOpen(app) }
+            // A held Return that opened the panel from the launcher button would otherwise open the top app on repeat.
+            if NSApp.currentEvent?.isARepeat != true, let app = list.selected { onOpen(app) }
         case #selector(NSResponder.cancelOperation(_:)):
             onDismiss()
         default:

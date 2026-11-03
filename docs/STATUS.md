@@ -270,6 +270,9 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] "Move Left" and "Move Right" on a task and a group entry, by right-click, from ⌃⌥B with Shift-F10 and from VoiceOver's Show Menu: one place, as a drag of one slot, and disabled at the first and last entries; the launcher and pinned icons have neither. In keyboard mode, focus stays on the moved entry and keys still go to the bar; check what VoiceOver reads after the move, as no announcement is posted
 - [ ] Reduce Motion on, then off: after "Move Left" or "Move Right" the entries jump, then slide in under 150ms
 
+### Final review manual checks
+- [ ] Launcher: hold Return on the launcher button from ⌃⌥B: the panel opens and stays open, no app opens until Return is pressed again
+
 ## Known issues (tracked)
 
 | Issue | Status |
@@ -367,3 +370,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — Fix: the Settings window did not show under `swift run` (no Info.plist, so no `LSUIElement`); `main.swift` now sets the `.accessory` activation policy. Not yet confirmed by a manual run.
 - 2026-11-03 — M2: the user picked frosted glass, always dark: the bar and the launcher panel set `appearance` to `.darkAqua` on their window, even in Light mode, while the preview panels keep following the system. The `IONIZED_BAR_MATERIAL=liquid` switch and its Liquid Glass branch are gone; PRODUCT.md's Material bullet says so. Build, checks and bundle pass. Not verified, the app was not launched: the dark look, the contrast of titles and of the accent highlight on the dark material, in Light mode, by eye.
 - 2026-11-03 — Manual passes of M2, M3, M4, M6, M8 and M9 run by the user, all passed; M2, M3, M4, M6, M8 and M9 done.
+- 2026-11-03 — Final review fix: holding Return on the launcher button opened the panel, then the key repeat reached the search field and opened the top app. The search field's Return now ignores repeats (`NSEvent.isARepeat`). Build, checks and bundle pass. Not verified, the app was not launched: the held key on a real keyboard, on the new final review manual checks list.
