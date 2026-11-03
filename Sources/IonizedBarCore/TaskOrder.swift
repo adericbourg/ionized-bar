@@ -1,3 +1,5 @@
+import CoreGraphics
+
 /// The user-set order of tasks, as one relative order of all windows that each bar projects onto its own.
 /// A move only changes the place of the windows it moves, and of the other windows of a group it passes,
 /// so the other bars' windows and those away (another Space or display) stay put relative to everything
@@ -45,3 +47,21 @@ public struct TaskOrder<Key: Hashable> {
 public func canMoveLeft(itemAt index: Int) -> Bool { index > 0 }
 
 public func canMoveRight(itemAt index: Int, itemCount: Int) -> Bool { index < itemCount - 1 }
+
+/// About 4pt from the press, in any direction: a smaller slip stays a click.
+public func isPastDragThreshold(from start: CGPoint, to point: CGPoint) -> Bool {
+    hypot(point.x - start.x, point.y - start.y) > 4
+}
+
+/// Under the pointer, within the first and last slots: entries can stop short of the task area's end.
+/// `grabOffset` is capped so that the pointer stays on an entry that narrowed during the drag.
+public func draggedEntryX(pointerX: CGFloat, grabOffset: CGFloat, slotX: CGFloat, entryWidth: CGFloat, entryCount: Int) -> CGFloat {
+    let lastSlotX = slotX + CGFloat(max(entryCount - 1, 0)) * entryWidth
+    return min(max(pointerX - min(grabOffset, entryWidth), slotX), lastSlotX)
+}
+
+/// The slot nearest an entry at `entryX`. With no width to tell slots apart, the entry stays at `from`.
+public func dragTargetIndex(entryX: CGFloat, from: Int, slotX: CGFloat, entryWidth: CGFloat, entryCount: Int) -> Int {
+    guard entryWidth > 0, entryCount > 0 else { return from }
+    return min(max(Int(((entryX - slotX) / entryWidth).rounded()), 0), entryCount - 1)
+}

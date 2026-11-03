@@ -15,10 +15,20 @@ private enum EntryKey: Hashable {
 }
 
 final class BarContentView: NSView {
+    private struct Drag {
+        let entry: EntryView
+        let grabOffset: CGFloat
+        var pointerX: CGFloat
+        var to: Int
+    }
+
     private let actions: EntryActions
     private let launcher: LauncherButton
     private var entries: [EntryKey: EntryView] = [:]
     private var ordered: [EntryView] = []
+    // What `ordered` shows, for `moveEntry`.
+    private var items: [BarItem<TrackedWindow>] = []
+    private var maybeDrag: Drag?
     // Entries fading out; one is revived if its window or group returns before the fade ends.
     private var leaving: [EntryKey: EntryView] = [:]
     private var windows: [TrackedWindow] = []
@@ -83,7 +93,7 @@ final class BarContentView: NSView {
                 MainActor.assumeIsolated { self?.finishLeaving(icon) }
             }
         }
-        let items = barItems(
+        items = barItems(
             windows, pid: \.pid, barWidth: slot.width, mode: settings.grouping,
             minEntryWidth: settings.taskDisplay == .iconOnly ? Self.iconOnlyWidth : Self.groupWhenFullBelow
         )
@@ -104,6 +114,7 @@ final class BarContentView: NSView {
                 MainActor.assumeIsolated { self?.finishLeaving(entry) }
             }
         }
+        if let maybeDrag, !ordered.contains(maybeDrag.entry) { cancelDrag() }
         if let focusedIndex, !focusStops.contains(where: { $0 === maybeFocused }) {
             window?.makeFirstResponder(focusStops[min(focusedIndex, focusStops.count - 1)])
         }
@@ -175,6 +186,72 @@ final class BarContentView: NSView {
         return entry
     }
 
+    var isDragging: Bool { maybeDrag != nil }
+
+    /// False for an entry already fading out.
+    func beginDrag(_ entry: EntryView, pressedAt start: NSPoint) -> Bool {
+        guard let from = ordered.firstIndex(of: entry) else { return false }
+        let pressX = convert(start, from: nil).x
+        maybeDrag = Drag(entry: entry, grabOffset: pressX - entry.frame.minX, pointerX: pressX, to: from)
+        actions.preview.dragged = entry
+        needsLayout = true
+        return true
+    }
+
+    func moveDrag(to location: NSPoint) {
+        guard var drag = maybeDrag else { return }
+        drag.pointerX = convert(location, from: nil).x
+        maybeDrag = drag
+        // Only the dragged frame on each event: a layout per event would restart the others' slides.
+        placeDragged(drag)
+        if dragPlace(drag).to != drag.to { needsLayout = true }
+    }
+
+    func endDrag() {
+        guard let drag = maybeDrag else { return }
+        let place = dragPlace(drag)
+        finishDrag()
+        if place.to != place.from { actions.moveEntry(items, place.from, place.to) }
+    }
+
+    func cancelDrag() {
+        maybeDrag?.entry.abandonDrag()
+        finishDrag()
+    }
+
+    private func finishDrag() {
+        maybeDrag = nil
+        actions.preview.dragged = nil
+        needsLayout = true
+    }
+
+    private func dragPlace(_ drag: Drag) -> (x: CGFloat, from: Int, to: Int) {
+        let slot = self.slot
+        let width = layoutWidth.width
+        let from = ordered.firstIndex(of: drag.entry) ?? 0
+        let x = draggedEntryX(pointerX: drag.pointerX, grabOffset: drag.grabOffset, slotX: slot.x, entryWidth: width, entryCount: ordered.count)
+        return (x, from, dragTargetIndex(entryX: x, from: from, slotX: slot.x, entryWidth: width, entryCount: ordered.count))
+    }
+
+    private func placeDragged(_ drag: Drag) {
+        let rect = CGRect(x: dragPlace(drag).x, y: 0, width: layoutWidth.width, height: bounds.height)
+        drag.entry.frame = backingAlignedRect(rect, options: .alignAllEdgesNearest)
+    }
+
+    // Not addSubview: it takes the view out of the window for a moment, which could end the drag it's receiving.
+    private func raise(_ entry: EntryView) {
+        sortSubviews({ a, b, raised in
+            if Unmanaged.passUnretained(a).toOpaque() == raised { return .orderedDescending }
+            return Unmanaged.passUnretained(b).toOpaque() == raised ? .orderedAscending : .orderedSame
+        }, context: Unmanaged.passUnretained(entry).toOpaque())
+    }
+
+    private var layoutWidth: EntryWidth {
+        settings.taskDisplay == .iconOnly
+            ? entryWidth(barWidth: slot.width, entryCount: ordered.count, maxWidth: Self.iconOnlyWidth)
+            : entryWidth(barWidth: slot.width, entryCount: ordered.count)
+    }
+
     override func layout() {
         super.layout()
         launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
@@ -188,11 +265,20 @@ final class BarContentView: NSView {
         }
         let slot = self.slot
         let isIconOnlyMode = settings.taskDisplay == .iconOnly
-        let layoutWidth = isIconOnlyMode
-            ? entryWidth(barWidth: slot.width, entryCount: ordered.count, maxWidth: Self.iconOnlyWidth)
-            : entryWidth(barWidth: slot.width, entryCount: ordered.count)
-        for (index, entry) in ordered.enumerated() {
+        let layoutWidth = self.layoutWidth
+        var shown = ordered
+        if var drag = maybeDrag {
+            let place = dragPlace(drag)
+            drag.to = place.to
+            maybeDrag = drag
+            shown.insert(shown.remove(at: place.from), at: place.to)
+            placeDragged(drag)
+            // Here rather than once: an entry added during the drag goes on top.
+            raise(drag.entry)
+        }
+        for (index, entry) in shown.enumerated() {
             entry.isIconOnly = isIconOnlyMode || layoutWidth.isIconOnly
+            if entry === maybeDrag?.entry { continue }
             let target = backingAlignedRect(CGRect(x: slot.x + CGFloat(index) * layoutWidth.width, y: 0, width: layoutWidth.width, height: bounds.height), options: .alignAllEdgesNearest)
             if entry.frame == .zero {
                 entry.frame = target

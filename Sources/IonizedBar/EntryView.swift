@@ -20,9 +20,15 @@ struct EntryActions {
     let pins: @MainActor () -> [String]
     let setPins: @MainActor ([String]) -> Void
     let openPinnedApp: @MainActor (String) -> Void
+    /// Moves `items[from]` to index `to`, `items` being the bar's current entries.
+    let moveEntry: @MainActor ([BarItem<TrackedWindow>], _ from: Int, _ to: Int) -> Void
 }
 
 final class EntryView: NSView {
+    private enum Press {
+        case none, pressed(at: NSPoint), dragging, abandoned
+    }
+
     private static let padding: CGFloat = 8
     static let iconSize: CGFloat = 16
     private static let countGap: CGFloat = 2
@@ -35,6 +41,7 @@ final class EntryView: NSView {
     private(set) var isActive = false { didSet { needsDisplay = true } }
     private var isHovered = false { didSet { needsDisplay = true } }
     private var display = TaskDisplay.content
+    private var press = Press.none
     var isIconOnly = false {
         didSet {
             guard isIconOnly != oldValue else { return }
@@ -143,6 +150,7 @@ final class EntryView: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) {
+        guard actions.preview.dragged == nil else { return }
         isHovered = true
         // The grant can have changed since the last snapshot, and the tooltip depends on it.
         updateText()
@@ -161,10 +169,34 @@ final class EntryView: NSView {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    override func mouseUp(with event: NSEvent) {
-        // A control-click opens the menu: its mouse-up is not a click.
-        if isInside(event) && !event.modifierFlags.contains(.control) { performClickAction() }
+    override func mouseDown(with event: NSEvent) {
+        press = event.modifierFlags.contains(.control) ? .none : .pressed(at: event.locationInWindow)
+        super.mouseDown(with: event)
     }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let bar = superview as? BarContentView else { return }
+        if case .pressed(let start) = press, isPastDragThreshold(from: start, to: event.locationInWindow) {
+            press = bar.beginDrag(self, pressedAt: start) ? .dragging : .abandoned
+        }
+        if case .dragging = press { bar.moveDrag(to: event.locationInWindow) }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        defer { press = .none }
+        switch press {
+        case .dragging, .abandoned:
+            (superview as? BarContentView)?.endDrag()
+            // Waits for the drop, like a click: the panel ordering out mid-press could cut the drag short.
+            (window as? BarPanel)?.endKeyboardMode()
+        case .none, .pressed:
+            // A control-click opens the menu: its mouse-up is not a click.
+            if isInside(event) && !event.modifierFlags.contains(.control) { performClickAction() }
+        }
+    }
+
+    /// The drag ended without a drop, so what's left of the press is neither a move nor a click.
+    func abandonDrag() { press = .abandoned }
 
     override func otherMouseUp(with event: NSEvent) {
         // A group ignores it, so a stray click can't close several windows.

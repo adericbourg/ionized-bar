@@ -90,12 +90,12 @@ Pinning keeps an app's icon on the bar while it's closed, and clicking the icon 
 Dragging a task along its bar changes its place on that bar. Only the entry moves: the window itself is neither raised nor moved.
 
 - **Scope:** an entry moves within its own bar. It can't be dragged to another bar, because R3 ties an entry to its window's display. A drag past the end of the task area stops at the end.
-- **Click or drag:** a drag starts once the pointer has moved about 4pt, and its mouse-up is not a click. Dropping an entry back where it started changes nothing. Esc doesn't cancel a drag, because the panel is never key.
+- **Click or drag:** a drag starts once the pointer has moved about 4pt, and its mouse-up is not a click. Dropping an entry back where it started changes nothing. Esc doesn't cancel a drag, because the panel is never key. In keyboard mode, where it is, keys are ignored during a drag and the drop ends keyboard mode, as a click does. A right or middle click during a drag does nothing. A window opening or closing during a drag doesn't end it, unless the dragged entry itself goes, as when its window closes or grouping changes it: the drag then ends with no move and no click.
 - **Order:** kept in memory only, so it's lost on quit: AX window elements don't survive a restart, and public APIs have no stable window id. A new window still goes last. A window that leaves and returns (Space switch, another display) keeps its place. A window moved to another display lands there by that same place, not last, since it isn't new.
 - **Group entry (M7):** drags as one, and its windows stay next to each other if the bar later ungroups. The order inside a group's window list can't be dragged.
 - **Launcher and pinned icons (M8, M9):** can't be dragged, and a task can't be dropped before them.
 - **Without dragging:** "Move Left" and "Move Right" in the right-click menu of a task or group entry, disabled at the ends. WCAG 2.2 AA 2.5.7 asks for an alternative to dragging. The menu also covers keyboard mode (Shift-F10) and VoiceOver, so there's no new shortcut.
-- **Motion:** the other entries slide apart in under 150ms, and jump with *Reduce Motion* on. A drag dismisses the M6 preview.
+- **Motion:** the other entries slide apart in under 150ms, and jump with *Reduce Motion* on. A drag dismisses the M6 preview and shows no new one until the drop.
 
 ## Technical direction
 - **Stack:** Swift 6 and AppKit. SwiftUI is allowed only inside the entry view. SwiftPM package, bundled by a script (development happens on a machine with Command Line Tools only, no Xcode). Not sandboxed (the AX APIs require it).

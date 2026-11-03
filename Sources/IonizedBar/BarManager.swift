@@ -29,6 +29,10 @@ final class BarManager {
                 return
             }
             BarManager.openApp(at: url)
+        },
+        moveEntry: { [unowned self] items, from, to in
+            taskOrder.move(items, from: from, to: to, key: \.element)
+            update(windowsByDisplay: latestWindowsByDisplay)
         }
     )
     private lazy var launcher = LauncherController(

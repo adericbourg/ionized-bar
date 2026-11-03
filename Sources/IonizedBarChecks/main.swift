@@ -907,6 +907,59 @@ do {
     check("canMoveRight_elsewhere_isTrue", canMoveRight(itemAt: 1, itemCount: 3))
 }
 
+// Dragging an entry
+do {
+    // Given a press, Then a slip of up to 4pt stays a click, in any direction
+    let press = CGPoint(x: 100, y: 10)
+    check("isPastDragThreshold_ofNoMove_isFalse", !isPastDragThreshold(from: press, to: press))
+    check("isPastDragThreshold_of4ptSlip_isFalse", !isPastDragThreshold(from: press, to: CGPoint(x: 104, y: 10)))
+    check("isPastDragThreshold_of4ptDiagonalSlip_isFalse", !isPastDragThreshold(from: press, to: CGPoint(x: 98, y: 13)))
+    check("isPastDragThreshold_ofMoveRight_isTrue", isPastDragThreshold(from: press, to: CGPoint(x: 105, y: 10)))
+    check("isPastDragThreshold_ofMoveLeft_isTrue", isPastDragThreshold(from: press, to: CGPoint(x: 95, y: 10)))
+    check("isPastDragThreshold_ofMoveAcross_isTrue", isPastDragThreshold(from: press, to: CGPoint(x: 100, y: 5)))
+    check("isPastDragThreshold_ofDiagonalMove_isTrue", isPastDragThreshold(from: press, to: CGPoint(x: 104, y: 14)))
+
+    // Given 4 entries of 100pt after a launcher and pins at 148, one grabbed 30pt into it
+    func x(_ pointerX: CGFloat, grab: CGFloat = 30, width: CGFloat = 100, count: Int = 4) -> CGFloat {
+        draggedEntryX(pointerX: pointerX, grabOffset: grab, slotX: 148, entryWidth: width, entryCount: count)
+    }
+    check("draggedEntryX_followsThePointer", x(300) == 270)
+    check("draggedEntryX_pastTheLauncherAndPins_stopsAtTheFirstSlot", x(0) == 148)
+    check("draggedEntryX_pastTheEnd_stopsAtTheLastSlot", x(5000) == 448)
+    // Given icon only, packed left: the end is the last entry's slot, not the bar's end
+    check("draggedEntryX_whenPackedLeft_stopsAtTheLastEntry", x(5000, grab: 10, width: 48, count: 3) == 244)
+    check("draggedEntryX_ofOneEntry_staysPut", x(5000, count: 1) == 148 && x(0, count: 1) == 148)
+    check("draggedEntryX_ofZeroWidthEntries_stopsAtTheStart", x(5000, grab: 0, width: 0, count: 4) == 148)
+    // Given a window opening mid-drag narrows the entries, Then the pointer stays on the entry
+    check("draggedEntryX_whenEntryNarrowedPastTheGrab_keepsThePointerOnIt", x(300, grab: 90, width: 50) == 250)
+
+    func index(_ entryX: CGFloat, from: Int = 1, width: CGFloat = 100, count: Int = 4) -> Int {
+        dragTargetIndex(entryX: entryX, from: from, slotX: 148, entryWidth: width, entryCount: count)
+    }
+    check("dragTargetIndex_atItsSlot_isItsIndex", index(248) == 1)
+    check("dragTargetIndex_underHalfWayRight_staysPut", index(297) == 1)
+    check("dragTargetIndex_pastHalfWayRight_isTheNext", index(299) == 2)
+    check("dragTargetIndex_underHalfWayLeft_staysPut", index(199) == 1)
+    check("dragTargetIndex_pastHalfWayLeft_isThePrevious", index(197) == 0)
+    check("dragTargetIndex_farRight_reachesTheLast", index(448, from: 0) == 3)
+    check("dragTargetIndex_farLeft_reachesTheFirst", index(148, from: 3) == 0)
+    check("dragTargetIndex_pastTheRightEnd_isTheLast", index(1_000_000) == 3)
+    check("dragTargetIndex_pastTheLeftEnd_isTheFirst", index(-1_000_000) == 0)
+    check("dragTargetIndex_ofOneEntry_isZero", index(1000, from: 0, count: 1) == 0 && index(-1000, from: 0, count: 1) == 0)
+    check("dragTargetIndex_ofZeroWidthEntries_staysPut", index(500, from: 2, width: 0) == 2)
+    check("dragTargetIndex_ofNoEntries_staysPut", index(500, from: 0, width: 0, count: 0) == 0)
+
+    // Given a group entry, When dropped where the index says, Then it moves as one
+    typealias Task = (pid: Int32, name: String)
+    let tasks: [Task] = [(1, "b"), (2, "a1"), (2, "a2"), (3, "c")]
+    var order = TaskOrder<String>()
+    order.update(seen: tasks.map(\.name), alive: Set(tasks.map(\.name)))
+    let items = barItems(order.sorted(tasks, key: \.name), pid: \.pid, barWidth: 300, mode: .always, minEntryWidth: 100)
+    let to = dragTargetIndex(entryX: draggedEntryX(pointerX: 5000, grabOffset: 0, slotX: 48, entryWidth: 100, entryCount: items.count), from: 1, slotX: 48, entryWidth: 100, entryCount: items.count)
+    order.move(items, from: 1, to: to, key: \.name)
+    check("dragTargetIndex_ofGroupEntryToTheEnd_movesItsWindowsAsOne", order.keys == ["b", "c", "a1", "a2"])
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

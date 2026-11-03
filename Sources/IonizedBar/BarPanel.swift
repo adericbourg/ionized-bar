@@ -39,6 +39,16 @@ final class BarPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
 
+    override func sendEvent(_ event: NSEvent) {
+        if content.isDragging {
+            // Another left press: the drag's mouse-up never came, for instance taken by a system gesture.
+            if event.type == .leftMouseDown { content.cancelDrag() }
+            // Keyboard mode's keys, a menu or a middle click would act on what the drag is moving.
+            if [.keyDown, .rightMouseDown, .otherMouseUp].contains(event.type) { return }
+        }
+        super.sendEvent(event)
+    }
+
     func update(with windows: [TrackedWindow], settings: Settings, pins: [String]) {
         content.update(with: windows, settings: settings, pins: pins)
     }

@@ -105,6 +105,10 @@ final class PreviewController {
     // Lazy: with previews off, no panel exists.
     private lazy var panel = PreviewPanel { [unowned self] in pointerLeft() }
     private var entry: EntryView?
+    /// No preview starts during a drag. Weak: a bar closed mid-drag gets no mouse-up, and mustn't leave previews off.
+    weak var dragged: EntryView? {
+        didSet { dismiss() }
+    }
     private var showing: Task<Void, Never>?
     private var hiding: Task<Void, Never>?
     private var escapeMonitors: [Any] = []
@@ -115,7 +119,7 @@ final class PreviewController {
     }
 
     func show(for entry: EntryView) {
-        guard entry !== self.entry else { return }
+        guard dragged == nil, entry !== self.entry else { return }
         dismiss()
         guard entry.previewWindow != nil else { return }
         self.entry = entry
