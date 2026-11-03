@@ -21,7 +21,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M8 – App launcher | ✅ | 6/6 |
 | M9 – Pin applications | ✅ | 6/6 |
 | M10 – Re-order tasks | 🚧 | 4/5 |
-| M11 – Plasma-style launcher | 🚧 | 4/6 |
+| M11 – Plasma-style launcher | 🚧 | 5/6 |
 
 ## Requirements
 
@@ -272,14 +272,16 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] Reduce Motion on, then off: after "Move Left" or "Move Right" the entries jump, then slide in under 150ms
 
 ### M11 – Plasma-style launcher
-- [x] Spike: the `loginwindow` Apple event shows the Restart dialog from a signed `LSUIElement` app, above the bar, with no Automation prompt, and Cancel leaves everything running; the Shut Down event is unverified until the footer's manual pass
+- [x] Spike: the `loginwindow` Apple event shows the Restart dialog from a signed `LSUIElement` app, above the bar, with no Automation prompt, and Cancel leaves everything running; the Shut Down event was confirmed from the footer
 - [x] Categories from `LSApplicationCategoryType` and the launcher's views in `IonizedBarCore`, with checks
 - [x] Hover highlight on the launcher's rows
 - [x] Sidebar and Favorites grid
-- [ ] Restart and Shut Down in the footer
+- [x] Restart and Shut Down in the footer
 - [ ] Keyboard, VoiceOver, Reduce Motion, Reduce Transparency and contrast on the new panel; manual pass
 
 ### M11 manual pass
+- [x] Restart and Shut Down each show the macOS dialog from the bundled app, Cancel leaves everything running, and the footer's look and hover read as intended
+- [ ] A confirmed restart: the Dock is restored, and IonizedBar comes back at login
 - [x] The pointer highlights rows, grid items and sidebar items, a click on a sidebar item switches view, and the layout reads as intended
 - [ ] With another app frontmost, a click on a row and on a grid item opens that app, and the app comes to the front
 - [ ] Favorites with no pins shows its message, readable and unclipped, and opens on All Applications; a pin outside the listed folders (Finder) shows and opens; an uninstalled pin doesn't show
@@ -409,3 +411,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M11: started the Plasma-style launcher, with its spec in `PRODUCT.md`, which reverses M8's "no categories". The spike sent `aevt`/`rrst` to `loginwindow` from a signed `LSUIElement` bundle: accepted in 0.08s, the user saw the macOS dialog above the bar with no permission prompt, and Cancel left everything running. `IonizedBarCore` now reads `LSApplicationCategoryType` (90 of 122 apps here declare one) into `AppCategory`, and `LauncherList` has the views, favorites, hover selection and grid movement. No UI uses them yet. Verified: `swift run IonizedBarChecks`, red first (23 behavioral failures against stubs).
 - 2026-11-03 — M11: the launcher's rows highlight on hover. The table had no tracking area, so only the arrow keys moved the selection. Pointer and keys now share one selection, as in Plasma, so Return opens the last row hovered. Verified: the checks and the build. Not verified: a real pointer, which joins the M11 manual pass.
 - 2026-11-03 — M11: the launcher panel now has a sidebar and a Favorites grid. The panel grows to 620x520, and it opens on Favorites, or on All Applications with no pins. Favorites are the pins, looked up by bundle identifier since a pin can be outside the listed folders. Hover moved to one scroll view subclass shared by the list, the grid and the sidebar. Verified: the checks, the build and the user's run on the bundled app (layout, hover, view switching). Not verified: the rest of the M11 manual pass.
+- 2026-11-03 — M11: Restart and Shut Down in the launcher's footer. A click closes the panel and asks `loginwindow` for the macOS dialog off the main thread, with a 10s reply timeout; a failure is logged. No `Info.plist` change: there was no Automation prompt. Verified: the checks, the build and the user's run of both dialogs with Cancel on the bundled app. Not verified: a confirmed restart. No check added: this is Apple event glue the checks target cannot run.

@@ -10,6 +10,9 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     private static let sidebarRowHeight: CGFloat = 32
     private static let gridColumns = 4
     private static let gridItemHeight: CGFloat = 100
+    private static let footerHeight: CGFloat = 44
+    private static let footerButtonHeight: CGFloat = 28
+    private static let footerButtonPadding: CGFloat = 16
     private static let rowID = NSUserInterfaceItemIdentifier("app")
     private static let sidebarRowID = NSUserInterfaceItemIdentifier("view")
     private static let gridItemID = NSUserInterfaceItemIdentifier("gridItem")
@@ -27,14 +30,19 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
     private let gridLayout = NSCollectionViewFlowLayout()
     private let headerSeparator = NSBox()
     private let sidebarSeparator = NSBox()
+    private let footerSeparator = NSBox()
+    private lazy var restartButton = FooterButton(title: "Restart", symbolName: "arrow.clockwise", target: self, action: #selector(restartClicked))
+    private lazy var shutDownButton = FooterButton(title: "Shut Down", symbolName: "power", target: self, action: #selector(shutDownClicked))
     private let emptyLabel = NSTextField(wrappingLabelWithString: "")
     private var hoveredSidebarRow = -1
     private var list = LauncherList()
     private let onOpen: (InstalledApp) -> Void
     private let onDismiss: () -> Void
+    private let onPower: (PowerAction) -> Void
 
-    init(onOpen: @escaping (InstalledApp) -> Void, onDismiss: @escaping () -> Void) {
+    init(onOpen: @escaping (InstalledApp) -> Void, onDismiss: @escaping () -> Void, onPower: @escaping (PowerAction) -> Void) {
         self.onOpen = onOpen
+        self.onPower = onPower
         self.onDismiss = onDismiss
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         level = .statusBar
@@ -85,8 +93,9 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
 
         headerSeparator.boxType = .separator
         sidebarSeparator.boxType = .separator
+        footerSeparator.boxType = .separator
         emptyLabel.alignment = .center
-        for view in [searchField, headerSeparator, sidebarScrollView, sidebarSeparator, scrollView, gridScrollView, emptyLabel] { frosted.addSubview(view) }
+        for view in [searchField, headerSeparator, sidebarScrollView, sidebarSeparator, scrollView, gridScrollView, emptyLabel, footerSeparator, restartButton, shutDownButton] { frosted.addSubview(view) }
     }
 
     private func configure(_ table: NSTableView, in scrollView: NSScrollView, label: String, id: NSUserInterfaceItemIdentifier, rowHeight: CGFloat, action: Selector) {
@@ -135,11 +144,19 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         let fieldHeight = searchField.intrinsicContentSize.height
         let fieldY = frame.height - Self.padding - fieldHeight
         searchField.frame = CGRect(x: Self.padding, y: fieldY, width: frame.width - 2 * Self.padding, height: fieldHeight)
-        let bodyHeight = max(0, fieldY - 2 * Self.padding)
+        let bodyY = Self.footerHeight + 1
+        let bodyHeight = max(0, fieldY - Self.padding - bodyY)
         headerSeparator.frame = CGRect(x: 0, y: fieldY - Self.padding, width: frame.width, height: 1)
-        sidebarScrollView.frame = CGRect(x: 0, y: Self.padding, width: Self.sidebarWidth, height: bodyHeight)
-        sidebarSeparator.frame = CGRect(x: Self.sidebarWidth, y: 0, width: 1, height: fieldY - Self.padding)
-        let content = CGRect(x: Self.sidebarWidth + 1, y: Self.padding, width: max(0, frame.width - Self.sidebarWidth - 1), height: bodyHeight)
+        footerSeparator.frame = CGRect(x: 0, y: Self.footerHeight, width: frame.width, height: 1)
+        sidebarScrollView.frame = CGRect(x: 0, y: bodyY, width: Self.sidebarWidth, height: bodyHeight)
+        sidebarSeparator.frame = CGRect(x: Self.sidebarWidth, y: bodyY, width: 1, height: bodyHeight)
+        var nextFooterMaxX = frame.width - Self.padding
+        for button in [shutDownButton, restartButton] {
+            let width = button.intrinsicContentSize.width + Self.footerButtonPadding
+            button.frame = CGRect(x: nextFooterMaxX - width, y: ((Self.footerHeight - Self.footerButtonHeight) / 2).rounded(), width: width, height: Self.footerButtonHeight)
+            nextFooterMaxX = button.frame.minX - Self.padding / 2
+        }
+        let content = CGRect(x: Self.sidebarWidth + 1, y: bodyY, width: max(0, frame.width - Self.sidebarWidth - 1), height: bodyHeight)
         scrollView.frame = content
         gridScrollView.frame = content
         gridLayout.itemSize = CGSize(
@@ -225,6 +242,10 @@ final class LauncherPanel: NSPanel, NSSearchFieldDelegate, NSTableViewDataSource
         list.setView(list.sidebarItems[sidebar.clickedRow])
         reload()
     }
+
+    @objc private func restartClicked() { onPower(.restart) }
+
+    @objc private func shutDownClicked() { onPower(.shutDown) }
 
     private func selectionMoved() {
         showSelection()
@@ -374,6 +395,38 @@ private final class EmphasizedRow: NSTableRowView {
     }
 }
 
+private final class FooterButton: NSButton {
+    private var isHovered = false { didSet { needsDisplay = true } }
+
+    init(title: String, symbolName: String, target: AnyObject, action: Selector) {
+        super.init(frame: .zero)
+        self.title = title
+        self.target = target
+        self.action = action
+        image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
+        imagePosition = .imageLeading
+        contentTintColor = .labelColor
+        isBordered = false
+        // Always active: this app is never the active one while the panel is open.
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func mouseEntered(with event: NSEvent) { isHovered = true }
+
+    override func mouseExited(with event: NSEvent) { isHovered = false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        if isHovered {
+            NSColor.labelColor.withAlphaComponent(0.1).setFill()
+            NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4).fill()
+        }
+        super.draw(dirtyRect)
+    }
+}
+
 private final class GridItem: NSCollectionViewItem {
     var isCurrent = false {
         didSet { (view as? GridItemView)?.isCurrent = isCurrent }
@@ -498,7 +551,11 @@ final class LauncherController {
             close()
             openApp(app.url)
         },
-        onDismiss: { [unowned self] in close() }
+        onDismiss: { [unowned self] in close() },
+        onPower: { [unowned self] action in
+            close()
+            showPowerDialog(action)
+        }
     )
     private var button: NSView?
     private var mouseMonitors: [Any] = []
