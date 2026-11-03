@@ -91,12 +91,10 @@ public func assignDisplay(windowFrame: CGRect, displays: [Display]) -> Display? 
     return best?.display
 }
 
-public func entryWidth(
-    barWidth: CGFloat, entryCount: Int, maxWidth: CGFloat = 220, iconOnlyBelow: CGFloat = 48
-) -> EntryWidth {
+public func entryWidth(barWidth: CGFloat, entryCount: Int, maxWidth: CGFloat = 220) -> EntryWidth {
     guard entryCount > 0 else { return EntryWidth(width: 0, isIconOnly: false) }
     let width = min(maxWidth, barWidth / CGFloat(entryCount))
-    return EntryWidth(width: width, isIconOnly: width < iconOnlyBelow)
+    return EntryWidth(width: width, isIconOnly: width < 48)
 }
 
 public let launcherWidth: CGFloat = 48

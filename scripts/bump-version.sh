@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Usage: bump-version.sh patch|minor|major [plist]. Writes the next version to the plist and prints it.
+# Usage: bump-version.sh patch|minor|major. Writes the next version to the plist and prints it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 kind=${1:?patch, minor or major}
-plist=${2:-Support/Info.plist}
+plist=Support/Info.plist
 current=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")
 if ! [[ "$current" =~ ^([0-9]+)\.([0-9]+)(\.([0-9]+))?$ ]]; then
     echo "Unexpected version '$current' in $plist" >&2

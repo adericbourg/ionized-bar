@@ -70,7 +70,6 @@ jobs:
 
   cask:
     needs: release
-    if: needs.release.outputs.tag
     runs-on: ubuntu-slim
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

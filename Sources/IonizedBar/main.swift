@@ -58,7 +58,7 @@ if AXIsProcessTrusted() {
     // After a crash with the permission lost (each upgrade loses it), the Dock would stay hidden above an empty bar.
     restoreDock(dock)
     onboardingWindow.show()
-    let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
+    Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
         guard AXIsProcessTrusted() else { return }
         timer.invalidate()
         MainActor.assumeIsolated {
@@ -66,7 +66,6 @@ if AXIsProcessTrusted() {
             onAccessibilityTrusted()
         }
     }
-    _ = timer
 }
 
 NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { _ in
