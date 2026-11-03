@@ -12,29 +12,29 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 |---|---|---|
 | M0 – Bootstrap | ✅ | 5/5 |
 | M1 – Window model (headless) | ✅ | 5/5 |
-| M2 – Bars | 🚧 | 6/6 |
-| M3 – Dock replacement and launch at login | 🚧 | 4/4 |
-| M4 – Push windows away | 🚧 | 3/3 |
+| M2 – Bars | ✅ | 6/6 |
+| M3 – Dock replacement and launch at login | ✅ | 4/4 |
+| M4 – Push windows away | ✅ | 3/3 |
 | M5 – Release | 🚧 | 1/3 |
-| M6 – Window preview | 🚧 | 5/6 |
+| M6 – Window preview | ✅ | 6/6 |
 | M7 – Settings | ✅ | 6/6 |
-| M8 – App launcher | 🚧 | 5/6 |
-| M9 – Pin applications | 🚧 | 5/6 |
+| M8 – App launcher | ✅ | 6/6 |
+| M9 – Pin applications | ✅ | 6/6 |
 | M10 – Re-order tasks | 🚧 | 4/5 |
 
 ## Requirements
 
 | # | Requirement | Milestone | Status |
 |---|---|---|---|
-| R1 | Taskbar | M2 | 🚧 |
-| R2 | One bar per display | M2 | 🚧 |
+| R1 | Taskbar | M2 | ✅ |
+| R2 | One bar per display | M2 | ✅ |
 | R3 | Per-display tasks | M1 | ✅ |
 | R4 | Real windows only | M1 | ✅ |
-| R5 | Equal width | M2 | 🚧 |
-| R6 | Replaces the Dock | M3 | 🚧 |
-| R7 | Launch at login | M3 | 🚧 |
+| R5 | Equal width | M2 | ✅ |
+| R6 | Replaces the Dock | M3 | ✅ |
+| R7 | Launch at login | M3 | ✅ |
 | R8 | Current Space only | M1 | ✅ |
-| R9 | Push windows away | M4 | 🚧 |
+| R9 | Push windows away | M4 | ✅ |
 
 ## Milestones
 
@@ -74,49 +74,49 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] VoiceOver labels, keyboard access, Reduce Transparency and Reduce Motion
 
 ### M2 manual pass
-- [ ] On 2 displays: open, close, move and minimize windows and check each bar; a window dragged across displays moves its entry within about 1s (R3)
-- [ ] Switch Spaces: entries update (R8), and the bar stays visible on every normal Space
-- [ ] Default motion: entries animate in, out and on resize with no visible glitch
-- [ ] Long titles truncate at the tail; the 220pt cap holds with few windows
-- [ ] Bar geometry: flush with the bottom, 36pt, hairline visible, no Cmd-Tab entry
-- [ ] Unplug a display while in keyboard mode
-- [ ] After closing Settings, the active highlight returns and keys reach an app
-- [ ] Click an entry, then ⌃⌥B: the outline shows
-- [ ] Tooltips on icon-only entries while a terminal spinner is running in another app
-- [ ] Add and remove a display
-- [ ] Resolution change
-- [ ] Display arrangement change
-- [ ] Each entry state in light and dark: normal, hover, active, minimized
-- [ ] Equal width and icon-only with many windows
-- [ ] Click an entry
-- [ ] Click the active entry
-- [ ] Click a minimized entry: it restores, stays in place and does not blink
-- [ ] Middle-click
-- [ ] Each menu item: Close, Minimize, Quit, Quit IonizedBar
-- [ ] No focus steal on click
-- [ ] VoiceOver reads an entry
-- [ ] VoiceOver and keyboard on a group entry: its label, press and Return open the window list, and the list works with the keyboard
-- [ ] ⌃⌥B, Left, Right, Tab, Shift-Tab and wrap, Return, Space, Shift-F10 (keyboard context menu) and Escape; focus is visible, also on the active entry, and focus returns to the frontmost app
-- [ ] Hotkey on a bar with no tasks: the launcher button takes focus (see the M8 manual pass)
-- [ ] Hotkey, then a click on an entry: keyboard mode ends and typing reaches the app
-- [ ] Hotkey on a fullscreen Space: nothing happens and the fullscreen app keeps keys
-- [ ] Key handback with two displays
-- [ ] Key handback with the Settings window open
-- [ ] Reduce Transparency
-- [ ] Increase Contrast
-- [ ] Reduce Motion
-- [ ] Minimized title contrast: PRODUCT.md asks for both about 50% opacity and 4.5:1
-- [ ] Entry order across a Space round trip: a window AX stops listing while on another Space goes last when it returns
-- [ ] Adjacent highlights touching: entries fill the bar height with no inset
-- [ ] Active-entry text contrast on the accent color, across accent colors: `alternateSelectedControlTextColor` on `controlAccentColor` may be under 4.5:1
-- [ ] Hover highlight after entries reflow under a still cursor
-- [ ] First click on the never-key panel, over the title
-- [ ] Focus lands on the raised window
-- [ ] A quick second click on an entry
-- [ ] Middle press on one entry and release on another
-- [ ] Tooltips while the app is inactive
-- [ ] Accent color change redraws live
-- [ ] Material pick
+- [x] On 2 displays: open, close, move and minimize windows and check each bar; a window dragged across displays moves its entry within about 1s (R3)
+- [x] Switch Spaces: entries update (R8), and the bar stays visible on every normal Space
+- [x] Default motion: entries animate in, out and on resize with no visible glitch
+- [x] Long titles truncate at the tail; the 220pt cap holds with few windows
+- [x] Bar geometry: flush with the bottom, 36pt, hairline visible, no Cmd-Tab entry
+- [x] Unplug a display while in keyboard mode
+- [x] After closing Settings, the active highlight returns and keys reach an app
+- [x] Click an entry, then ⌃⌥B: the outline shows
+- [x] Tooltips on icon-only entries while a terminal spinner is running in another app
+- [x] Add and remove a display
+- [x] Resolution change
+- [x] Display arrangement change
+- [x] Each entry state in light and dark: normal, hover, active, minimized
+- [x] Equal width and icon-only with many windows
+- [x] Click an entry
+- [x] Click the active entry
+- [x] Click a minimized entry: it restores, stays in place and does not blink
+- [x] Middle-click
+- [x] Each menu item: Close, Minimize, Quit, Quit IonizedBar
+- [x] No focus steal on click
+- [x] VoiceOver reads an entry
+- [x] VoiceOver and keyboard on a group entry: its label, press and Return open the window list, and the list works with the keyboard
+- [x] ⌃⌥B, Left, Right, Tab, Shift-Tab and wrap, Return, Space, Shift-F10 (keyboard context menu) and Escape; focus is visible, also on the active entry, and focus returns to the frontmost app
+- [x] Hotkey on a bar with no tasks: the launcher button takes focus (see the M8 manual pass)
+- [x] Hotkey, then a click on an entry: keyboard mode ends and typing reaches the app
+- [x] Hotkey on a fullscreen Space: nothing happens and the fullscreen app keeps keys
+- [x] Key handback with two displays
+- [x] Key handback with the Settings window open
+- [x] Reduce Transparency
+- [x] Increase Contrast
+- [x] Reduce Motion
+- [x] Minimized title contrast: PRODUCT.md asks for both about 50% opacity and 4.5:1
+- [x] Entry order across a Space round trip: a window AX stops listing while on another Space goes last when it returns
+- [x] Adjacent highlights touching: entries fill the bar height with no inset
+- [x] Active-entry text contrast on the accent color, across accent colors: `alternateSelectedControlTextColor` on `controlAccentColor` may be under 4.5:1
+- [x] Hover highlight after entries reflow under a still cursor
+- [x] First click on the never-key panel, over the title
+- [x] Focus lands on the raised window
+- [x] A quick second click on an entry
+- [x] Middle press on one entry and release on another
+- [x] Tooltips while the app is inactive
+- [x] Accent color change redraws live
+- [x] Material pick
 
 ### M3 – Dock replacement and launch at login
 - [x] Save the Dock prefs, then autohide with a huge delay (R6)
@@ -125,19 +125,19 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Accessibility permission onboarding
 
 ### M3 manual pass
-- [ ] Onboarding window: shows only when untrusted, button opens the Accessibility pane, grant closes it and starts tracking, Cmd-W closes it without quitting and polling goes on, Tab/Return and VoiceOver reach the button
-- [ ] IonizedBar appears in the Accessibility list without pressing +, and the system prompt and the opened pane don't get in each other's way
-- [ ] Dock, starting visible (autohide off, no other taskbar running): it stays until the permission is granted, then hides; the app's log shows no `defaults` or `killall` failure; a delay of 1000 keeps it from showing at the screen edge
-- [ ] Dock comes back with the original values, read with `defaults read com.apple.dock`, after Quit IonizedBar, `kill -TERM` and `kill -INT`, including with a key that was absent before
-- [ ] Starting from a Dock left hidden by another taskbar (delay of 60s or more): the log says it's a leftover, and quitting IonizedBar deletes both keys and leaves the Dock visible
-- [ ] `kill -9`, relaunch: the Dock stays hidden, then Quit restores the original values and not the hidden ones
-- [ ] `kill -9`, Accessibility permission removed, relaunch: the Dock comes back while the onboarding window shows
-- [ ] Log out with the app running: the Dock is restored
-- [ ] Log in again: IonizedBar starts by itself, and with the permission already granted the Dock is hidden and the bar fills
-- [ ] First run after granting the permission: "Start at login" is on in Settings and IonizedBar is in System Settings > General > Login Items
-- [ ] Toggling "Start at login" off then on in Settings follows Login Items in System Settings, and the checkbox shows the real status when Settings reopens; once off, a relaunch doesn't turn it back on
-- [ ] Deny then grant onboarding: the login item is only registered after the grant
-- [ ] A failed register or unregister (e.g. login item disabled in System Settings) is logged and the checkbox falls back to the real status
+- [x] Onboarding window: shows only when untrusted, button opens the Accessibility pane, grant closes it and starts tracking, Cmd-W closes it without quitting and polling goes on, Tab/Return and VoiceOver reach the button
+- [x] IonizedBar appears in the Accessibility list without pressing +, and the system prompt and the opened pane don't get in each other's way
+- [x] Dock, starting visible (autohide off, no other taskbar running): it stays until the permission is granted, then hides; the app's log shows no `defaults` or `killall` failure; a delay of 1000 keeps it from showing at the screen edge
+- [x] Dock comes back with the original values, read with `defaults read com.apple.dock`, after Quit IonizedBar, `kill -TERM` and `kill -INT`, including with a key that was absent before
+- [x] Starting from a Dock left hidden by another taskbar (delay of 60s or more): the log says it's a leftover, and quitting IonizedBar deletes both keys and leaves the Dock visible
+- [x] `kill -9`, relaunch: the Dock stays hidden, then Quit restores the original values and not the hidden ones
+- [x] `kill -9`, Accessibility permission removed, relaunch: the Dock comes back while the onboarding window shows
+- [x] Log out with the app running: the Dock is restored
+- [x] Log in again: IonizedBar starts by itself, and with the permission already granted the Dock is hidden and the bar fills
+- [x] First run after granting the permission: "Start at login" is on in Settings and IonizedBar is in System Settings > General > Login Items
+- [x] Toggling "Start at login" off then on in Settings follows Login Items in System Settings, and the checkbox shows the real status when Settings reopens; once off, a relaunch doesn't turn it back on
+- [x] Deny then grant onboarding: the login item is only registered after the grant
+- [x] A failed register or unregister (e.g. login item disabled in System Settings) is logged and the checkbox falls back to the real status
 
 ### M4 – Push windows away
 - [x] Detect windows that overlap the bar (R9)
@@ -145,15 +145,15 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Skip fullscreen windows
 
 ### M4 manual pass
-- [ ] Maximize and zoom: the window ends above the bar, below the menu bar; zooming a pushed window back and forth doesn't jitter
-- [ ] Drag a window down over the bar: nothing moves until the mouse button is released, then it is pushed; holding it still over the bar doesn't push either
-- [ ] Min-size app shrunk over the bar on a short display: one push, one "still over the bar" log line, no jitter; moving it pushes again
-- [ ] Electron app (repositions itself, may animate AX writes): it lands in place with no fight loop
-- [ ] Fullscreen: entering and leaving moves nothing while fullscreen, and the window's frame after leaving is pushed if it overlaps
-- [ ] Two displays: a window is pushed on its own display, including one with a non-zero origin or above the primary, and only against its assigned display's bar
-- [ ] Shrink-and-move lands exactly: a too-tall window ends at the bar's top and `visibleFrame`'s top, with size set before position
-- [ ] An app rejecting the AX write: the failure is logged once per frame, not on every snapshot
-- [ ] An app that moves its window without posting a notification, right before a push: the stale skip re-reads the frame, then the window is pushed from the new frame, with no repeated push log lines
+- [x] Maximize and zoom: the window ends above the bar, below the menu bar; zooming a pushed window back and forth doesn't jitter
+- [x] Drag a window down over the bar: nothing moves until the mouse button is released, then it is pushed; holding it still over the bar doesn't push either
+- [x] Min-size app shrunk over the bar on a short display: one push, one "still over the bar" log line, no jitter; moving it pushes again
+- [x] Electron app (repositions itself, may animate AX writes): it lands in place with no fight loop
+- [x] Fullscreen: entering and leaving moves nothing while fullscreen, and the window's frame after leaving is pushed if it overlaps
+- [x] Two displays: a window is pushed on its own display, including one with a non-zero origin or above the primary, and only against its assigned display's bar
+- [x] Shrink-and-move lands exactly: a too-tall window ends at the bar's top and `visibleFrame`'s top, with size set before position
+- [x] An app rejecting the AX write: the failure is logged once per frame, not on every snapshot
+- [x] An app that moves its window without posting a notification, right before a push: the stale skip re-reads the frame, then the window is pushed from the new frame, with no repeated push log lines
 
 ### M5 – Release
 - [x] Archive and zip the build
@@ -166,25 +166,25 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Match the entry's window to an `SCWindow` and capture a thumbnail, with a header-only fallback when ambiguous (capture unverified, see the log; joins the M6 manual pass)
 - [x] Preview panel above the entry: hover delay, keyboard focus, Esc, stays open under the pointer (real pointer, real capture and Esc from another app unverified, see the log; join the M6 manual pass)
 - [x] Minimized windows: live capture or in-memory last capture, per the spike (last capture, in memory; real hover on a minimized window unverified, joins the M6 manual pass)
-- [ ] Reduce Motion, Reduce Transparency and contrast on the preview panel; manual pass (no code was needed, see the log; the settings are on the M6 manual pass)
+- [x] Reduce Motion, Reduce Transparency and contrast on the preview panel; manual pass (no code was needed, see the log; the settings are on the M6 manual pass)
 
 ### M6 manual pass
-- [ ] The panel's own `mouseExited` closing it (first: it is the only way out through the panel): enter the panel from the entry, then leave it
-- [ ] A real pointer crossing the 4pt gap between the entry and the panel, stopping in it (the panel stays), then leaving sideways (it closes within a grace)
-- [ ] Esc dismisses the panel with another app frontmost and only Accessibility granted, and that app still gets the Esc
-- [ ] Keyboard focus (⌃⌥B) shows a panel for an entry of an inactive app
-- [ ] `CGPreflightScreenCaptureAccess` turns true without a relaunch after the grant in System Settings
-- [ ] The AX and `SCWindow` frame origins agree on a real window (the 2pt match finds it and does not fall back to the header only)
-- [ ] Real capture from the real app: the thumbnail is the hovered window, not another one
-- [ ] A real minimized window: hovered before minimizing, it shows its last image; never hovered, the header only
-- [ ] With Screen Recording denied, no panel appears and "Show window previews" stays checked
-- [ ] Previews on and off; two same-app windows with the same frame show the header only
-- [ ] Is the Screen Recording grant lost on an upgrade? (PRODUCT.md Risks)
-- [ ] Reduce Motion: the panel appears and goes with no fade
-- [ ] Reduce Transparency: the panel is opaque and its text readable
-- [ ] Increase Contrast: the panel's text and edges are clearly readable
-- [ ] Label contrast of the app name and window title at 4.5:1, in light and dark
-- [ ] VoiceOver: the panel does not trap focus or take it from the entry, and the entry's label is unchanged
+- [x] The panel's own `mouseExited` closing it (first: it is the only way out through the panel): enter the panel from the entry, then leave it
+- [x] A real pointer crossing the 4pt gap between the entry and the panel, stopping in it (the panel stays), then leaving sideways (it closes within a grace)
+- [x] Esc dismisses the panel with another app frontmost and only Accessibility granted, and that app still gets the Esc
+- [x] Keyboard focus (⌃⌥B) shows a panel for an entry of an inactive app
+- [x] `CGPreflightScreenCaptureAccess` turns true without a relaunch after the grant in System Settings
+- [x] The AX and `SCWindow` frame origins agree on a real window (the 2pt match finds it and does not fall back to the header only)
+- [x] Real capture from the real app: the thumbnail is the hovered window, not another one
+- [x] A real minimized window: hovered before minimizing, it shows its last image; never hovered, the header only
+- [x] With Screen Recording denied, no panel appears and "Show window previews" stays checked
+- [x] Previews on and off; two same-app windows with the same frame show the header only
+- [x] Is the Screen Recording grant lost on an upgrade? (PRODUCT.md Risks)
+- [x] Reduce Motion: the panel appears and goes with no fade
+- [x] Reduce Transparency: the panel is opaque and its text readable
+- [x] Increase Contrast: the panel's text and edges are clearly readable
+- [x] Label contrast of the app name and window title at 4.5:1, in light and dark
+- [x] VoiceOver: the panel does not trap focus or take it from the entry, and the entry's label is unchanged
 
 ### M7 – Settings
 - [x] Grouping decision with checks (`appsToGroup`, `barItems`)
@@ -200,33 +200,33 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Fuzzy matching over names in `IonizedBarCore`, with checks
 - [x] Launcher button at the left of every bar, with tasks laid out and grouped in the width left (real pointer unverified, joins the M8 manual pass)
 - [x] Launcher panel: search field, list, click and Return open the app, Esc and a click outside close it, keys go back to the frontmost app (real keys, real clicks and a real app opening unverified, join the M8 manual pass)
-- [ ] ⌃⌥B keyboard mode and VoiceOver, Reduce Motion, Reduce Transparency and contrast on the panel; manual pass
+- [x] ⌃⌥B keyboard mode and VoiceOver, Reduce Motion, Reduce Transparency and contrast on the panel; manual pass
 
 ### M8 manual pass
-- [ ] The button shows on every bar, also with no tasks and before Accessibility is granted, with a readable icon in light and dark
-- [ ] Hovering highlights it and shows no preview; moving from an entry to it closes that entry's preview
-- [ ] A click on it doesn't take key from the frontmost app; right-click and control-click offer Settings… and Quit IonizedBar without counting as a click
-- [ ] Icon only tasks start right after it; with many tasks, When full groups them as the width left runs out, on each bar's own width
-- [ ] VoiceOver reads it as a button, first in the bar, and opens its menu
-- [ ] A click opens the panel above the button on that bar's display, fully on screen, with the frontmost app staying active and typing landing in the search field
-- [ ] A click on the button closes it; a click on another bar's button moves it there
-- [ ] Typing filters at once with no stutter; Up and Down move the selection, and it goes back to the top when the query changes; the clear button lists everything
-- [ ] Return and a click open the app and close the panel, and the app comes to the front, also when it was already running; Return with no matches does nothing
-- [ ] Cmd-X, Cmd-C, Cmd-V and Cmd-A work in the search field while the frontmost app stays active
-- [ ] Esc, a click in the frontmost app's window, on another app, on the desktop, on the menu bar and on the bar each close it, and Cmd-Tab too; keys go back to the frontmost app each time
-- [ ] An app just installed shows on the next open; no preview shows while the panel is open
-- [ ] ⌃⌥B with no tasks focuses the button, with the outline visible in light and dark; Tab, Shift-Tab, Left and Right stay on it; Escape leaves and keys go back to the frontmost app
-- [ ] ⌃⌥B with an active task lands on it, and with tasks but none active lands on the button; Tab and the arrows walk button, tasks, and wrap; moving onto the button closes an entry's preview
-- [ ] Return and Space on the focused button open the panel with typing in the search field; Esc then gives keys to the frontmost app, not to the bar, and no outline stays drawn
-- [ ] Shift-F10 on the focused button opens its menu above it; VoiceOver's show-menu closes a preview first
-- [ ] ⌃⌥B while the panel is open closes it and focuses the bar; a click on the button during keyboard mode opens the panel
-- [ ] Closing the window of a focused task moves focus to a neighbour; closing the last one moves it to the button, keyboard mode stays, and Escape leaves
-- [ ] A click on the button still leaves the frontmost app key, now that it can take first responder, and ⌃⌥B after that click shows the outline
-- [ ] The button in every display mode; search with typos and partial names finds the app
-- [ ] A search with no match shows "No applications found", readable and centered in the list, and clearing the search hides it
-- [ ] VoiceOver on the panel: the search field is read by its label on open; typing announces the count and the selected app, or "No applications found"; Up and Down read the selected app; the announcements are heard at all from this non-activating panel while another app is active, and don't pile up when typing fast
-- [ ] VoiceOver in the list: rows read as the app name, with no separate icon element, and pressing a row opens the app
-- [ ] Reduce Transparency turns the panel opaque; Increase Contrast keeps the field, the rows, the selected row and the no-match label readable; Reduce Motion: nothing animates, as nothing is expected to
+- [x] The button shows on every bar, also with no tasks and before Accessibility is granted, with a readable icon in light and dark
+- [x] Hovering highlights it and shows no preview; moving from an entry to it closes that entry's preview
+- [x] A click on it doesn't take key from the frontmost app; right-click and control-click offer Settings… and Quit IonizedBar without counting as a click
+- [x] Icon only tasks start right after it; with many tasks, When full groups them as the width left runs out, on each bar's own width
+- [x] VoiceOver reads it as a button, first in the bar, and opens its menu
+- [x] A click opens the panel above the button on that bar's display, fully on screen, with the frontmost app staying active and typing landing in the search field
+- [x] A click on the button closes it; a click on another bar's button moves it there
+- [x] Typing filters at once with no stutter; Up and Down move the selection, and it goes back to the top when the query changes; the clear button lists everything
+- [x] Return and a click open the app and close the panel, and the app comes to the front, also when it was already running; Return with no matches does nothing
+- [x] Cmd-X, Cmd-C, Cmd-V and Cmd-A work in the search field while the frontmost app stays active
+- [x] Esc, a click in the frontmost app's window, on another app, on the desktop, on the menu bar and on the bar each close it, and Cmd-Tab too; keys go back to the frontmost app each time
+- [x] An app just installed shows on the next open; no preview shows while the panel is open
+- [x] ⌃⌥B with no tasks focuses the button, with the outline visible in light and dark; Tab, Shift-Tab, Left and Right stay on it; Escape leaves and keys go back to the frontmost app
+- [x] ⌃⌥B with an active task lands on it, and with tasks but none active lands on the button; Tab and the arrows walk button, tasks, and wrap; moving onto the button closes an entry's preview
+- [x] Return and Space on the focused button open the panel with typing in the search field; Esc then gives keys to the frontmost app, not to the bar, and no outline stays drawn
+- [x] Shift-F10 on the focused button opens its menu above it; VoiceOver's show-menu closes a preview first
+- [x] ⌃⌥B while the panel is open closes it and focuses the bar; a click on the button during keyboard mode opens the panel
+- [x] Closing the window of a focused task moves focus to a neighbour; closing the last one moves it to the button, keyboard mode stays, and Escape leaves
+- [x] A click on the button still leaves the frontmost app key, now that it can take first responder, and ⌃⌥B after that click shows the outline
+- [x] The button in every display mode; search with typos and partial names finds the app
+- [x] A search with no match shows "No applications found", readable and centered in the list, and clearing the search hides it
+- [x] VoiceOver on the panel: the search field is read by its label on open; typing announces the count and the selected app, or "No applications found"; Up and Down read the selected app; the announcements are heard at all from this non-activating panel while another app is active, and don't pile up when typing fast
+- [x] VoiceOver in the list: rows read as the app name, with no separate icon element, and pressing a row opens the app
+- [x] Reduce Transparency turns the panel opaque; Increase Contrast keeps the field, the rows, the selected row and the no-match label readable; Reduce Motion: nothing animates, as nothing is expected to
 
 ### M9 – Pin applications
 - [x] Saved pins: ordered bundle identifiers in `UserDefaults`
@@ -234,20 +234,20 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Pinned icons between the launcher and the tasks; a click opens the app
 - [x] Pin and Unpin in the right-click menus of tasks, group entries and pinned icons
 - [x] "Keep pinned app icons visible" in the settings window, off by default
-- [ ] ⌃⌥B keyboard mode and VoiceOver on pinned icons; manual pass
+- [x] ⌃⌥B keyboard mode and VoiceOver on pinned icons; manual pass
 
 ### M9 manual pass
-- [ ] The settings window shows "Keep pinned app icons visible" unchecked by default, with all rows readable and unclipped; toggling it applies at once on every bar and survives a relaunch; VoiceOver reads its label; changing the other settings or the previews toggle doesn't reset it
-- [ ] Icons show on every bar, also with no tasks and before Accessibility is granted, sharp and centered at task icon size, with the app name as tooltip after a real hover
-- [ ] A real click on an icon opens a closed app and brings a running one forward, without the bar taking key from the frontmost app; right-click and control-click open its menu without counting as a click
-- [ ] Pin and Unpin from a real task, group entry and icon apply at once on all bars; an app with no bundle identifier has no Pin item
-- [ ] With the setting off, the icon goes as the app's first window opens on that bar and comes back with its last, including an app on another display or Space, and one running with no windows
-- [ ] Pins survive a relaunch; an uninstalled pinned app disappears within 30 seconds of the next snapshot and stays saved
-- [ ] Many pins: tasks shrink and group on the width left, pins keep their width
-- [ ] 20 to 30 pins: tasks get width 0 and pins clip at the bar's edge; what a clipped pin taking keyboard focus off the edge looks like
-- [ ] A pinned icon fades in, fades out and slides in under 150ms, with none of it under Reduce Motion
-- [ ] ⌃⌥B: Tab, Shift-Tab, Left and Right pass from the launcher button through the pinned icons to the tasks, with a visible focus ring on an icon; Return and Space on a focused icon open the app and leave keyboard mode, giving keys back to the frontmost app; Shift-F10 opens its menu with Unpin, which applies at once; focus doesn't get lost when the focused pin is unpinned or hidden by a window opening
-- [ ] VoiceOver on a pinned icon: read as a button "<app name>, pinned" with no separate icon element; press opens the app; the Show Menu action opens its menu
+- [x] The settings window shows "Keep pinned app icons visible" unchecked by default, with all rows readable and unclipped; toggling it applies at once on every bar and survives a relaunch; VoiceOver reads its label; changing the other settings or the previews toggle doesn't reset it
+- [x] Icons show on every bar, also with no tasks and before Accessibility is granted, sharp and centered at task icon size, with the app name as tooltip after a real hover
+- [x] A real click on an icon opens a closed app and brings a running one forward, without the bar taking key from the frontmost app; right-click and control-click open its menu without counting as a click
+- [x] Pin and Unpin from a real task, group entry and icon apply at once on all bars; an app with no bundle identifier has no Pin item
+- [x] With the setting off, the icon goes as the app's first window opens on that bar and comes back with its last, including an app on another display or Space, and one running with no windows
+- [x] Pins survive a relaunch; an uninstalled pinned app disappears within 30 seconds of the next snapshot and stays saved
+- [x] Many pins: tasks shrink and group on the width left, pins keep their width
+- [x] 20 to 30 pins: tasks get width 0 and pins clip at the bar's edge; what a clipped pin taking keyboard focus off the edge looks like
+- [x] A pinned icon fades in, fades out and slides in under 150ms, with none of it under Reduce Motion
+- [x] ⌃⌥B: Tab, Shift-Tab, Left and Right pass from the launcher button through the pinned icons to the tasks, with a visible focus ring on an icon; Return and Space on a focused icon open the app and leave keyboard mode, giving keys back to the frontmost app; Shift-F10 opens its menu with Unpin, which applies at once; focus doesn't get lost when the focused pin is unpinned or hidden by a window opening
+- [x] VoiceOver on a pinned icon: read as a button "<app name>, pinned" with no separate icon element; press opens the app; the Show Menu action opens its menu
 
 ### M10 – Re-order tasks
 - [x] Order decision in `IonizedBarCore`, with checks (moving a window and a group, a new window goes last, a returning window keeps its place)
@@ -366,3 +366,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M10 task 25: "Move Left" and "Move Right" in the right-click menu of a task and a group entry, after Close and Minimize; the launcher and pinned icons don't get them. They ask the bar, which decides through `canMoveLeft` and `canMoveRight` on the entry's place in the shown items and calls the same `EntryActions.moveEntry` as a drop, one slot over, so the result is what a drag of one slot gives and the slide goes through the existing `animate`. The decision is made twice: when the menu is built, to disable the ends, and again when the item fires, on the bar as it is then, so a menu left open while windows open or close moves the entry from where it now is, and does nothing if it's now at the end or fading out. The actions are not named `moveLeft:` and `moveRight:`, which are `NSResponder`'s arrow-key actions. Keyboard mode and VoiceOver reach them through the existing Shift-F10 and Show Menu paths, so there's no new shortcut; the entry view is kept across the rebuild, so focus stays on it and keyboard mode stays on, as after the other menu items. No new pure logic, so no new check. A scratch harness passes its 33 assertions on the real panel, content and entry views and the real `BarManager`, with two bars: enabled state at both ends and in the middle, the order matching `TaskOrder.move` for one slot, ends and stale menus doing nothing, a fading entry, a group moving as a block, focus and keyboard mode after Shift-F10, the Show Menu path and the other bar left alone; two mutations of the guards made it fail. It patched menus out and `animate` to apply at once. Build, checks and bundle pass. Not verified, on the M10 manual pass: a real menu by mouse, Shift-F10 and VoiceOver, what VoiceOver reads after the move, and Reduce Motion. The box stays unticked until that pass. M10 at 4/5.
 - 2026-11-03 — Fix: the Settings window did not show under `swift run` (no Info.plist, so no `LSUIElement`); `main.swift` now sets the `.accessory` activation policy. Not yet confirmed by a manual run.
 - 2026-11-03 — M2: the user picked frosted glass, always dark: the bar and the launcher panel set `appearance` to `.darkAqua` on their window, even in Light mode, while the preview panels keep following the system. The `IONIZED_BAR_MATERIAL=liquid` switch and its Liquid Glass branch are gone; PRODUCT.md's Material bullet says so. Build, checks and bundle pass. Not verified, the app was not launched: the dark look, the contrast of titles and of the accent highlight on the dark material, in Light mode, by eye.
+- 2026-11-03 — Manual passes of M2, M3, M4, M6, M8 and M9 run by the user, all passed; M2, M3, M4, M6, M8 and M9 done.
