@@ -46,6 +46,8 @@ final class BarManager {
     private var panels: [UInt32: BarPanel] = [:]
     private var settings = Settings.load()
     private var latestWindowsByDisplay: [UInt32: [TrackedWindow]] = [:]
+    // Across all bars, memory only: AX elements don't survive a restart.
+    private var taskOrder = TaskOrder<AXUIElement>()
     private var pins = PinStore.load()
     private let identities = AppIdentities()
 
@@ -108,13 +110,20 @@ final class BarManager {
         return lastCaptures.value(for: window.element)
     }
 
-    func update(windowsByDisplay: [UInt32: [TrackedWindow]]) {
+    func update(windowsByDisplay: [UInt32: [TrackedWindow]], aliveWindows: Set<AXUIElement>) {
+        // By `order`: new windows go last in the order given here, and the dictionary's is arbitrary.
+        let seen = windowsByDisplay.values.joined().sorted { $0.order < $1.order }.map(\.element)
+        taskOrder.update(seen: seen, alive: aliveWindows)
+        update(windowsByDisplay: windowsByDisplay)
+    }
+
+    private func update(windowsByDisplay: [UInt32: [TrackedWindow]]) {
         latestWindowsByDisplay = windowsByDisplay
         lastCaptures.keepOnly(Set(windowsByDisplay.values.joined().map(\.element)))
         let bundleIDs = identities.bundleIDs(of: Array(windowsByDisplay.values.joined()))
         let installed = identities.installedBundleIDs(among: pins)
         for (id, panel) in panels {
-            let windows = windowsByDisplay[id] ?? []
+            let windows = taskOrder.sorted(windowsByDisplay[id] ?? [], key: \.element)
             // Every window on the bar counts, so a group entry hides its app's icon too.
             let shownPins = visiblePins(
                 pins, keepsVisible: settings.keepsPinnedVisible,

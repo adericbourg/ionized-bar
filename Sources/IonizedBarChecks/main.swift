@@ -774,6 +774,123 @@ do {
     check("pinnedAccessibilityLabel_readsNameThenPinned", pinnedAccessibilityLabel(appName: "Safari") == "Safari, pinned")
 }
 
+// TaskOrder
+do {
+    typealias Task = (pid: Int32, name: String)
+    // The name's first character stands for the app: "a1" and "a2" are windows of the same app.
+    func tasks(_ names: String) -> [Task] {
+        names.split(separator: " ").map { (Int32($0.first!.asciiValue!), String($0)) }
+    }
+    func seeing(_ names: String, alive: String? = nil) -> TaskOrder<String> {
+        var order = TaskOrder<String>()
+        order.update(seen: tasks(names).map(\.name), alive: Set(tasks(alive ?? names).map(\.name)))
+        return order
+    }
+    func items(_ order: TaskOrder<String>, _ names: String, mode: GroupingMode = .never, barWidth: CGFloat = 1000) -> [BarItem<Task>] {
+        barItems(order.sorted(tasks(names), key: \.name), pid: \.pid, barWidth: barWidth, mode: mode, minEntryWidth: 100)
+    }
+    func shown(_ order: TaskOrder<String>, _ names: String, mode: GroupingMode = .never) -> String {
+        items(order, names, mode: mode).map { $0.windows.map(\.name).joined(separator: "+") }.joined(separator: " ")
+    }
+    func moving(_ order: TaskOrder<String>, on names: String, mode: GroupingMode = .never, from: Int, to: Int) -> TaskOrder<String> {
+        var moved = order
+        moved.move(items(order, names, mode: mode), from: from, to: to, key: \.name)
+        return moved
+    }
+
+    // Given no move yet, Then windows keep the order they were first seen in
+    check("sorted_withNoMove_keepsFirstSeenOrder", shown(seeing("a b c"), "c a b") == "a b c")
+
+    // Given a b c d, When moving a window right and left, Then it lands at that index
+    let moved = moving(seeing("a b c d"), on: "a b c d", from: 0, to: 2)
+    check("move_ofWindowToTheRight_landsAtIndex", shown(moved, "a b c d") == "b c a d")
+    check("move_ofWindowToTheLeft_landsAtIndex", shown(moving(seeing("a b c d"), on: "a b c d", from: 3, to: 1), "a b c d") == "a d b c")
+
+    // Given a re-ordered bar, When a window opens, Then it goes last, even after a window moved to the end
+    var withNew = moved
+    withNew.update(seen: ["a", "b", "c", "d", "e"], alive: ["a", "b", "c", "d", "e"])
+    check("update_ofNewWindow_goesLast", shown(withNew, "a b c d e") == "b c a d e")
+    var withNewAfterEnd = moving(seeing("a b c"), on: "a b c", from: 0, to: 2)
+    withNewAfterEnd.update(seen: ["a", "b", "c", "d"], alive: ["a", "b", "c", "d"])
+    check("update_ofNewWindowAfterMoveToEnd_goesLast", shown(withNewAfterEnd, "a b c d") == "b c a d")
+
+    // Given b left (another Space or display) and alive, When others move and return, Then b keeps its place
+    var returning = seeing("a b c d")
+    returning.update(seen: ["a", "c", "d"], alive: ["a", "b", "c", "d"])
+    check("update_ofAliveWindowLeaving_keepsIt", returning.keys.contains("b"))
+    returning = moving(returning, on: "a c d", from: 2, to: 0)
+    check("move_withAWindowAway_movesTheOthers", shown(returning, "a c d") == "d a c")
+    returning.update(seen: ["a", "b", "c", "d"], alive: ["a", "b", "c", "d"])
+    check("update_ofReturningWindow_keepsItsPlaceAmongTheUnmoved", shown(returning, "a b c d") == "d a b c")
+
+    // Given b away and its neighbour c closed, When b returns, Then it's still after a and before d
+    var neighbourClosed = seeing("a b c d")
+    neighbourClosed.update(seen: ["a", "c", "d"], alive: ["a", "b", "c", "d"])
+    neighbourClosed.update(seen: ["a", "d"], alive: ["a", "b", "d"])
+    neighbourClosed.update(seen: ["a", "b", "d"], alive: ["a", "b", "d"])
+    check("update_ofReturningWindow_afterNeighbourClosed_keepsItsPlace", shown(neighbourClosed, "a b d") == "a b d")
+
+    // Given a window destroyed while away, Then its key goes
+    var destroyed = seeing("a b c")
+    destroyed.update(seen: ["a", "c"], alive: ["a", "c"])
+    check("update_ofDestroyedWindow_dropsItsKey", destroyed.keys == ["a", "c"])
+    // Given a snapshot that still lists a window already reported destroyed, Then it stays in place until it's gone
+    var lagging = seeing("a b c")
+    lagging.update(seen: ["a", "b", "c"], alive: ["a", "c"])
+    check("update_ofListedWindowNotAlive_keepsItsPlace", lagging.keys == ["a", "b", "c"])
+
+    // Given a mover past either end, Then it clamps; dropped where it started, nothing changes
+    check("move_pastTheRightEnd_clamps", shown(moving(seeing("a b c"), on: "a b c", from: 0, to: 99), "a b c") == "b c a")
+    check("move_pastTheLeftEnd_clamps", shown(moving(seeing("a b c"), on: "a b c", from: 2, to: -5), "a b c") == "c a b")
+    let interleaved = seeing("a1 b a2 c")
+    check("move_toWhereItStarted_changesNothing", moving(interleaved, on: "a1 b a2 c", mode: .always, from: 0, to: 0).keys == interleaved.keys)
+
+    // Given a group whose windows interleave with b, When moving the group, Then it moves as one and its list keeps its order
+    let groupMoved = moving(interleaved, on: "a1 b a2 c", mode: .always, from: 0, to: 2)
+    check("move_ofGroup_movesAsOne", shown(groupMoved, "a1 b a2 c", mode: .always) == "b c a1+a2")
+    check("move_ofGroupToTheLeft_movesAsOne", shown(moving(seeing("b a1 c a2"), on: "b a1 c a2", mode: .always, from: 1, to: 0), "b a1 c a2", mode: .always) == "a1+a2 b c")
+    // Then ungrouping leaves its windows next to each other, where the group was
+    check("move_ofGroup_staysAdjacentWhenUngrouped", shown(groupMoved, "a1 b a2 c", mode: .never) == "b c a1 a2")
+    // Given When full on a narrow bar, When moving the group, Then the mode change to Never keeps its windows adjacent
+    let whenFull = items(interleaved, "a1 b a2 c", mode: .whenFull, barWidth: 300)
+    var acrossModes = interleaved
+    acrossModes.move(whenFull, from: 0, to: 1, key: \.name)
+    check("move_ofGroupWhenFull_staysAdjacentWithNever", whenFull.count == 3 && shown(acrossModes, "a1 b a2 c", mode: .never) == "b a1 a2 c")
+
+    // Given a group that interleaves with c, When moving b past the group, Then b lands right after it, ahead of c
+    let pastGroup = moving(seeing("b a1 c a2"), on: "b a1 c a2", mode: .always, from: 0, to: 1)
+    check("move_pastInterleavedGroup_landsRightAfterIt", shown(pastGroup, "b a1 c a2", mode: .always) == "a1+a2 b c")
+    // Given a group moved as one, When a window passes it either way, Then the group's windows aren't split
+    let passed = moving(groupMoved, on: "a1 b a2 c", mode: .always, from: 0, to: 2)
+    check("move_pastMovedGroup_keepsItAdjacent", shown(passed, "a1 b a2 c", mode: .never) == "c a1 a2 b")
+    check("move_beforeMovedGroup_keepsItAdjacent", shown(moving(passed, on: "a1 b a2 c", mode: .always, from: 2, to: 1), "a1 b a2 c", mode: .never) == "c b a1 a2")
+
+    // Given two bars sharing one order, When moving on bar 1, Then bar 2 doesn't change, even interleaved in the list
+    let twoBars = moving(seeing("a x b y c z"), on: "a b c", from: 2, to: 0)
+    check("move_onOneBar_movesThere", shown(twoBars, "a b c") == "c a b")
+    check("move_onOneBar_leavesTheOtherBarAlone", shown(twoBars, "x y z") == "x y z")
+    let bothMoved = moving(twoBars, on: "x y z", from: 0, to: 2)
+    check("move_onTheOtherBar_leavesThisBarAlone", shown(bothMoved, "a b c") == "c a b" && shown(bothMoved, "x y z") == "y z x")
+    // Given b sent to bar 2, When bar 2 re-orders around it and b comes back, Then it's in its place on bar 1
+    let whileOnBar2 = moving(twoBars, on: "x b y z", from: 3, to: 0)
+    check("move_ofWindowOnAnotherBar_movesThereOnly", shown(whileOnBar2, "x b y z") == "z x b y")
+    check("sorted_ofWindowBackFromAnotherBar_keepsItsPlace", shown(whileOnBar2, "a b c") == "c a b")
+
+    // Given stale items whose window is gone, When moving, Then the order doesn't change
+    var stale = seeing("a b c")
+    let staleItems = items(stale, "a b c")
+    stale.update(seen: ["a", "b"], alive: ["a", "b"])
+    let beforeStale = stale.keys
+    stale.move(staleItems, from: 0, to: 2, key: \.name)
+    check("move_ontoAGoneWindow_changesNothing", stale.keys == beforeStale)
+
+    // Given three items, Then each end can't move past itself
+    check("canMoveLeft_atTheStart_isFalse", !canMoveLeft(itemAt: 0))
+    check("canMoveLeft_elsewhere_isTrue", canMoveLeft(itemAt: 1))
+    check("canMoveRight_atTheEnd_isFalse", !canMoveRight(itemAt: 2, itemCount: 3))
+    check("canMoveRight_elsewhere_isTrue", canMoveRight(itemAt: 1, itemCount: 3))
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

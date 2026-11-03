@@ -44,7 +44,8 @@ final class WindowTracker: @unchecked Sendable {
     private static let windowAttributes = [kAXTitleAttribute, kAXPositionAttribute, kAXSizeAttribute, kAXMinimizedAttribute, kAXSubroleAttribute, fullScreenAttribute]
     private static let fastAttachRetries = 10
 
-    private let onChange: @Sendable ([TrackedWindow]) -> Void
+    /// The windows to show, then every window not known to be destroyed, including those filtered out of the first.
+    private let onChange: @Sendable ([TrackedWindow], sending Set<AXUIElement>) -> Void
     private var runLoop: CFRunLoop!
     private var apps: [pid_t: App] = [:]
     private var nextOrder = 0
@@ -59,7 +60,7 @@ final class WindowTracker: @unchecked Sendable {
     private var trailingPublish: Timer?
     private var hasLoggedApiDisabled = false
 
-    init(onChange: @escaping @Sendable ([TrackedWindow]) -> Void) {
+    init(onChange: @escaping @Sendable ([TrackedWindow], sending Set<AXUIElement>) -> Void) {
         self.onChange = onChange
         let ready = DispatchSemaphore(value: 0)
         Thread { [self] in
@@ -325,7 +326,7 @@ final class WindowTracker: @unchecked Sendable {
                 window.isFocused = window.isFocused && pid == frontmost
                 return window
             }
-        }.sorted { $0.order < $1.order })
+        }.sorted { $0.order < $1.order }, Set(apps.values.flatMap(\.orders.keys)))
     }
 
     /// Reads only the owner and the bounds: nothing here needs Screen Recording.

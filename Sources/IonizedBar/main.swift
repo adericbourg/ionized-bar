@@ -2,8 +2,8 @@ import AppKit
 @preconcurrency import ApplicationServices
 import IonizedBarCore
 
-let windowTracker = WindowTracker { windows in
-    Task { @MainActor in WindowModel.update(windows, barManager: barManager, pusher: windowPusher) }
+let windowTracker = WindowTracker { windows, aliveWindows in
+    Task { @MainActor in WindowModel.update(windows, aliveWindows: aliveWindows, barManager: barManager, pusher: windowPusher) }
 }
 
 // Annotated: the tracker's closure uses barManager, which would make type inference circular.

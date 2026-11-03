@@ -20,7 +20,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 | M7 – Settings | ✅ | 6/6 |
 | M8 – App launcher | 🚧 | 5/6 |
 | M9 – Pin applications | 🚧 | 5/6 |
-| M10 – Re-order tasks | ⬜ | 0/5 |
+| M10 – Re-order tasks | 🚧 | 2/5 |
 
 ## Requirements
 
@@ -251,8 +251,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [ ] VoiceOver on a pinned icon: read as a button "<app name>, pinned" with no separate icon element; press opens the app; the Show Menu action opens its menu
 
 ### M10 – Re-order tasks
-- [ ] Order decision in `IonizedBarCore`, with checks (moving a window and a group, a new window goes last, a returning window keeps its place)
-- [ ] User-set order, in memory, applied to each snapshot
+- [x] Order decision in `IonizedBarCore`, with checks (moving a window and a group, a new window goes last, a returning window keeps its place)
+- [x] User-set order, in memory, applied to each snapshot
 - [ ] Drag on entries: threshold, entries sliding apart, drop, no click after a drag
 - [ ] Group entries drag as one
 - [ ] "Move Left" and "Move Right" in the right-click menu; keyboard mode, VoiceOver, Reduce Motion and manual pass
@@ -345,3 +345,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M9 task 20, review fix: pinned icons now fade in and out and slide like entries, under 150ms and following Reduce Motion, as PRODUCT asks of entries. A pin returning during its fade reuses the fading view. The icon's name is now `FileManager.displayName`, so it's localized like Finder's. A scratch harness passes its 59 assertions on the real bars, never ordered in, including a pin leaving, returning mid-fade with no duplicate (removing the revival made it fail), and a focused pin leaving. `NSAnimationContext` neither animated nor completed reliably in that harness, so the harness applied `animate` at once and completed it after 0.12s: the logic is checked, and the real fade, slide and Reduce Motion are unverified. They go on the M9 manual pass, with 20 to 30 pins overflowing the bar.
 - 2026-11-03 — M9 task 21: the settings window now owns `keepsPinnedVisible` with a "Keep pinned app icons visible" checkbox (off by default, initial state from `Settings`, VoiceOver label), reported through `onChange` with the popups, so `BarManager` no longer copies that field over (it still keeps `showsPreviews`) and applies it through the existing path. The window is 160pt high for the extra row; the grid stays centered. Builds, checks and bundle pass; the window itself was not shown (app can't be launched here), so it is on the M9 manual pass. M9 at 5/6.
 - 2026-11-03 — M9 task 22: `pinnedAccessibilityLabel` in `IonizedBarCore` ("Safari, pinned"), with a check (failing first on behaviour with a stub), set as the `PinnedIconView` VoiceOver label while its tooltip stays the bare name. Pinned icons were already focus stops, and `BarIconButton` already routes Return, Space, Shift-F10 and VoiceOver press and show-menu, ending keyboard mode before opening; this was read, not run. Checks, release build and bundle pass; nothing was launched. The last M9 box stays unticked until the keyboard and VoiceOver items of the M9 manual pass are run
+- 2026-11-03 — M10 task 23: `TaskOrder` in `IonizedBarCore`, one relative order of all windows that each bar projects onto its own, rather than per-bar lists: a move changes the place of the moved windows only, so another bar's windows and those on another Space or display stay put, and a window coming back finds its place whatever closed meanwhile. `BarManager` holds it on the main actor, updates it from each snapshot and sorts each bar's windows just before `barItems`, including when settings or pins change with no window event. A group moves as a block, so its windows stay adjacent after ungrouping, including from When full to Never. Moving past a group whose windows interleave with other entries closes that group up, so the mover lands right after the entry. Bounded memory: `WindowTracker` publishes the elements of its `orders` map, so an entry goes on `kAXUIElementDestroyedNotification` or app exit, with the same known ceiling as that map, and not when a snapshot leaves a window out. `canMoveLeft`, `canMoveRight` and `TaskOrder.move` wait for Tasks 24 and 25. Verified: 31 checks; of the first 29, 23 failed on behaviour against a stub and the other 6 were what a no-op stub satisfies; all pass now; release build; bundle. Not verified: the app wasn't launched and nothing can trigger a move yet, so the order across a real Space switch, display change and window close goes on the M10 manual pass. A window first shown on a bar after later-opened ones (it was on another Space since launch) now goes last rather than by first read, even with no move. Windows of a moved group that are elsewhere at the time don't move with it: one coming back earlier in the order takes the group back there, as a group sits at its first window.
