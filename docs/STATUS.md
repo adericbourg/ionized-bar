@@ -92,6 +92,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - [x] Click an entry
 - [x] Click the active entry
 - [x] Click a minimized entry: it restores, stays in place and does not blink
+- [x] Minimize a window, select another app's window, then click the minimized entry: it comes to the front on the first click (Firefox and Zentty)
+- [ ] The same restore for a hidden app's window, two windows of one app, and from a group's window list
 - [x] Middle-click
 - [x] Each menu item: Close, Minimize, Quit, Quit IonizedBar
 - [x] No focus steal on click
@@ -417,3 +419,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — M11: Restart and Shut Down in the launcher's footer. A click closes the panel and asks `loginwindow` for the macOS dialog off the main thread, with a 10s reply timeout; a failure is logged. No `Info.plist` change: there was no Automation prompt. Verified: the checks, the build and the user's run of both dialogs with Cancel on the bundled app. Not verified: a confirmed restart. No check added: this is Apple event glue the checks target cannot run.
 - 2026-11-03 — M11: keyboard and VoiceOver on the new launcher. Focus stays in the search field, so typing always works, and the arrow keys act on the apps from there. Tab goes through the sidebar and the footer. The user's first run found no way from a category to its apps, as Return was the only way and nothing showed it, so Right now goes to the apps and Left comes back when no text is typed. A view change is announced. Verified: the checks (red first for the announcement), the build and the user's run of the keyboard paths and VoiceOver on the bundled app. M11 stays open at 5/6 until the rest of its manual pass is run.
 - 2026-11-03 — M11: the user ran the rest of the manual pass and reported it passing, so the milestone is done at 6/6.
+- 2026-11-03 — Fix: a restored window stayed behind the frontmost app's window until a second click. Deminiaturizing blocks the app past the 0.25s AX messaging timeout, so `AXMain` and `AXRaise` timed out with -25204, and on Firefox `AXFrontmost` returned success with no activation. Sending the raise first did not help, because raising a minimized window starts the deminiaturize itself. `restore` now raises when `kAXWindowDeminiaturizedNotification` arrives. Measured on Firefox: the notification came 527ms after the click, then the raise had no errors and Firefox became frontmost. The active highlight therefore appears after the animation, about 0.7s after the click. Verified: build, checks, and the manual repro with Firefox and Zentty. Not verified: hidden app, two windows of one app, group list.

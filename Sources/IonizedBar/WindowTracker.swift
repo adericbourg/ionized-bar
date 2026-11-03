@@ -64,6 +64,9 @@ final class WindowTracker: @unchecked Sendable {
     private var retryTimer: Timer?
     private var trailingPublish: Timer?
     private var hasLoggedApiDisabled = false
+    /// Waiting for their deminiaturized notification, to be raised.
+    // ponytail: an app that never posts it leaves an entry, and its next deminiaturize raises the window; expire entries if that shows up.
+    private var restoring: [AXUIElement: TrackedWindow] = [:]
 
     init(onChange: @escaping @Sendable ([TrackedWindow], sending Set<AXUIElement>) -> Void) {
         self.onChange = onChange
@@ -132,8 +135,10 @@ final class WindowTracker: @unchecked Sendable {
 
     func restore(_ window: TrackedWindow) {
         onThread { [self] in
+            // Deminiaturizing blocks the app past the messaging timeout, whichever call starts it: a raise times out,
+            // and an activation is accepted then lost (measured on Firefox). So the raise waits for the notification.
+            restoring[window.element] = window
             set(kAXMinimizedAttribute, to: false, on: window.element, of: window)
-            performRaise(window)
         }
     }
 
@@ -230,6 +235,9 @@ final class WindowTracker: @unchecked Sendable {
         // Deminiaturize: the CG list lags, so the first publish could filter the restored window.
         if [kAXWindowMovedNotification, kAXWindowResizedNotification, kAXWindowDeminiaturizedNotification].contains(notification as String) {
             moving.insert(element)
+        }
+        if notification as String == kAXWindowDeminiaturizedNotification, let window = restoring.removeValue(forKey: element) {
+            performRaise(window)
         }
         markDirty(pid)
     }
