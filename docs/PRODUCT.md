@@ -31,7 +31,7 @@ uBar and boringBar don't fit the need: a **KDE Plasma–style taskbar** for macO
 - **Entry:** 16pt icon plus the window title in the system font (13pt), padded 8pt, with a 4pt corner radius on hover and active states.
   - **Active:** tinted background in the system accent color.
   - **Hover:** subtle highlight.
-  - **Minimized:** title and icon shown at about 50% opacity, title in italics.
+  - **Minimized:** title and icon shown at about 50% opacity, title in the regular font.
   - **Icon-only mode:** the icon is centered and the title moves to a tooltip.
 - **Max entry width:** about 220pt, so a few windows don't stretch across the whole screen. The shrink threshold below which only the icon shows is about 48pt.
 - **Accessibility:** honor *Reduce Transparency* (switch to an opaque background; `NSVisualEffectView` does this for you) and *Increase Contrast*. Text over the glass must keep a contrast ratio of at least 4.5:1 (WCAG AA), so it uses label colors that adapt to vibrancy, never hard-coded grey.

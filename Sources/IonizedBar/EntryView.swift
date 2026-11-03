@@ -114,8 +114,7 @@ final class EntryView: NSView {
         isActive = windows.contains(where: \.isFocused)
         setAccessibilityLabel(accessibilityText)
         icon.alphaValue = isMinimized ? 0.5 : 1
-        let font = NSFont.systemFont(ofSize: 13)
-        title.font = isMinimized ? NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) : font
+        title.font = .systemFont(ofSize: 13)
         title.textColor = isActive ? .alternateSelectedControlTextColor : isMinimized ? .secondaryLabelColor : .labelColor
         needsLayout = true
     }
