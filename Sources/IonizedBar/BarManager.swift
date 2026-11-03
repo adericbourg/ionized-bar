@@ -16,11 +16,11 @@ final class BarManager {
         canPreview: { [unowned self] in settings.showsPreviews && !launcher.isOpen && CGPreflightScreenCaptureAccess() },
         preview: preview,
         openLauncher: { [unowned self] in launcher.toggle(above: $0) },
-        bundleID: { [unowned self] in identities.bundleIDs(of: [$0])[$0.pid] },
+        bundleID: { NSRunningApplication(processIdentifier: $0.pid)?.bundleIdentifier },
         pins: { [unowned self] in pins },
         setPins: { [unowned self] in
             pins = $0
-            PinStore.save($0)
+            UserDefaults.standard.set($0, forKey: BarManager.pinsKey)
             update(windowsByDisplay: latestWindowsByDisplay)
         },
         openPinnedApp: { bundleID in
@@ -58,8 +58,9 @@ final class BarManager {
     private var latestWindowsByDisplay: [UInt32: [TrackedWindow]] = [:]
     // Across all bars, memory only: AX elements don't survive a restart.
     private var taskOrder = TaskOrder<AXUIElement>()
-    private var pins = PinStore.load()
-    private let identities = AppIdentities()
+    // Apart from `Settings`: the settings window reports a whole `Settings` and would overwrite a list it doesn't edit.
+    private static let pinsKey = "pinnedBundleIDs"
+    private var pins = UserDefaults.standard.stringArray(forKey: BarManager.pinsKey) ?? []
 
     init(windowTracker: WindowTracker) {
         self.windowTracker = windowTracker
@@ -131,14 +132,13 @@ final class BarManager {
         latestWindowsByDisplay = windowsByDisplay
         let shown = Set(windowsByDisplay.values.joined().map(\.element))
         lastCaptures = lastCaptures.filter { shown.contains($0.key) }
-        let bundleIDs = identities.bundleIDs(of: Array(windowsByDisplay.values.joined()))
-        let installed = identities.installedBundleIDs(among: pins)
+        let installed = Set(pins.filter { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil })
         for (id, panel) in panels {
             let windows = taskOrder.sorted(windowsByDisplay[id] ?? [], key: \.element)
             // Every window on the bar counts, so a group entry hides its app's icon too.
             let shownPins = visiblePins(
                 pins, keepsVisible: settings.keepsPinnedVisible,
-                taskBundleIDs: Set(windows.compactMap { bundleIDs[$0.pid] }), installedBundleIDs: installed
+                taskBundleIDs: Set(windows.compactMap { NSRunningApplication(processIdentifier: $0.pid)?.bundleIdentifier }), installedBundleIDs: installed
             )
             panel.update(with: windows, settings: settings, pins: shownPins)
         }
