@@ -454,3 +454,4 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ⛔ blocked
 - 2026-11-03 — Audit cut: removed what had one value or no effect: the `iconOnlyBelow` parameter of `entryWidth`, the plist argument of `bump-version.sh`, the kept onboarding timer in `main.swift` and the `if:` on the cask job, which a skipped `release` job already skips.
 - 2026-11-03 — Audit cut: `canMoveLeft` and `canMoveRight` replaced by a range check on the row, in `BarContentView`.
 - 2026-11-03 — Audit cut: `overlapsBar` uses `CGRect.intersects` and `assignDisplay` drops its null check, since a null rect has zero size. A new check keeps an empty window from counting as overlapping.
+- 2026-11-03 — Audit cut: inlined `pinnedAccessibilityLabel`, a one-line helper with one caller.

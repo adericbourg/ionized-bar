@@ -28,7 +28,3 @@ public func visiblePins(
 public func pinMenuTitle(bundleID: String?, pins: [String]) -> String? {
     bundleID.map { pins.contains($0) ? "Unpin" : "Pin" }
 }
-
-public func pinnedAccessibilityLabel(appName: String) -> String {
-    "\(appName), pinned"
-}
