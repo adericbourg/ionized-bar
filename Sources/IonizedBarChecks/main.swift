@@ -750,6 +750,24 @@ do {
           visiblePins(pins, keepsVisible: false, taskBundleIDs: [], installedBundleIDs: ["a", "c"]) == ["a", "c"])
 }
 
+// pinMenuTitle
+do {
+    // Given an app that is not pinned, then one that is
+    check("pinMenuTitle_ofUnpinnedApp_isPin", pinMenuTitle(bundleID: "a", pins: ["b"]) == "Pin")
+    check("pinMenuTitle_ofPinnedApp_isUnpin", pinMenuTitle(bundleID: "b", pins: ["a", "b"]) == "Unpin")
+    // Given an app with no bundle identifier: nothing to pin, so no item
+    check("pinMenuTitle_withNoBundleID_isNil", pinMenuTitle(bundleID: nil, pins: ["a"]) == nil)
+}
+
+// pinnedIconWidth
+do {
+    // Given two pinned icons of about 48pt, Then tasks start after them and pins never shrink, even with no width left
+    let slot = taskSlot(barWidth: 1000, pinnedWidth: 2 * pinnedIconWidth)
+    check("pinnedIconWidth_isAbout48Points", pinnedIconWidth == 48)
+    check("taskSlot_withTwoPinnedIcons_startsAfterThem", slot.x == 144 && slot.width == 856)
+    check("taskSlot_withMorePinsThanFit_hasNoWidth", taskSlot(barWidth: 100, pinnedWidth: 3 * pinnedIconWidth).width == 0)
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

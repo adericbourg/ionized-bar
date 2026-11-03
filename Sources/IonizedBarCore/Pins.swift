@@ -14,3 +14,8 @@ public func visiblePins(
 ) -> [String] {
     pins.filter { installedBundleIDs.contains($0) && (keepsVisible || !taskBundleIDs.contains($0)) }
 }
+
+/// The right-click item of a task or group entry. An app with no bundle identifier has none: there is nothing to pin.
+public func pinMenuTitle(bundleID: String?, pins: [String]) -> String? {
+    bundleID.map { pins.contains($0) ? "Unpin" : "Pin" }
+}

@@ -15,17 +15,27 @@ final class BarManager {
         // Preflight never prompts, and the setting comes first so that with previews off it isn't called.
         canPreview: { [unowned self] in settings.showsPreviews && !launcher.isOpen && CGPreflightScreenCaptureAccess() },
         preview: preview,
-        openLauncher: { [unowned self] in launcher.toggle(above: $0) }
+        openLauncher: { [unowned self] in launcher.toggle(above: $0) },
+        bundleID: { [unowned self] in identities.bundleIDs(of: [$0])[$0.pid] },
+        pins: { [unowned self] in pins },
+        setPins: { [unowned self] in
+            pins = $0
+            PinStore.save($0)
+            update(windowsByDisplay: latestWindowsByDisplay)
+        },
+        openPinnedApp: { bundleID in
+            guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+                log("Could not open \(bundleID): not installed")
+                return
+            }
+            BarManager.openApp(at: url)
+        }
     )
     private lazy var launcher = LauncherController(
         listApps: {
             listApplications(in: ["/Applications", "/System/Applications", NSHomeDirectory() + "/Applications"].map { URL(fileURLWithPath: $0) })
         },
-        openApp: { url in
-            NSWorkspace.shared.openApplication(at: url, configuration: .init()) { _, maybeError in
-                if let maybeError { log("Could not open \(url.lastPathComponent): \(maybeError.localizedDescription)") }
-            }
-        }
+        openApp: { BarManager.openApp(at: $0) }
     )
     // The one place a capture is asked for, always after `EntryView.previewWindow` checks the setting and the grant.
     private lazy var preview = PreviewController { [unowned self] in await thumbnail(of: $0) }
@@ -36,16 +46,19 @@ final class BarManager {
     private var panels: [UInt32: BarPanel] = [:]
     private var settings = Settings.load()
     private var latestWindowsByDisplay: [UInt32: [TrackedWindow]] = [:]
+    private var pins = PinStore.load()
+    private let identities = AppIdentities()
 
     init(windowTracker: WindowTracker) {
         self.windowTracker = windowTracker
         let settingsWindow = SettingsWindow(settings: settings)
         self.settingsWindow = settingsWindow
-        // The settings window knows nothing of previews, so keep their current value.
+        // The settings window knows nothing of previews or pinned icons, so keep their current values.
         settingsWindow.onChange = { [weak self] in
             guard let self else { return }
             var newSettings = $0
             newSettings.showsPreviews = settings.showsPreviews
+            newSettings.keepsPinnedVisible = settings.keepsPinnedVisible
             apply(newSettings)
         }
         // Read-only status: no prompt. Only the opt-in toggle may ask.
@@ -72,12 +85,20 @@ final class BarManager {
                 panel.orderFrontRegardless()
             }
         }
+        // Pinned icons need no window: without this a new bar shows none until the first snapshot.
+        update(windowsByDisplay: latestWindowsByDisplay)
     }
 
     func beginKeyboardMode() {
         let mouse = NSEvent.mouseLocation
         guard let id = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) })?.displayID else { return }
         panels[id]?.beginKeyboardMode()
+    }
+
+    private static func openApp(at url: URL) {
+        NSWorkspace.shared.openApplication(at: url, configuration: .init()) { _, maybeError in
+            if let maybeError { log("Could not open \(url.lastPathComponent): \(maybeError.localizedDescription)") }
+        }
     }
 
     private func thumbnail(of window: TrackedWindow) async -> CGImage? {
@@ -91,8 +112,16 @@ final class BarManager {
     func update(windowsByDisplay: [UInt32: [TrackedWindow]]) {
         latestWindowsByDisplay = windowsByDisplay
         lastCaptures.keepOnly(Set(windowsByDisplay.values.joined().map(\.element)))
+        let bundleIDs = identities.bundleIDs(of: Array(windowsByDisplay.values.joined()))
+        let installed = identities.installedBundleIDs(among: pins)
         for (id, panel) in panels {
-            panel.update(with: windowsByDisplay[id] ?? [], settings: settings)
+            let windows = windowsByDisplay[id] ?? []
+            // Every window on the bar counts, so a group entry hides its app's icon too.
+            let shownPins = visiblePins(
+                pins, keepsVisible: settings.keepsPinnedVisible,
+                taskBundleIDs: Set(windows.compactMap { bundleIDs[$0.pid] }), installedBundleIDs: installed
+            )
+            panel.update(with: windows, settings: settings, pins: shownPins)
         }
     }
 

@@ -15,11 +15,16 @@ struct EntryActions {
     let preview: PreviewController
     /// Takes the clicked button, whose bar the launcher panel opens above.
     let openLauncher: @MainActor (NSView) -> Void
+    /// Nil for an app with no bundle identifier, which can't be pinned.
+    let bundleID: @MainActor (TrackedWindow) -> String?
+    let pins: @MainActor () -> [String]
+    let setPins: @MainActor ([String]) -> Void
+    let openPinnedApp: @MainActor (String) -> Void
 }
 
 final class EntryView: NSView {
     private static let padding: CGFloat = 8
-    private static let iconSize: CGFloat = 16
+    static let iconSize: CGFloat = 16
     private static let countGap: CGFloat = 2
     static let focusRingInset: CGFloat = 3
 
@@ -269,6 +274,10 @@ final class EntryView: NSView {
         case .group:
             menu.addItem(withTitle: "Close All Windows", action: #selector(closeWindows), keyEquivalent: "")
         }
+        let maybeBundleID = actions.bundleID(item.windows[0])
+        if let pinTitle = pinMenuTitle(bundleID: maybeBundleID, pins: actions.pins()) {
+            menu.addItem(withTitle: pinTitle, action: #selector(togglePin), keyEquivalent: "").representedObject = maybeBundleID
+        }
         menu.addItem(withTitle: "Quit \(appName)", action: #selector(quitApp), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "")
@@ -286,5 +295,11 @@ final class EntryView: NSView {
     @objc private func togglePreviews() { actions.setShowsPreviews(!actions.showsPreviews()) }
     @objc private func closeWindows() { item.windows.forEach(actions.close) }
     @objc private func minimizeWindow() { item.windows.forEach(actions.minimize) }
+    @objc private func togglePin(_ sender: NSMenuItem) {
+        guard let bundleID = sender.representedObject as? String else { return }
+        let pins = actions.pins()
+        actions.setPins(pins.contains(bundleID) ? unpinning(bundleID, in: pins) : pinning(bundleID, in: pins))
+    }
+
     @objc private func quitApp() { NSRunningApplication(processIdentifier: item.windows[0].pid)?.terminate() }
 }

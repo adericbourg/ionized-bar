@@ -22,6 +22,10 @@ The first time it has the Accessibility permission, the app adds itself to the l
 
 The button at the left of the bar opens a list of your applications, with a search field that tolerates typos. Up, Down and Return, or a click, open an app; Escape or a click outside closes the list. VoiceOver announces the number of results and the selected app. The list follows Reduce Motion, Reduce Transparency and Increase Contrast.
 
+## Pinned apps
+
+"Pin" in the right-click menu of a task or a group keeps the app's icon on the bar, between the launcher button and the tasks, on every display. A click on the icon opens the app. "Unpin" is in the same menus and in the icon's own. By default, an icon hides on a bar that shows a task for its app.
+
 ## Window previews
 
 Off by default. Turn on "Show window previews" in a window entry's right-click menu; macOS then asks for the Screen Recording permission, used only to capture the hovered window. Hovering an entry (or focusing it with the keyboard) shows its app, title and a thumbnail; Esc dismisses it. A minimized window shows its last captured image, or the header only if it was never hovered. Nothing is written to disk. The panel follows Reduce Motion, Reduce Transparency and Increase Contrast.
@@ -58,7 +62,7 @@ Known issue: releases are not signed yet, so you have to grant the Accessibility
 
 ## Keyboard
 
-⌃⌥B focuses the bar under the mouse: the active window's entry, or the launcher button if no window is active. Tab, Shift-Tab, Left and Right move between the launcher button and the entries; Return or Space clicks; Shift-F10 opens the menu; Escape leaves.
+⌃⌥B focuses the bar under the mouse: the active window's entry, or the launcher button if no window is active. Tab, Shift-Tab, Left and Right move between the launcher button, the pinned icons and the entries; Return or Space clicks; Shift-F10 opens the menu; Escape leaves.
 
 ## Build
 

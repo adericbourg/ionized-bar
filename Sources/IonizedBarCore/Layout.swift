@@ -100,8 +100,9 @@ public func entryWidth(
 }
 
 public let launcherWidth: CGFloat = 48
+public let pinnedIconWidth: CGFloat = 48
 
-/// Where a bar's tasks start and the width they share: what's left after the launcher and, from M9, the pinned icons between them.
+/// Where a bar's tasks start and the width they share: what's left after the launcher and the pinned icons after it.
 public func taskSlot(barWidth: CGFloat, pinnedWidth: CGFloat = 0) -> (x: CGFloat, width: CGFloat) {
     let x = launcherWidth + pinnedWidth
     return (x, max(0, barWidth - x))

@@ -39,8 +39,8 @@ final class BarPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
 
-    func update(with windows: [TrackedWindow], settings: Settings) {
-        content.update(with: windows, settings: settings)
+    func update(with windows: [TrackedWindow], settings: Settings, pins: [String]) {
+        content.update(with: windows, settings: settings, pins: pins)
     }
 
     // Losing key does not resign first responder, so the focus outline would stay drawn.

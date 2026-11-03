@@ -23,6 +23,8 @@ final class BarContentView: NSView {
     private var leaving: [EntryKey: EntryView] = [:]
     private var windows: [TrackedWindow] = []
     private var settings = Settings.load()
+    private var pins: [String] = []
+    private var pinnedIcons: [PinnedIconView] = []
 
     private static let duration: TimeInterval = 0.12
     private static let iconOnlyWidth: CGFloat = 48
@@ -49,9 +51,10 @@ final class BarContentView: NSView {
         }, completionHandler: completion)
     }
 
-    func update(with windows: [TrackedWindow], settings: Settings) {
+    func update(with windows: [TrackedWindow], settings: Settings, pins: [String]) {
         self.windows = windows
         self.settings = settings
+        self.pins = pins
         rebuild()
     }
 
@@ -62,13 +65,21 @@ final class BarContentView: NSView {
         if isWidthChanged { rebuild() }
     }
 
+    // Read by both the grouping decision and the layout, so that they can't disagree.
+    private var slot: (x: CGFloat, width: CGFloat) {
+        taskSlot(barWidth: bounds.width, pinnedWidth: CGFloat(pinnedIcons.count) * pinnedIconWidth)
+    }
+
     private func rebuild() {
+        let maybeFocused = window?.firstResponder as? NSView
+        let focusedIndex = focusStops.firstIndex { $0 === maybeFocused }
+        let previousIcons = pinnedIcons
+        pinnedIcons = pins.map { bundleID in previousIcons.first { $0.bundleID == bundleID } ?? addPinnedIcon(bundleID) }
+        for icon in previousIcons where !pinnedIcons.contains(icon) { icon.removeFromSuperview() }
         let items = barItems(
-            windows, pid: \.pid, barWidth: taskSlot(barWidth: bounds.width).width, mode: settings.grouping,
+            windows, pid: \.pid, barWidth: slot.width, mode: settings.grouping,
             minEntryWidth: settings.taskDisplay == .iconOnly ? Self.iconOnlyWidth : Self.groupWhenFullBelow
         )
-        let maybeFocused = window?.firstResponder as? EntryView
-        let focusedIndex = focusStops.firstIndex { $0 === maybeFocused }
         var gone = entries
         ordered = items.map { item in
             let key = EntryKey(item)
@@ -86,14 +97,14 @@ final class BarContentView: NSView {
                 MainActor.assumeIsolated { self?.finishLeaving(entry) }
             }
         }
-        if let maybeFocused, let focusedIndex, !ordered.contains(maybeFocused) {
+        if let focusedIndex, !focusStops.contains(where: { $0 === maybeFocused }) {
             window?.makeFirstResponder(focusStops[min(focusedIndex, focusStops.count - 1)])
         }
         needsLayout = true
     }
 
     // In visual order, without the entries fading out: Tab order and VoiceOver's order.
-    private var focusStops: [NSView] { [launcher] + ordered }
+    private var focusStops: [NSView] { [launcher] + pinnedIcons + ordered }
 
     var initialFocusStop: NSView { ordered.first(where: \.isActive) ?? focusStops[0] }
 
@@ -115,6 +126,12 @@ final class BarContentView: NSView {
     }
 
     override func accessibilityChildren() -> [Any]? { focusStops }
+
+    private func addPinnedIcon(_ bundleID: String) -> PinnedIconView {
+        let icon = PinnedIconView(bundleID: bundleID, actions: actions)
+        addSubview(icon)
+        return icon
+    }
 
     private func addEntry(_ item: BarItem<TrackedWindow>) -> EntryView {
         let entry = EntryView(item: item, actions: actions)
@@ -139,7 +156,10 @@ final class BarContentView: NSView {
     override func layout() {
         super.layout()
         launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
-        let slot = taskSlot(barWidth: bounds.width)
+        for (index, icon) in pinnedIcons.enumerated() {
+            icon.frame = backingAlignedRect(CGRect(x: launcherWidth + CGFloat(index) * pinnedIconWidth, y: 0, width: pinnedIconWidth, height: bounds.height), options: .alignAllEdgesNearest)
+        }
+        let slot = self.slot
         let isIconOnlyMode = settings.taskDisplay == .iconOnly
         let layoutWidth = isIconOnlyMode
             ? entryWidth(barWidth: slot.width, entryCount: ordered.count, maxWidth: Self.iconOnlyWidth)
