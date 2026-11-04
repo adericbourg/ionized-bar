@@ -37,6 +37,7 @@ final class BarContentView: NSView {
     private var pinnedIcons: [PinnedIconView] = []
     // Fading out; one is revived if its pin returns before the fade ends.
     private var leavingIcons: [PinnedIconView] = []
+    private var maybeClock: ClockView?
 
     private static let duration: TimeInterval = 0.12
     private static let iconOnlyWidth: CGFloat = 48
@@ -79,12 +80,13 @@ final class BarContentView: NSView {
 
     // Read by both the grouping decision and the layout, so that they can't disagree.
     private var slot: (x: CGFloat, width: CGFloat) {
-        taskSlot(barWidth: bounds.width, pinnedWidth: CGFloat(pinnedIcons.count) * pinnedIconWidth)
+        taskSlot(barWidth: bounds.width, pinnedWidth: CGFloat(pinnedIcons.count) * pinnedIconWidth, clockWidth: maybeClock?.width ?? 0)
     }
 
     private func rebuild() {
         let maybeFocused = window?.firstResponder as? NSView
         let focusedIndex = focusStops.firstIndex { $0 === maybeFocused }
+        updateClock()
         let previousIcons = pinnedIcons
         pinnedIcons = pins.map { bundleID in previousIcons.first { $0.bundleID == bundleID } ?? reviveIcon(bundleID) ?? addPinnedIcon(bundleID) }
         for icon in previousIcons where !pinnedIcons.contains(icon) {
@@ -121,6 +123,22 @@ final class BarContentView: NSView {
         needsLayout = true
     }
 
+    // Before anything reads `slot`, which depends on the clock's width.
+    private func updateClock() {
+        guard settings.clock.isShown else {
+            maybeClock?.removeFromSuperview()
+            maybeClock = nil
+            return
+        }
+        let clock = maybeClock ?? ClockView(settings: settings.clock)
+        if maybeClock == nil {
+            clock.onWidthChange = { [weak self] in self?.rebuild() }
+            addSubview(clock)
+            maybeClock = clock
+        }
+        clock.update(settings: settings.clock)
+    }
+
     // In visual order, without the entries fading out: Tab order and VoiceOver's order.
     private var focusStops: [NSView] { [launcher] + pinnedIcons + ordered }
 
@@ -143,7 +161,8 @@ final class BarContentView: NSView {
         window?.makeFirstResponder(stops[(index + offset + stops.count) % stops.count])
     }
 
-    override func accessibilityChildren() -> [Any]? { focusStops }
+    // The clock has no action, so it is read but isn't a focus stop.
+    override func accessibilityChildren() -> [Any]? { focusStops + (maybeClock.map { [$0] } ?? []) }
 
     private func addPinnedIcon(_ bundleID: String) -> PinnedIconView {
         let icon = PinnedIconView(bundleID: bundleID, manager: manager)
@@ -286,6 +305,9 @@ final class BarContentView: NSView {
     override func layout() {
         super.layout()
         launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
+        if let maybeClock {
+            maybeClock.frame = backingAlignedRect(CGRect(x: bounds.width - maybeClock.width, y: 0, width: maybeClock.width, height: bounds.height), options: .alignAllEdgesNearest)
+        }
         var shownIcons = pinnedIcons
         var shown = ordered
         if var drag = maybeDrag {

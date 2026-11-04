@@ -100,10 +100,10 @@ public func entryWidth(barWidth: CGFloat, entryCount: Int, maxWidth: CGFloat = 2
 public let launcherWidth: CGFloat = 48
 public let pinnedIconWidth: CGFloat = 36
 
-/// Where a bar's tasks start and the width they share: what's left after the launcher and the pinned icons after it.
-public func taskSlot(barWidth: CGFloat, pinnedWidth: CGFloat = 0) -> (x: CGFloat, width: CGFloat) {
+/// Where a bar's tasks start and the width they share: what's left after the launcher, the pinned icons after it, and the clock at the far end.
+public func taskSlot(barWidth: CGFloat, pinnedWidth: CGFloat = 0, clockWidth: CGFloat = 0) -> (x: CGFloat, width: CGFloat) {
     let x = launcherWidth + pinnedWidth
-    return (x, max(0, barWidth - x))
+    return (x, max(0, barWidth - x - clockWidth))
 }
 
 public func isRealWindow(subrole: String?, isMinimized: Bool, isAppHidden: Bool) -> Bool {

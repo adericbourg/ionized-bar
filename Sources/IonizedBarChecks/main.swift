@@ -545,6 +545,10 @@ do {
     let withPins = taskSlot(barWidth: 1000, pinnedWidth: 96)
     check("taskSlot_withPinnedIcons_startsAfterThem", withPins.x == 144 && withPins.width == 856)
     check("taskSlot_ofBarNarrowerThanLauncher_hasNoWidth", taskSlot(barWidth: 10).width == 0)
+    // Given a clock, Then tasks keep their start and lose its width
+    let withClock = taskSlot(barWidth: 1000, pinnedWidth: 96, clockWidth: 100)
+    check("taskSlot_withClock_endsBeforeIt", withClock.x == 144 && withClock.width == 756)
+    check("taskSlot_withClockWiderThanTheRoomLeft_hasNoWidth", taskSlot(barWidth: 100, clockWidth: 100).width == 0)
 
     // Given a width where the full bar would still fit but the width left doesn't
     check("entryWidth_ofWidthLeft_isAnEqualShareOfIt",
@@ -1048,6 +1052,99 @@ do {
     let to = dragTargetIndex(entryX: draggedEntryX(pointerX: 5000, grabOffset: 0, slotX: 48, entryWidth: 100, entryCount: items.count), from: 1, slotX: 48, entryWidth: 100, entryCount: items.count)
     order.move(items, from: 1, to: to, key: \.name)
     check("dragTargetIndex_ofGroupEntryToTheEnd_movesItsWindowsAsOne", order.keys == ["b", "c", "a1", "a2"])
+}
+
+// clockText
+do {
+    // Given 2026-11-04 14:09:05 UTC, read in UTC
+    let utc = TimeZone(identifier: "UTC")!
+    let afternoon = Date(timeIntervalSince1970: 1793801345)
+    let french = Locale(identifier: "fr_FR")
+    let american = Locale(identifier: "en_US")
+    func text(_ settings: ClockSettings, _ date: Date = afternoon, locale: Locale = french, timeZone: TimeZone = utc) -> (time: String, date: String?) {
+        clockText(date: date, settings: settings, locale: locale, timeZone: timeZone)
+    }
+    // ICU separates the time from AM/PM with a narrow no-break space, depending on the locale's data.
+    func plain(_ string: String) -> String { string.replacingOccurrences(of: "\u{202F}", with: " ") }
+
+    // When formatting the time, Then each format gives its form, with and without seconds
+    check("clockText_of24Hour_isZeroPadded", text(.init(timeFormat: .twentyFourHour)).time == "14:09")
+    check("clockText_of24HourWithSeconds_addsThem", text(.init(showsSeconds: true, timeFormat: .twentyFourHour)).time == "14:09:05")
+    check("clockText_of12Hour_hasNoLeadingZero", plain(text(.init(timeFormat: .twelveHour), locale: american).time) == "2:09 PM")
+    check("clockText_of12HourWithSeconds_addsThem",
+          plain(text(.init(showsSeconds: true, timeFormat: .twelveHour), locale: american).time) == "2:09:05 PM")
+    check("clockText_of12Hour_overridesA24HourLocale", plain(text(.init(timeFormat: .twelveHour)).time).hasPrefix("2:09 "))
+    check("clockText_of24Hour_overridesA12HourLocale", text(.init(timeFormat: .twentyFourHour), locale: american).time == "14:09")
+    check("clockText_ofSystemTime_followsTheLocale", text(.init()).time == "14:09")
+    check("clockText_ofSystemTimeWithSeconds_followsTheLocale", text(.init(showsSeconds: true)).time == "14:09:05")
+    check("clockText_ofSystemTimeIn12HourLocale_followsTheLocale", plain(text(.init(), locale: american).time) == "2:09 PM")
+
+    // Given midnight and noon, When in 12-hour, Then they read 12 rather than 0
+    let midnight = Date(timeIntervalSince1970: 1793836800)
+    check("clockText_of12HourMidnight_is12AM", plain(text(.init(timeFormat: .twelveHour), midnight, locale: american).time) == "12:00 AM")
+    check("clockText_of12HourNoon_is12PM",
+          plain(text(.init(timeFormat: .twelveHour), midnight.addingTimeInterval(43200), locale: american).time) == "12:00 PM")
+    check("clockText_of24HourMidnight_is00", text(.init(timeFormat: .twentyFourHour), midnight).time == "00:00")
+
+    // When the date is off, Then there is none, whatever its format
+    check("clockText_withDateOff_hasNoDate", text(.init(dateFormat: .iso)).date == nil)
+
+    // When the date is on, Then each format gives its form
+    check("clockText_ofIsoDate_isYearFirst", text(.init(showsDate: true, dateFormat: .iso)).date == "2026-11-04")
+    check("clockText_ofDayMonthYear_isDayFirst", text(.init(showsDate: true, dateFormat: .dayMonthYear), locale: american).date == "04/11/2026")
+    check("clockText_ofSystemDate_followsTheLocale", text(.init(showsDate: true)).date == "04/11/2026")
+
+    // Given a locale with another calendar or other digits, Then the fixed formats don't follow it
+    let thai = Locale(identifier: "th_TH")
+    let arabic = Locale(identifier: "ar_SA")
+    check("clockText_ofIsoDate_ignoresTheLocaleCalendar", text(.init(showsDate: true, dateFormat: .iso), locale: thai).date == "2026-11-04")
+    check("clockText_ofDayMonthYear_ignoresTheLocaleCalendar", text(.init(showsDate: true, dateFormat: .dayMonthYear), locale: thai).date == "04/11/2026")
+    check("clockText_ofIsoDate_ignoresTheLocaleDigits", text(.init(showsDate: true, dateFormat: .iso), locale: arabic).date == "2026-11-04")
+
+    // Given another time zone, Then the time and the date are the local ones
+    let tokyo = TimeZone(identifier: "Asia/Tokyo")!
+    let lateEvening = Date(timeIntervalSince1970: 1793833200)
+    let inTokyo = text(.init(timeFormat: .twentyFourHour, showsDate: true, dateFormat: .iso), lateEvening, timeZone: tokyo)
+    check("clockText_inAnotherTimeZone_isLocal", inTokyo.time == "08:00" && inTokyo.date == "2026-11-05")
+
+    // Given the sample used for measuring, Then it has two digits everywhere
+    let widest = text(.init(showsSeconds: true, timeFormat: .twentyFourHour, showsDate: true, dateFormat: .iso), clockWidestDate)
+    check("clockWidestDate_hasTwoDigitsEverywhere", widest.time == "22:58:58" && widest.date == "2026-12-28")
+    check("clockWidestDate_in12Hour_hasATwoDigitHour",
+          plain(text(.init(timeFormat: .twelveHour), clockWidestDate, locale: american).time) == "10:58 PM")
+}
+
+// clockAccessibilityLabel
+do {
+    // Given a date shown in a numeric format, When read by VoiceOver, Then the date is spelled out
+    let afternoon = Date(timeIntervalSince1970: 1793801345)
+    let label = clockAccessibilityLabel(
+        date: afternoon, settings: .init(timeFormat: .twentyFourHour, showsDate: true, dateFormat: .iso),
+        locale: Locale(identifier: "en_US"), timeZone: TimeZone(identifier: "UTC")!
+    )
+    check("clockAccessibilityLabel_spellsOutTheDate", label == "14:09, Wednesday, November 4, 2026")
+    // Given no date, Then only the time is read
+    let timeOnly = clockAccessibilityLabel(
+        date: afternoon, settings: .init(timeFormat: .twentyFourHour),
+        locale: Locale(identifier: "en_US"), timeZone: TimeZone(identifier: "UTC")!
+    )
+    check("clockAccessibilityLabel_withDateOff_isTheTime", timeOnly == "14:09")
+}
+
+// nextClockTick
+do {
+    let boundary = Date(timeIntervalSince1970: 1793887740)
+    let justAfter = boundary.addingTimeInterval(0.25)
+    // Given seconds shown, Then the next tick is the next whole second
+    check("nextClockTick_withSeconds_ofJustAfterABoundary_isTheNextSecond",
+          nextClockTick(after: justAfter, showsSeconds: true) == boundary.addingTimeInterval(1))
+    check("nextClockTick_withSeconds_ofABoundary_isStrictlyAfterIt",
+          nextClockTick(after: boundary, showsSeconds: true) == boundary.addingTimeInterval(1))
+    // Given seconds hidden, Then the next tick is the next whole minute
+    check("nextClockTick_withoutSeconds_ofJustAfterABoundary_isTheNextMinute",
+          nextClockTick(after: justAfter, showsSeconds: false) == boundary.addingTimeInterval(60))
+    check("nextClockTick_withoutSeconds_ofABoundary_isStrictlyAfterIt",
+          nextClockTick(after: boundary, showsSeconds: false) == boundary.addingTimeInterval(60))
 }
 
 if failures > 0 {

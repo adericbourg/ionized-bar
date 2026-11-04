@@ -56,7 +56,9 @@ The app registers itself with `SMAppService.mainApp` once, when Accessibility is
 
 ## Settings
 
-A settings window opens with "Settings…" from a right-click menu. Settings are global, apply at once and are saved in `UserDefaults`.
+A settings window opens with "Settings…" from a right-click menu. Settings are global, apply at once and are saved in `UserDefaults`. The window has two tabs in its toolbar, General and Widgets, the macOS convention for a few panes.
+
+The General tab holds:
 
 - **Group windows:** Never (default), When full or Always. Each bar decides for itself, because bars differ in width.
 - **When full:** apps merge when entries would drop below about 120 pt, or 48 pt with Icon only. The app with the most windows merges first, and merging stops once entries fit. On a tie, the later app on the bar merges first.
@@ -64,6 +66,8 @@ A settings window opens with "Settings…" from a right-click menu. Settings are
 - **Icon only:** compact entries of about 48 pt, packed from the left. This is the one exception to the equal width.
 - **Keep pinned app icons visible:** see [Pinned apps](#pinned-apps).
 - **Start at login:** see [Start at login](#start-at-login).
+
+The Widgets tab holds the [clock](#clock) settings.
 
 ### Group entries
 
@@ -115,7 +119,7 @@ A button at the left of every bar opens a panel in the layout of Plasma's launch
 
 ## Pinned apps
 
-Pinning keeps an app's icon on the bar while the app is closed. The bar reads, from the left: launcher, pinned icons, tasks.
+Pinning keeps an app's icon on the bar while the app is closed. The bar reads, from the left: launcher, pinned icons, tasks, then the [clock](#clock) when it is on.
 
 - **Pinning:** "Pin" and "Unpin" are in the menu of a task or group, since a pin belongs to the app and not to a window. "Unpin" is also in the icon's menu. An app with no bundle identifier can't be pinned.
 - **Icon:** about 36 pt wide with a 28 pt icon, and the app name as tooltip. A click opens the app. A running app comes to the front and decides whether to reopen a window.
@@ -123,6 +127,25 @@ Pinning keeps an app's icon on the bar while the app is closed. The bar reads, f
 - **"Keep pinned app icons visible":** off by default. On, the icon always shows. Off, it hides on a bar that shows a task for the app.
 - **Hiding is per bar:** the icon stays on other displays, on Spaces without the app's windows, and for a running app with no windows, so an app can always be reached from any bar.
 - **Width:** pins keep their width. Tasks shrink and group in the width left.
+
+## Clock
+
+A clock at the right end of every bar, off by default. It is the first widget, so the code has no widget abstraction until a second one shows what it should be. The layout follows Plasma's panel clock.
+
+- **Layout:** the time alone is one vertically centred line. With the date, the time (13 pt) sits above the date (11 pt), which fits the 36 pt bar with no height change.
+- **Width:** measured on a sample date with two digits everywhere, and with monospaced digits. It changes only with the settings or the locale, so tasks don't move as the time changes. Tasks shrink and group in the width left.
+- **Updates:** on the second, or on the minute with seconds off. It also refreshes after waking from sleep and after a change of system clock, time zone or locale.
+- **Interaction:** a click does nothing, and a right-click opens the bar's menu. It isn't a keyboard stop, because it has no action. VoiceOver reads it with the date spelled out.
+
+| Setting | Values |
+|---|---|
+| Display clock | Off (default), On |
+| Display seconds | Off (default), On |
+| Time format | System default (default), 12-hour, 24-hour |
+| Display date | Off (default), On |
+| Date format | System default (default), ISO (yyyy-mm-dd), dd/mm/yyyy |
+
+A setting under one that is off stays visible, greyed out, and keeps its value. The ISO and dd/mm/yyyy formats always use the Gregorian calendar.
 
 ## Re-ordering
 
@@ -177,4 +200,4 @@ The app follows the spirit of WCAG 2.2 AA.
 
 ## Out of scope
 
-Widgets (tray, clock), windows from all Spaces, a top or side bar position, theming, multiple rows, and recent apps in the launcher.
+A tray widget, windows from all Spaces, a top or side bar position, theming, multiple rows, and recent apps in the launcher.

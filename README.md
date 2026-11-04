@@ -104,6 +104,11 @@ Pick "Settings…" in a right-click menu of the bar.
 | Show tasks as | Icon only, App name, Content (default, the window title) |
 | Keep pinned app icons visible | Off by default |
 | Start at login | On after the first launch |
+| Display clock | Off by default. Shows a clock at the right of the bar |
+| Display seconds | Off by default |
+| Time format | System default (default), 12-hour, 24-hour |
+| Display date | Off by default. Shows the date under the time |
+| Date format | System default (default), ISO (yyyy-mm-dd), dd/mm/yyyy |
 
 ### Keyboard
 

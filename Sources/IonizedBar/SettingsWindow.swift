@@ -7,6 +7,13 @@ final class SettingsWindow: AppWindow {
     private let displayPopUp = NSPopUpButton()
     private let loginCheckbox = NSButton(checkboxWithTitle: "Start at login", target: nil, action: nil)
     private let pinnedCheckbox = NSButton(checkboxWithTitle: "Keep pinned app icons visible", target: nil, action: nil)
+    private let clockCheckbox = NSButton(checkboxWithTitle: "Display clock", target: nil, action: nil)
+    private let secondsCheckbox = NSButton(checkboxWithTitle: "Display seconds", target: nil, action: nil)
+    private let timeFormatLabel = NSTextField(labelWithString: "Time format:")
+    private let timeFormatPopUp = NSPopUpButton()
+    private let dateCheckbox = NSButton(checkboxWithTitle: "Display date", target: nil, action: nil)
+    private let dateFormatLabel = NSTextField(labelWithString: "Date format:")
+    private let dateFormatPopUp = NSPopUpButton()
 
     init(settings: Settings) {
         super.init(title: "Settings", size: CGSize(width: 320, height: 160))
@@ -17,7 +24,13 @@ final class SettingsWindow: AppWindow {
         displayPopUp.addItems(withTitles: TaskDisplay.allCases.map(Self.title))
         displayPopUp.selectItem(at: TaskDisplay.allCases.firstIndex(of: settings.taskDisplay)!)
         displayPopUp.setAccessibilityLabel("Show tasks as")
-        for popUp in [groupingPopUp, displayPopUp] {
+        timeFormatPopUp.addItems(withTitles: TimeFormat.allCases.map(Self.title))
+        timeFormatPopUp.selectItem(at: TimeFormat.allCases.firstIndex(of: settings.clock.timeFormat)!)
+        timeFormatPopUp.setAccessibilityLabel("Time format")
+        dateFormatPopUp.addItems(withTitles: DateFormat.allCases.map(Self.title))
+        dateFormatPopUp.selectItem(at: DateFormat.allCases.firstIndex(of: settings.clock.dateFormat)!)
+        dateFormatPopUp.setAccessibilityLabel("Date format")
+        for popUp in [groupingPopUp, displayPopUp, timeFormatPopUp, dateFormatPopUp] {
             popUp.target = self
             popUp.action = #selector(selectionChanged)
         }
@@ -27,27 +40,79 @@ final class SettingsWindow: AppWindow {
         loginCheckbox.setAccessibilityLabel("Start at login")
 
         pinnedCheckbox.state = settings.keepsPinnedVisible ? .on : .off
-        pinnedCheckbox.target = self
-        pinnedCheckbox.action = #selector(selectionChanged)
         pinnedCheckbox.setAccessibilityLabel("Keep pinned app icons visible")
+        clockCheckbox.state = settings.clock.isShown ? .on : .off
+        clockCheckbox.setAccessibilityLabel("Display clock")
+        secondsCheckbox.state = settings.clock.showsSeconds ? .on : .off
+        secondsCheckbox.setAccessibilityLabel("Display seconds")
+        dateCheckbox.state = settings.clock.showsDate ? .on : .off
+        dateCheckbox.setAccessibilityLabel("Display date")
+        for checkbox in [pinnedCheckbox, clockCheckbox, secondsCheckbox, dateCheckbox] {
+            checkbox.target = self
+            checkbox.action = #selector(selectionChanged)
+        }
 
+        let tabs = NSTabViewController()
+        tabs.tabStyle = .toolbar
+        tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 160)))
+        tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 320, height: 210)))
+        toolbarStyle = .preference
+        contentViewController = tabs
+        updateClockRows()
+        initialFirstResponder = groupingPopUp
+    }
+
+    private func makeGeneralContent() -> NSView {
         let grid = NSGridView(views: [
             [NSTextField(labelWithString: "Group windows:"), groupingPopUp],
             [NSTextField(labelWithString: "Show tasks as:"), displayPopUp],
             [NSGridCell.emptyContentView, pinnedCheckbox],
             [NSGridCell.emptyContentView, loginCheckbox]
         ])
-        grid.translatesAutoresizingMaskIntoConstraints = false
         grid.rowSpacing = 12
         grid.column(at: 0).xPlacement = .trailing
-        let container = NSView()
-        container.addSubview(grid)
-        NSLayoutConstraint.activate([
-            grid.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            grid.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        return grid
+    }
+
+    private func makeWidgetsContent() -> NSView {
+        let heading = NSTextField(labelWithString: "Clock")
+        heading.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
+        let stack = NSStackView(views: [
+            heading,
+            clockCheckbox,
+            Self.row([secondsCheckbox], indent: 20),
+            Self.row([timeFormatLabel, timeFormatPopUp], indent: 20),
+            Self.row([dateCheckbox], indent: 20),
+            Self.row([dateFormatLabel, dateFormatPopUp], indent: 40)
         ])
-        contentView = container
-        initialFirstResponder = groupingPopUp
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 10
+        return stack
+    }
+
+    private static func row(_ views: [NSView], indent: CGFloat) -> NSStackView {
+        let row = NSStackView(views: views)
+        row.edgeInsets.left = indent
+        return row
+    }
+
+    private static func tab(_ label: String, symbol: String, content: NSView, size: CGSize) -> NSTabViewItem {
+        content.translatesAutoresizingMaskIntoConstraints = false
+        let container = NSView()
+        container.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            content.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+        let controller = NSViewController()
+        controller.view = container
+        controller.title = label
+        controller.preferredContentSize = size
+        let item = NSTabViewItem(viewController: controller)
+        item.label = label
+        item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        return item
     }
 
     private static func title(_ mode: GroupingMode) -> String {
@@ -66,16 +131,51 @@ final class SettingsWindow: AppWindow {
         }
     }
 
+    private static func title(_ format: TimeFormat) -> String {
+        switch format {
+        case .system: "System default"
+        case .twelveHour: "12-hour"
+        case .twentyFourHour: "24-hour"
+        }
+    }
+
+    private static func title(_ format: DateFormat) -> String {
+        switch format {
+        case .system: "System default"
+        case .iso: "ISO (yyyy-mm-dd)"
+        case .dayMonthYear: "dd/mm/yyyy"
+        }
+    }
+
     override func show() {
         loginCheckbox.state = LoginItem.isEnabled ? .on : .off
         super.show()
     }
 
+    private func updateClockRows() {
+        let isClockOn = clockCheckbox.state == .on
+        let isDateFormatOn = isClockOn && dateCheckbox.state == .on
+        secondsCheckbox.isEnabled = isClockOn
+        timeFormatPopUp.isEnabled = isClockOn
+        timeFormatLabel.textColor = isClockOn ? .labelColor : .disabledControlTextColor
+        dateCheckbox.isEnabled = isClockOn
+        dateFormatPopUp.isEnabled = isDateFormatOn
+        dateFormatLabel.textColor = isDateFormatOn ? .labelColor : .disabledControlTextColor
+    }
+
     @objc private func selectionChanged() {
+        updateClockRows()
         onChange?(Settings(
             grouping: GroupingMode.allCases[groupingPopUp.indexOfSelectedItem],
             taskDisplay: TaskDisplay.allCases[displayPopUp.indexOfSelectedItem],
-            keepsPinnedVisible: pinnedCheckbox.state == .on
+            keepsPinnedVisible: pinnedCheckbox.state == .on,
+            clock: ClockSettings(
+                isShown: clockCheckbox.state == .on,
+                showsSeconds: secondsCheckbox.state == .on,
+                timeFormat: TimeFormat.allCases[timeFormatPopUp.indexOfSelectedItem],
+                showsDate: dateCheckbox.state == .on,
+                dateFormat: DateFormat.allCases[dateFormatPopUp.indexOfSelectedItem]
+            )
         ))
     }
 
