@@ -15,12 +15,14 @@ struct Settings {
     private static let clockTimeFormatKey = "clockTimeFormat"
     private static let clockShowsDateKey = "clockShowsDate"
     private static let clockDateFormatKey = "clockDateFormat"
+    private static let resizesJointWindowsKey = "resizesJointWindows"
 
     var grouping: GroupingMode
     var taskDisplay: TaskDisplay
     var showsPreviews = false
     var keepsPinnedVisible = false
     var clock = ClockSettings()
+    var resizesJointWindows = false
 
     static func load() -> Settings {
         let defaults = UserDefaults.standard
@@ -35,7 +37,8 @@ struct Settings {
                 timeFormat: TimeFormat(rawValue: defaults.string(forKey: clockTimeFormatKey) ?? "") ?? .system,
                 showsDate: defaults.bool(forKey: clockShowsDateKey),
                 dateFormat: DateFormat(rawValue: defaults.string(forKey: clockDateFormatKey) ?? "") ?? .system
-            )
+            ),
+            resizesJointWindows: defaults.bool(forKey: resizesJointWindowsKey)
         )
     }
 
@@ -49,5 +52,6 @@ struct Settings {
         UserDefaults.standard.set(clock.timeFormat.rawValue, forKey: Self.clockTimeFormatKey)
         UserDefaults.standard.set(clock.showsDate, forKey: Self.clockShowsDateKey)
         UserDefaults.standard.set(clock.dateFormat.rawValue, forKey: Self.clockDateFormatKey)
+        UserDefaults.standard.set(resizesJointWindows, forKey: Self.resizesJointWindowsKey)
     }
 }

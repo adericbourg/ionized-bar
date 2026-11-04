@@ -67,6 +67,12 @@ final class WindowTracker: @unchecked Sendable {
     /// Waiting for their deminiaturized notification, to be raised.
     // ponytail: an app that never posts it leaves an entry, and its next deminiaturize raises the window; expire entries if that shows up.
     private var restoring: [AXUIElement: TrackedWindow] = [:]
+    /// In AX coordinates, one per display. Empty when the setting is off.
+    private var jointAreas: [CGRect] = []
+    /// The current drag, for as long as the button is held, even with nothing to follow: a window that lines up
+    /// with another one halfway through a drag was not joint with it when the drag started.
+    private var jointDrag: JointResize<TrackedWindow>?
+    private var jointDragTick: Timer?
 
     init(onChange: @escaping @Sendable ([TrackedWindow], sending Set<AXUIElement>) -> Void) {
         self.onChange = onChange
@@ -189,6 +195,78 @@ final class WindowTracker: @unchecked Sendable {
         }
     }
 
+    func setJointAreas(_ areas: [CGRect]) {
+        onThread { [self] in jointAreas = areas }
+    }
+
+    private var isLeftButtonDown: Bool {
+        CGEventSource.buttonState(.combinedSessionState, button: .left)
+    }
+
+    private func followResize(of element: AXUIElement) {
+        guard !jointAreas.isEmpty, isLeftButtonDown else { return }
+        if jointDrag == nil { startJointDrag(of: element) }
+        // The other windows' notifications are the echo of our own writes.
+        guard let driver = jointDrag?.driver.element, CFEqual(driver, element) else { return }
+        followDriver()
+    }
+
+    /// From the cache, which still holds the frames from before the drag.
+    private func startJointDrag(of element: AXUIElement) {
+        let windows = apps.values.flatMap(\.windows).map(\.window).filter { onSpace.contains($0.element) && !$0.isMinimized && !$0.isFullScreen }
+        guard let driver = windows.first(where: { CFEqual($0.element, element) }) else { return }
+        let others = windows.filter { !CFEqual($0.element, element) }.map { (window: $0, frame: $0.frame) }
+        jointDrag = JointResize(driver: driver, frame: driver.frame, others: others, areas: jointAreas)
+        // A mouse release posts nothing.
+        jointDragTick = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [self] _ in
+            if !isLeftButtonDown { endJointDrag() }
+        }
+    }
+
+    /// A write can take 240 ms (measured on Zentty) and notifications pile up behind it. They read the latest frame, so all but the first write nothing.
+    private func followDriver() {
+        guard var drag = jointDrag, drag.isFollowing, let frame = readFrame(drag.driver.element) else { return }
+        let writes = drag.follow(driverFrame: frame)
+        jointDrag = drag
+        for (window, target) in writes { place(window, at: target) }
+    }
+
+    private func endJointDrag() {
+        jointDragTick?.invalidate()
+        jointDragTick = nil
+        followDriver()
+        defer { jointDrag = nil }
+        guard var drag = jointDrag, drag.isFollowing, let frame = readFrame(drag.driver.element) else { return }
+        let followerFrames = drag.followers.compactMap { readFrame($0.element) }
+        guard followerFrames.count == drag.followers.count, let snapped = drag.snapBack(driverFrame: frame, followerFrames: followerFrames) else { return }
+        place(drag.driver, at: snapped)
+        // The other followers went as far as the driver did.
+        for (window, target) in drag.follow(driverFrame: snapped) { place(window, at: target) }
+    }
+
+    private func readFrame(_ element: AXUIElement) -> CGRect? {
+        var values: CFArray?
+        let attributes = [kAXPositionAttribute, kAXSizeAttribute] as CFArray
+        guard AXUIElementCopyMultipleAttributeValues(element, attributes, AXCopyMultipleAttributeOptions(rawValue: 0), &values) == .success,
+              let current = values as? [Any], current.count == 2,
+              let position = axValue(current[0], .cgPoint, CGPoint.zero),
+              let size = axValue(current[1], .cgSize, CGSize.zero) else { return nil }
+        return CGRect(origin: position, size: size)
+    }
+
+    /// Size first, then the origin from the size the window accepted.
+    private func place(_ window: TrackedWindow, at target: CGRect) {
+        guard let current = readFrame(window.element) else { return }
+        var size = target.size
+        set(kAXSizeAttribute, to: AXValueCreate(.cgSize, &size)!, on: window.element, of: window)
+        guard let resized = readFrame(window.element) else { return }
+        var origin = anchoredOrigin(target: target, current: current, actualSize: resized.size)
+        set(kAXPositionAttribute, to: AXValueCreate(.cgPoint, &origin)!, on: window.element, of: window)
+        // Not every app posts moved and resized for an AX write.
+        moving.insert(window.element)
+        markDirty(window.pid)
+    }
+
     private func performRaise(_ window: TrackedWindow) {
         if let app = NSRunningApplication(processIdentifier: window.pid), app.isHidden, !app.unhide() {
             log("unhide failed for \(window.appName) pid=\(window.pid)")
@@ -235,6 +313,9 @@ final class WindowTracker: @unchecked Sendable {
         // Deminiaturize: the CG list lags, so the first publish could filter the restored window.
         if [kAXWindowMovedNotification, kAXWindowResizedNotification, kAXWindowDeminiaturizedNotification].contains(notification as String) {
             moving.insert(element)
+        }
+        if notification as String == kAXWindowResizedNotification {
+            followResize(of: element)
         }
         if notification as String == kAXWindowDeminiaturizedNotification, let window = restoring.removeValue(forKey: element) {
             performRaise(window)

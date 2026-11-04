@@ -109,6 +109,7 @@ Pick "Settings…" in a right-click menu of the bar.
 | Time format | System default (default), 12-hour, 24-hour |
 | Display date | Off by default. Shows the date under the time |
 | Date format | System default (default), ISO (yyyy-mm-dd), dd/mm/yyyy |
+| Resize tiled windows together | Off by default. Dragging the edge between two windows that fill the screen resizes both |
 
 ### Keyboard
 

@@ -14,6 +14,7 @@ final class SettingsWindow: AppWindow {
     private let dateCheckbox = NSButton(checkboxWithTitle: "Display date", target: nil, action: nil)
     private let dateFormatLabel = NSTextField(labelWithString: "Date format:")
     private let dateFormatPopUp = NSPopUpButton()
+    private let jointCheckbox = NSButton(checkboxWithTitle: "Resize tiled windows together", target: nil, action: nil)
 
     init(settings: Settings) {
         super.init(title: "Settings", size: CGSize(width: 320, height: 160))
@@ -47,7 +48,9 @@ final class SettingsWindow: AppWindow {
         secondsCheckbox.setAccessibilityLabel("Display seconds")
         dateCheckbox.state = settings.clock.showsDate ? .on : .off
         dateCheckbox.setAccessibilityLabel("Display date")
-        for checkbox in [pinnedCheckbox, clockCheckbox, secondsCheckbox, dateCheckbox] {
+        jointCheckbox.state = settings.resizesJointWindows ? .on : .off
+        jointCheckbox.setAccessibilityLabel("Resize tiled windows together")
+        for checkbox in [pinnedCheckbox, clockCheckbox, secondsCheckbox, dateCheckbox, jointCheckbox] {
             checkbox.target = self
             checkbox.action = #selector(selectionChanged)
         }
@@ -56,6 +59,7 @@ final class SettingsWindow: AppWindow {
         tabs.tabStyle = .toolbar
         tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 160)))
         tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 320, height: 210)))
+        tabs.addTabViewItem(Self.tab("Windows", symbol: "macwindow", content: jointCheckbox, size: CGSize(width: 320, height: 80)))
         toolbarStyle = .preference
         contentViewController = tabs
         updateClockRows()
@@ -175,7 +179,8 @@ final class SettingsWindow: AppWindow {
                 timeFormat: TimeFormat.allCases[timeFormatPopUp.indexOfSelectedItem],
                 showsDate: dateCheckbox.state == .on,
                 dateFormat: DateFormat.allCases[dateFormatPopUp.indexOfSelectedItem]
-            )
+            ),
+            resizesJointWindows: jointCheckbox.state == .on
         ))
     }
 

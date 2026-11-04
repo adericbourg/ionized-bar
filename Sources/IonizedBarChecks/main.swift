@@ -1147,6 +1147,120 @@ do {
           nextClockTick(after: boundary, showsSeconds: false) == boundary.addingTimeInterval(60))
 }
 
+// usableArea
+do {
+    // Given a screen with a menu bar, When computing the area, Then the bar and the menu bar are out
+    let area = usableArea(screenFrame: CGRect(x: 100, y: 0, width: 1000, height: 800), visibleFrame: CGRect(x: 100, y: 0, width: 1000, height: 770))
+    check("usableArea_excludesTheBarAndTheMenuBar", area == CGRect(x: 100, y: 36, width: 1000, height: 734))
+}
+
+// anchoredOrigin
+do {
+    let current = CGRect(x: 600, y: 0, width: 400, height: 800)
+    let target = CGRect(x: 800, y: 0, width: 200, height: 800)
+    // Given a move refused by a minimum width, Then the far edge stays where it is and the window doesn't slide off
+    check("anchoredOrigin_whenSizeIsRefused_keepsTheFarEdge",
+          anchoredOrigin(target: target, current: current, actualSize: CGSize(width: 300, height: 800)) == CGPoint(x: 700, y: 0))
+    check("anchoredOrigin_whenSizeIsAccepted_returnsTheTarget",
+          anchoredOrigin(target: target, current: current, actualSize: target.size) == target.origin)
+    // Given an origin that doesn't change, Then the window keeps it whatever the size it took
+    let growing = CGRect(x: 600, y: 0, width: 200, height: 800)
+    check("anchoredOrigin_whenOriginIsUnchanged_keepsIt",
+          anchoredOrigin(target: growing, current: current, actualSize: CGSize(width: 300, height: 800)) == current.origin)
+}
+
+// JointResize
+do {
+    let area = CGRect(x: 0, y: 0, width: 1000, height: 800)
+    let left = CGRect(x: 0, y: 0, width: 700, height: 800)
+    let right = CGRect(x: 700, y: 0, width: 300, height: 800)
+    let top = CGRect(x: 0, y: 0, width: 1000, height: 300)
+    let bottom = CGRect(x: 0, y: 300, width: 1000, height: 500)
+    func drag(_ frame: CGRect, others: [(window: String, frame: CGRect)], areas: [CGRect] = [area]) -> JointResize<String> {
+        JointResize(driver: "driver", frame: frame, others: others, areas: areas)
+    }
+
+    // Given a 70/30 split, When dragging the left window's right edge, Then the right window's left edge follows
+    var fromLeft = drag(left, others: [("right", right)])
+    check("init_ofLeftRightSplit_follows", fromLeft.followers == ["right"])
+    let followed = fromLeft.follow(driverFrame: CGRect(x: 0, y: 0, width: 600, height: 800))
+    check("follow_ofLeftWindow_movesTheRightWindowsLeftEdge", followed.map(\.frame) == [CGRect(x: 600, y: 0, width: 400, height: 800)])
+    // When the frame hasn't changed, Then nothing is written
+    check("follow_whenFrameIsUnchanged_returnsNothing", fromLeft.follow(driverFrame: CGRect(x: 0, y: 0, width: 600, height: 800)).isEmpty)
+    // When dragging back, Then the follower goes back
+    check("follow_whenDraggedBack_restoresTheFollower", fromLeft.follow(driverFrame: left).map(\.frame) == [right])
+
+    // Given the same split, When dragging the right window's left edge, Then the left window's right edge follows
+    var fromRight = drag(right, others: [("left", left)])
+    check("follow_ofRightWindow_movesTheLeftWindowsRightEdge",
+          fromRight.follow(driverFrame: CGRect(x: 800, y: 0, width: 200, height: 800)).map(\.frame) == [CGRect(x: 0, y: 0, width: 800, height: 800)])
+
+    // Given a top/bottom split, When dragging the shared edge, Then the other window follows
+    var fromTop = drag(top, others: [("bottom", bottom)])
+    check("follow_ofTopWindow_movesTheBottomWindowsTopEdge",
+          fromTop.follow(driverFrame: CGRect(x: 0, y: 0, width: 1000, height: 400)).map(\.frame) == [CGRect(x: 0, y: 400, width: 1000, height: 400)])
+
+    // Given a small gap between the windows, Then they are joint and the gap is preserved
+    var withGap = drag(CGRect(x: 0, y: 0, width: 690, height: 800), others: [("right", right)])
+    check("follow_whenWindowsHaveAGap_preservesIt",
+          withGap.follow(driverFrame: CGRect(x: 0, y: 0, width: 590, height: 800)).map(\.frame) == [CGRect(x: 600, y: 0, width: 400, height: 800)])
+
+    // Given two windows stacked on the other side, Then both follow; a window stacked on the driver's side doesn't
+    let stacked = drag(left, others: [("right", right), ("behindRight", right), ("behindLeft", left)])
+    check("init_ofStackedWindows_followsAllOnTheOtherSide", stacked.followers == ["right", "behindRight"])
+
+    // Given windows that don't fill the area, Then they aren't joint
+    check("init_whenDriverDoesNotReachTheEnd_followsNothing", drag(CGRect(x: 100, y: 0, width: 600, height: 800), others: [("right", right)]).followers.isEmpty)
+    check("init_whenOtherIsNotFullHeight_followsNothing", drag(left, others: [("right", CGRect(x: 700, y: 0, width: 300, height: 400))]).followers.isEmpty)
+    check("init_whenWindowsAreFarApart_followsNothing", drag(CGRect(x: 0, y: 0, width: 400, height: 800), others: [("right", right)]).followers.isEmpty)
+    // Given a split on another display, Then it isn't joint across displays
+    let otherArea = CGRect(x: 1000, y: 0, width: 1000, height: 800)
+    check("init_ofWindowOnAnotherDisplay_followsNothing",
+          drag(left, others: [("other", CGRect(x: 1000, y: 0, width: 300, height: 800))], areas: [area, otherArea]).followers.isEmpty)
+    check("init_ofSplitOnSecondDisplay_follows",
+          drag(CGRect(x: 1000, y: 0, width: 700, height: 800), others: [("right", CGRect(x: 1700, y: 0, width: 300, height: 800))], areas: [area, otherArea]).followers == ["right"])
+    // Given frames measured on Zentty: one window under the bar, the other a text row short of the area
+    let measuredArea = CGRect(x: 0, y: 40, width: 2056, height: 1253)
+    let underTheBar = CGRect(x: 1028, y: 40, width: 1028, height: 1289)
+    let rowShort = CGRect(x: 0, y: 40, width: 1028, height: 1228)
+    check("init_whenDriverGoesPastTheArea_follows", drag(underTheBar, others: [("left", rowShort)], areas: [measuredArea]).followers == ["left"])
+    check("init_whenOtherStopsARowShort_follows", drag(rowShort, others: [("right", underTheBar)], areas: [measuredArea]).followers == ["right"])
+    // Given a maximized window and a window on the display next to it, Then their touching edges aren't a shared edge
+    check("init_ofMaximizedWindowNextToAnotherDisplay_followsNothing",
+          drag(area, others: [("next", CGRect(x: 1000, y: 0, width: 700, height: 800))], areas: [area, CGRect(x: 1000, y: 0, width: 1000, height: 800)]).followers.isEmpty)
+
+    // Given no areas (setting off), Then nothing follows
+    check("init_withoutAreas_followsNothing", drag(left, others: [("right", right)], areas: []).followers.isEmpty)
+
+    // Given a corner drag, Then the drag separates for good, even if the height comes back
+    var corner = drag(left, others: [("right", right)])
+    check("follow_whenAnotherEdgeMoves_returnsNothing", corner.follow(driverFrame: CGRect(x: 0, y: 0, width: 600, height: 700)).isEmpty)
+    check("follow_afterSeparating_returnsNothing", corner.follow(driverFrame: CGRect(x: 0, y: 0, width: 500, height: 800)).isEmpty)
+    check("isFollowing_afterSeparating_isFalse", !corner.isFollowing)
+
+    // Given a window restored to its size when dragged away, Then its partner doesn't follow
+    var dragged = drag(left, others: [("right", right)])
+    check("follow_whenFarEdgeMoves_returnsNothing", dragged.follow(driverFrame: CGRect(x: 50, y: 0, width: 500, height: 800)).isEmpty)
+
+    // Given a follower stopped by its minimum size, Then the driver goes back to its edge
+    var blocked = drag(left, others: [("right", right), ("behindRight", right)])
+    let grown = CGRect(x: 0, y: 0, width: 900, height: 800)
+    _ = blocked.follow(driverFrame: grown)
+    let stopped = CGRect(x: 750, y: 0, width: 250, height: 800)
+    check("snapBack_whenFollowerStoppedShort_returnsItsEdge",
+          blocked.snapBack(driverFrame: grown, followerFrames: [CGRect(x: 900, y: 0, width: 100, height: 800), stopped]) == CGRect(x: 0, y: 0, width: 750, height: 800))
+    check("snapBack_withinTolerance_returnsNil",
+          blocked.snapBack(driverFrame: grown, followerFrames: [CGRect(x: 910, y: 0, width: 90, height: 800), CGRect(x: 900, y: 0, width: 100, height: 800)]) == nil)
+    // Given the right window as the driver, Then the driver's left edge goes back
+    var blockedFromRight = drag(right, others: [("left", left)])
+    let shrunkLeft = CGRect(x: 400, y: 0, width: 600, height: 800)
+    _ = blockedFromRight.follow(driverFrame: shrunkLeft)
+    check("snapBack_ofRightWindow_movesItsLeftEdge",
+          blockedFromRight.snapBack(driverFrame: shrunkLeft, followerFrames: [CGRect(x: 0, y: 0, width: 500, height: 800)]) == CGRect(x: 500, y: 0, width: 500, height: 800))
+    // Given a separated drag, Then the driver stays where the user left it
+    check("snapBack_afterSeparating_returnsNil", corner.snapBack(driverFrame: CGRect(x: 0, y: 0, width: 500, height: 700), followerFrames: [right]) == nil)
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)

@@ -54,6 +54,7 @@ final class BarManager {
                 panel.orderFrontRegardless()
             }
         }
+        updateJointAreas()
         // Pinned icons need no window: without this a new bar shows none until the first snapshot.
         update(windowsByDisplay: latestWindowsByDisplay)
     }
@@ -139,6 +140,17 @@ final class BarManager {
         if !settings.showsPreviews { preview.dismiss() }
         if isEnablingPreviews { CGRequestScreenCaptureAccess() }
         settings.save()
+        updateJointAreas()
         update(windowsByDisplay: latestWindowsByDisplay)
+    }
+
+    private func updateJointAreas() {
+        guard settings.resizesJointWindows, let primary = NSScreen.screens.first else {
+            windowTracker.setJointAreas([])
+            return
+        }
+        windowTracker.setJointAreas(NSScreen.screens.map {
+            flipRect(usableArea(screenFrame: $0.frame, visibleFrame: $0.visibleFrame), primaryScreenHeight: primary.frame.height)
+        })
     }
 }

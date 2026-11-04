@@ -4,7 +4,7 @@ This brief describes what IonizedBar does and why. To install or use it, see the
 
 ## Vision
 
-> A taskbar that shows the windows you have open, on the screen where they are. Nothing more.
+> A taskbar that shows the windows you have open, on the screen where they are, and the Plasma window behaviours macOS lacks.
 
 uBar and boringBar don't fit the need: a KDE Plasma–style taskbar for macOS, with one entry per open window and one bar per display that shows only that display's windows.
 
@@ -50,13 +50,25 @@ A window that overlaps the bar is resized or moved through the Accessibility API
 - **Windows that resist:** a window left over the bar, by its minimum size or its app, is not pushed again until its frame changes. This avoids jitter with apps that reposition themselves.
 - **Two displays:** a window is only checked against the bar of its assigned display.
 
+## Resizing tiled windows together
+
+With "Resize tiled windows together" on, dragging the edge shared by two windows that fill a screen resizes both, as with Plasma's tiles. It is off by default.
+
+- **Which windows:** two windows, side by side or one above the other, at any ratio, that together fill the screen minus the bar and the menu bar. They can be up to 32 pt short of an edge or apart, because some apps size in text rows, and can go past an edge, because a window can sit under the bar until it is pushed. Only their geometry when the drag starts counts, so nothing links them. Minimized and fullscreen windows don't count, nor do windows on another Space.
+- **Trigger:** a mouse drag only. A shortcut from a window manager, an app resizing itself or a push off the bar moves no other window.
+- **Following:** live during the drag. The other window's far edge stays where it is.
+- **Separating:** a drag that moves any other edge of the window, such as a corner drag, stops following until the next drag. Moving a window by its title bar moves only that window.
+- **Stacked windows:** every window that completes the dragged one follows, including those behind. A window stacked behind the dragged one, on the same side, stays.
+- **Minimum size:** macOS doesn't let another app stop a drag, so the windows overlap once the follower can't shrink further. On release, the dragged window goes back to the follower's edge.
+- **More than two windows:** quarter tiling isn't covered, because a quarter window never fills the screen with one other window.
+
 ## Start at login
 
 The app registers itself with `SMAppService.mainApp` once, when Accessibility is first granted. "Start at login" in Settings shows the real status and applies at once. It is not saved separately, and a relaunch doesn't turn it back on.
 
 ## Settings
 
-A settings window opens with "Settings…" from a right-click menu. Settings are global, apply at once and are saved in `UserDefaults`. The window has two tabs in its toolbar, General and Widgets, the macOS convention for a few panes.
+A settings window opens with "Settings…" from a right-click menu. Settings are global, apply at once and are saved in `UserDefaults`. The window has three tabs in its toolbar, General, Widgets and Windows, the macOS convention for a few panes.
 
 The General tab holds:
 
@@ -67,7 +79,7 @@ The General tab holds:
 - **Keep pinned app icons visible:** see [Pinned apps](#pinned-apps).
 - **Start at login:** see [Start at login](#start-at-login).
 
-The Widgets tab holds the [clock](#clock) settings.
+The Widgets tab holds the [clock](#clock) settings. The Windows tab holds [Resize tiled windows together](#resizing-tiled-windows-together).
 
 ### Group entries
 
