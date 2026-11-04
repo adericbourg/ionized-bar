@@ -163,12 +163,13 @@ A setting under one that is off stays visible, greyed out, and keeps its value. 
 
 A click on the clock opens a month calendar above it, in a panel as dark as the launcher. Another click closes it, as do Esc, a click elsewhere and a display change.
 
-- **Month:** it opens on the current month, and reopening returns to it. Arrows beside the month title go to the previous or next month.
+- **Month:** it opens on the current month, and reopening returns to it. Arrows beside the title go to the previous or next month.
+- **Month and year selectors:** a click on the title replaces the days with the 12 months of that year, under the year as title. A click on that year replaces them with 12 years, under their range as title. Picking a year shows its months, and picking a month shows its days. The panel keeps its size, and the arrows move by a year or by 12 years. Year pages start on multiples of 12, and the current month and year have the same outline as today.
 - **Grid:** only the rows the month needs, 4 to 6. The panel always has room for 6, so the arrows don't move under the pointer. Days of the adjacent months are shaded.
 - **Today and hover:** today has an outline in the system accent color. Hovering a day fills it with that color, the same as an active task. A click on a day does nothing.
 - **Week numbers:** week 1 is the first with at least 4 days in the new year, with the chosen first day of the week. With Monday first, these are ISO week numbers.
 - **Calendar system:** always Gregorian, because ISO weeks are only defined there. Month and weekday names follow the system locale.
-- **Keyboard and VoiceOver:** Tab reaches the arrows, and Return or Space presses them. VoiceOver reads each day as a full date, says which is today and announces the month when it changes.
+- **Keyboard and VoiceOver:** Tab reaches the title, the arrows and the months or years, and Return or Space presses them. VoiceOver reads each day as a full date, says which is today and announces the new title when it changes.
 
 | Setting | Values |
 |---|---|

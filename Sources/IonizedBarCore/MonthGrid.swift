@@ -90,6 +90,50 @@ public func calendarTitle(month: Date, locale: Locale = .autoupdatingCurrent, ti
     return formatter.string(from: month)
 }
 
+/// A cell of the month or year selector. `date` is the first day of that month or year.
+public struct CalendarPick: Equatable, Sendable {
+    public let date: Date
+    public let text: String
+    public let accessibilityLabel: String
+    public let isCurrent: Bool
+}
+
+public func calendarMonthPicks(month: Date, today: Date, locale: Locale = .autoupdatingCurrent, timeZone: TimeZone = .autoupdatingCurrent) -> [CalendarPick] {
+    let calendar = gridCalendar(timeZone: timeZone)
+    let year = calendar.component(.year, from: month)
+    return gridFormatter(locale: locale, timeZone: timeZone).standaloneMonthSymbols.enumerated().map { index, text in
+        let date = calendar.date(from: DateComponents(year: year, month: index + 1))!
+        return CalendarPick(
+            date: date,
+            text: text,
+            accessibilityLabel: calendarTitle(month: date, locale: locale, timeZone: timeZone),
+            isCurrent: calendar.isDate(date, equalTo: today, toGranularity: .month)
+        )
+    }
+}
+
+/// On multiples of 12, so that a page holds the same years whichever of them it was reached from.
+public func calendarYearPicks(month: Date, today: Date, locale: Locale = .autoupdatingCurrent, timeZone: TimeZone = .autoupdatingCurrent) -> [CalendarPick] {
+    let calendar = gridCalendar(timeZone: timeZone)
+    let firstYear = calendar.component(.year, from: month) / 12 * 12
+    return (firstYear..<firstYear + 12).map { year in
+        let date = calendar.date(from: DateComponents(year: year))!
+        let text = calendarYearTitle(month: date, locale: locale, timeZone: timeZone)
+        return CalendarPick(date: date, text: text, accessibilityLabel: text, isCurrent: calendar.isDate(date, equalTo: today, toGranularity: .year))
+    }
+}
+
+public func calendarYearTitle(month: Date, locale: Locale = .autoupdatingCurrent, timeZone: TimeZone = .autoupdatingCurrent) -> String {
+    let formatter = gridFormatter(locale: locale, timeZone: timeZone)
+    formatter.setLocalizedDateFormatFromTemplate("y")
+    return formatter.string(from: month)
+}
+
+public func calendarYearPageTitle(month: Date, locale: Locale = .autoupdatingCurrent, timeZone: TimeZone = .autoupdatingCurrent) -> String {
+    let picks = calendarYearPicks(month: month, today: month, locale: locale, timeZone: timeZone)
+    return "\(picks.first!.text) – \(picks.last!.text)"
+}
+
 public func calendarWeekdayHeaders(firstWeekday: Int, locale: Locale = .autoupdatingCurrent) -> [String] {
     let utc = TimeZone(identifier: "UTC")!
     let formatter = gridFormatter(locale: locale, timeZone: utc)

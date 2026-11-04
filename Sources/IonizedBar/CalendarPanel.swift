@@ -2,8 +2,10 @@ import AppKit
 import Carbon.HIToolbox
 import IonizedBarCore
 
-/// Key without activating the app, like the launcher, so Tab reaches the arrows.
+/// Key without activating the app, like the launcher, so Tab reaches the buttons.
 final class CalendarPanel: NSPanel {
+    private enum Mode { case days, months, years }
+
     private static let padding: CGFloat = 14
     private static let titleHeight: CGFloat = 36
     private static let arrowSize: CGFloat = 28
@@ -12,6 +14,9 @@ final class CalendarPanel: NSPanel {
     private static let weekColumnWidth: CGFloat = 44
     // Always room for the longest month, so that the arrows stay under the pointer from month to month.
     private static let maxRows: CGFloat = 6
+    private static let titleOutset: CGFloat = 4
+    private static let pickColumns: CGFloat = 3
+    private static let pickRows: CGFloat = 4
 
     static func size(showsWeekNumbers: Bool) -> CGSize {
         CGSize(
@@ -22,9 +27,11 @@ final class CalendarPanel: NSPanel {
 
     private let tint = makeDarkTint(cornerRadius: PreviewPanel.cornerRadius)
     private let titleLabel = NSTextField(labelWithString: "")
+    private lazy var titleButton = FooterButton(title: "", symbolName: nil, target: self, action: #selector(titleClicked))
     private lazy var previousButton = FooterButton(title: "", symbolName: "chevron.left", target: self, action: #selector(previousClicked))
     private lazy var nextButton = FooterButton(title: "", symbolName: "chevron.right", target: self, action: #selector(nextClicked))
     private let grid = NSView()
+    private var mode = Mode.days
     private var month = Date()
     private var settings = CalendarSettings()
     private let onDismiss: () -> Void
@@ -36,13 +43,10 @@ final class CalendarPanel: NSPanel {
         let frosted = setUpFloating()
         frosted.maskImage = PreviewPanel.roundedMask
         titleLabel.font = .systemFont(ofSize: 17, weight: .medium)
+        titleButton.font = titleLabel.font
         previousButton.imagePosition = .imageOnly
         nextButton.imagePosition = .imageOnly
-        previousButton.setAccessibilityLabel("Previous month")
-        nextButton.setAccessibilityLabel("Next month")
-        previousButton.nextKeyView = nextButton
-        nextButton.nextKeyView = previousButton
-        for view in [tint, titleLabel, previousButton, nextButton, grid] { frosted.addSubview(view) }
+        for view in [tint, titleLabel, titleButton, previousButton, nextButton, grid] { frosted.addSubview(view) }
     }
 
     override var canBecomeKey: Bool { true }
@@ -61,6 +65,7 @@ final class CalendarPanel: NSPanel {
 
     func show(in frame: CGRect, settings: CalendarSettings) {
         self.settings = settings
+        mode = .days
         month = Date()
         setFrame(frame, display: false)
         tint.frame = CGRect(origin: .zero, size: frame.size)
@@ -83,8 +88,54 @@ final class CalendarPanel: NSPanel {
     }
 
     private func reload() {
-        titleLabel.stringValue = calendarTitle(month: month)
         grid.subviews.forEach { $0.removeFromSuperview() }
+        switch mode {
+        case .days:
+            reloadDays()
+            updateHeader(title: calendarTitle(month: month), unit: "month", maybeTitleAction: "choose a month")
+        case .months:
+            reloadPicks(calendarMonthPicks(month: month, today: Date()))
+            updateHeader(title: calendarYearTitle(month: month), unit: "year", maybeTitleAction: "choose a year")
+        case .years:
+            reloadPicks(calendarYearPicks(month: month, today: Date()))
+            updateHeader(title: calendarYearPageTitle(month: month), unit: "years", maybeTitleAction: nil)
+        }
+        let titleViews = titleButton.isHidden ? [] : [titleButton]
+        let keyViews: [NSView] = titleViews + [previousButton, nextButton] + pickCells
+        for (view, next) in zip(keyViews, keyViews.dropFirst() + keyViews.prefix(1)) { view.nextKeyView = next }
+    }
+
+    private var pickCells: [PickCell] { grid.subviews.compactMap { $0 as? PickCell } }
+
+    private func updateHeader(title: String, unit: String, maybeTitleAction: String?) {
+        titleLabel.stringValue = title
+        titleLabel.isHidden = maybeTitleAction != nil
+        titleButton.isHidden = maybeTitleAction == nil
+        if let titleAction = maybeTitleAction {
+            titleButton.title = title
+            titleButton.setAccessibilityLabel("\(title), \(titleAction)")
+            titleButton.sizeToFit()
+            // Wider than the text, with the same outset on the left, so that the text lines up with the label's.
+            titleButton.frame = CGRect(
+                x: Self.padding - Self.titleOutset, y: previousButton.frame.minY,
+                width: min(titleButton.frame.width + 2 * Self.titleOutset, previousButton.frame.minX - Self.padding), height: Self.arrowSize
+            )
+        }
+        previousButton.setAccessibilityLabel("Previous \(unit)")
+        nextButton.setAccessibilityLabel("Next \(unit)")
+    }
+
+    private func reloadPicks(_ picks: [CalendarPick]) {
+        let size = CGSize(width: grid.bounds.width / Self.pickColumns, height: grid.bounds.height / Self.pickRows)
+        for (index, pick) in picks.enumerated() {
+            let cell = PickCell(pick: pick, target: self, action: #selector(pickClicked))
+            let column = CGFloat(index % Int(Self.pickColumns)), row = CGFloat(index / Int(Self.pickColumns))
+            cell.frame = CGRect(x: column * size.width, y: grid.bounds.height - (row + 1) * size.height, width: size.width, height: size.height)
+            grid.addSubview(cell)
+        }
+    }
+
+    private func reloadDays() {
         let firstWeekday = settings.firstWeekday.calendarWeekday()
         let daysX = settings.showsWeekNumbers ? Self.weekColumnWidth : 0
         let headerY = grid.bounds.height - Self.headerHeight
@@ -118,9 +169,36 @@ final class CalendarPanel: NSPanel {
 
     @objc private func nextClicked() { move(by: 1) }
 
-    private func move(by offset: Int) {
-        month = movedMonth(month, by: offset)
+    private func move(by direction: Int) {
+        let step = switch mode {
+        case .days: 1
+        case .months: 12
+        case .years: 144
+        }
+        month = movedMonth(month, by: direction * step)
         reload()
+        announceTitle()
+    }
+
+    @objc private func titleClicked() {
+        switchScreen(to: mode == .days ? .months : .years, month: month)
+    }
+
+    @objc private func pickClicked(_ cell: PickCell) {
+        switchScreen(to: mode == .years ? .months : .days, month: cell.pick.date)
+    }
+
+    private func switchScreen(to mode: Mode, month: Date) {
+        // Only the keyboard focuses a button. It would otherwise vanish with the view that had it.
+        let hadFocus = firstResponder is NSButton
+        self.mode = mode
+        self.month = month
+        reload()
+        if hadFocus { makeFirstResponder(pickCells.first { $0.pick.isCurrent } ?? previousButton) }
+        announceTitle()
+    }
+
+    private func announceTitle() {
         // On the panel: it can't become main, so the usual NSApp.mainWindow is nil here.
         NSAccessibility.post(element: self, notification: .announcementRequested, userInfo: [
             .announcement: titleLabel.stringValue,
@@ -129,11 +207,52 @@ final class CalendarPanel: NSPanel {
     }
 }
 
+/// The accent fill on hover, and the outline on what is current: the look of a day, today included.
+private func drawCalendarTile(in bounds: CGRect, isHovered: Bool, isMarked: Bool) {
+    let inset: CGFloat = 3, ringWidth: CGFloat = 1.5
+    let tile = bounds.insetBy(dx: inset, dy: inset)
+    if isHovered {
+        NSColor.controlAccentColor.setFill()
+        NSBezierPath(roundedRect: tile, xRadius: 6, yRadius: 6).fill()
+    }
+    guard isMarked else { return }
+    // The accent doesn't show on the accent fill, so a hovered one takes the color of the text on it.
+    (isHovered ? NSColor.alternateSelectedControlTextColor : NSColor.controlAccentColor).setStroke()
+    let ring = NSBezierPath(roundedRect: tile.insetBy(dx: ringWidth / 2, dy: ringWidth / 2), xRadius: 6, yRadius: 6)
+    ring.lineWidth = ringWidth
+    ring.stroke()
+}
+
+private final class PickCell: FooterButton {
+    let pick: CalendarPick
+
+    init(pick: CalendarPick, target: AnyObject, action: Selector) {
+        self.pick = pick
+        super.init(title: pick.text, symbolName: nil, target: target, action: action)
+        font = .monospacedDigitSystemFont(ofSize: 15, weight: .regular)
+        setAccessibilityLabel(pick.isCurrent ? "\(pick.accessibilityLabel), current" : pick.accessibilityLabel)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func mouseEntered(with event: NSEvent) {
+        super.mouseEntered(with: event)
+        contentTintColor = .alternateSelectedControlTextColor
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        contentTintColor = .labelColor
+    }
+
+    override func drawBackground() {
+        drawCalendarTile(in: bounds, isHovered: isHovered, isMarked: pick.isCurrent)
+    }
+}
+
 /// Text for VoiceOver, not a button: the hover only helps to read across rows and columns.
 private final class DayCell: NSView {
-    private static let inset: CGFloat = 3
-    private static let ringWidth: CGFloat = 1.5
-
     private let day: CalendarDay
     private let label: NSTextField
     private var isHovered = false {
@@ -180,17 +299,7 @@ private final class DayCell: NSView {
     override func mouseExited(with event: NSEvent) { isHovered = false }
 
     override func draw(_ dirtyRect: NSRect) {
-        let tile = bounds.insetBy(dx: Self.inset, dy: Self.inset)
-        if isHovered {
-            NSColor.controlAccentColor.setFill()
-            NSBezierPath(roundedRect: tile, xRadius: 6, yRadius: 6).fill()
-        }
-        guard day.isToday else { return }
-        // The accent doesn't show on the accent fill, so a hovered today takes the color of the text on it.
-        (isHovered ? NSColor.alternateSelectedControlTextColor : NSColor.controlAccentColor).setStroke()
-        let ring = NSBezierPath(roundedRect: tile.insetBy(dx: Self.ringWidth / 2, dy: Self.ringWidth / 2), xRadius: 6, yRadius: 6)
-        ring.lineWidth = Self.ringWidth
-        ring.stroke()
+        drawCalendarTile(in: bounds, isHovered: isHovered, isMarked: day.isToday)
     }
 }
 

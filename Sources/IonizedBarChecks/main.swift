@@ -1328,6 +1328,29 @@ do {
     let english = Locale(identifier: "en_US")
     check("calendarDayAccessibilityLabel_ofADay_isTheFullDate", calendarDayAccessibilityLabel(tomorrow, locale: english, timeZone: utc) == "Thursday, November 5, 2026")
     check("calendarDayAccessibilityLabel_ofToday_saysSo", calendarDayAccessibilityLabel(today, locale: english, timeZone: utc) == "Wednesday, November 4, 2026, today")
+
+    // Month selector
+    let isoToday = day(2026, 11, 4)
+    let monthPicks = calendarMonthPicks(month: day(2026, 3, 31), today: isoToday, locale: english, timeZone: utc)
+    check("calendarMonthPicks_hasTwelveMonths", monthPicks.count == 12 && monthPicks.first?.text == "January" && monthPicks.last?.text == "December")
+    check("calendarMonthPicks_ofFrench_isLocalized", calendarMonthPicks(month: isoToday, today: isoToday, locale: Locale(identifier: "fr_FR"), timeZone: utc).dropFirst(10).first?.text == "novembre")
+    check("calendarMonthPicks_marksOnlyTheCurrentMonth", monthPicks.filter(\.isCurrent).map(\.text) == ["November"])
+    check("calendarMonthPicks_ofAnotherYear_marksNothing", !calendarMonthPicks(month: day(2027, 3, 1), today: isoToday, locale: english, timeZone: utc).contains(where: \.isCurrent))
+    // Given a viewed date on the 31st, Then each pick is still in its own month, even a shorter one
+    check("calendarMonthPicks_fromThe31st_landsInEachMonth", monthPicks.map(\.accessibilityLabel) == (1...12).map { calendarTitle(month: day(2026, $0, 1), locale: english, timeZone: utc) })
+    check("calendarMonthPicks_datesAreInTheirMonth", monthPicks.map { calendarTitle(month: $0.date, locale: english, timeZone: utc) } == monthPicks.map(\.accessibilityLabel))
+
+    // Year selector
+    let yearPicks = calendarYearPicks(month: day(2026, 3, 31), today: isoToday, locale: english, timeZone: utc)
+    check("calendarYearPicks_ofAPage_hasItsTwelveYears", yearPicks.map(\.text) == (2016...2027).map(String.init))
+    check("calendarYearPicks_marksOnlyTheCurrentYear", yearPicks.filter(\.isCurrent).map(\.text) == ["2026"])
+    check("calendarYearPicks_datesAreInTheirYear", yearPicks.map { calendarYearTitle(month: $0.date, locale: english, timeZone: utc) } == yearPicks.map(\.text))
+    check("calendarYearPicks_ofTheNextPage_startsAfterTheEdge", calendarYearPicks(month: day(2028, 1, 1), today: isoToday, locale: english, timeZone: utc).first?.text == "2028")
+    check("calendarYearPicks_ofThePageEdge_staysOnItsPage", calendarYearPicks(month: day(2027, 12, 31), today: isoToday, locale: english, timeZone: utc).last?.text == "2027")
+
+    // Titles of the selectors
+    check("calendarYearTitle_isTheYear", calendarYearTitle(month: isoToday, locale: english, timeZone: utc) == "2026")
+    check("calendarYearPageTitle_isTheRange", calendarYearPageTitle(month: isoToday, locale: english, timeZone: utc) == "2016 – 2027")
 }
 
 if failures > 0 {

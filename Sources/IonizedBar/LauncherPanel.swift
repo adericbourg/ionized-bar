@@ -480,11 +480,11 @@ private final class SidebarTableView: NSTableView {
     }
 }
 
-final class FooterButton: NSButton {
-    private var isHovered = false { didSet { needsDisplay = true } }
+class FooterButton: NSButton {
+    private(set) var isHovered = false { didSet { needsDisplay = true } }
 
     // Without this, Tab skips buttons unless the user turned on macOS's full keyboard navigation.
-    override var canBecomeKeyView: Bool { true }
+    override var canBecomeKeyView: Bool { !isHidden }
 
     override func keyDown(with event: NSEvent) {
         switch Int(event.keyCode) {
@@ -494,12 +494,12 @@ final class FooterButton: NSButton {
         }
     }
 
-    init(title: String, symbolName: String, target: AnyObject, action: Selector) {
+    init(title: String, symbolName: String?, target: AnyObject, action: Selector) {
         super.init(frame: .zero)
         self.title = title
         self.target = target
         self.action = action
-        image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
+        image = symbolName.flatMap { NSImage(systemSymbolName: $0, accessibilityDescription: nil) }
         imagePosition = .imageLeading
         contentTintColor = .labelColor
         isBordered = false
@@ -514,11 +514,14 @@ final class FooterButton: NSButton {
 
     override func mouseExited(with event: NSEvent) { isHovered = false }
 
+    func drawBackground() {
+        guard isHovered else { return }
+        NSColor.labelColor.withAlphaComponent(0.1).setFill()
+        NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4).fill()
+    }
+
     override func draw(_ dirtyRect: NSRect) {
-        if isHovered {
-            NSColor.labelColor.withAlphaComponent(0.1).setFill()
-            NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4).fill()
-        }
+        drawBackground()
         super.draw(dirtyRect)
     }
 }
