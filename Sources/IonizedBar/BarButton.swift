@@ -98,6 +98,15 @@ class BarButton: NSView {
         NSBezierPath(roundedRect: bounds.insetBy(dx: Self.focusRingInset, dy: Self.focusRingInset), xRadius: 4, yRadius: 4)
     }
 
+    /// A 1 px outline of `rect`, half a pixel in so it lands on whole device pixels.
+    func strokeHairline(around rect: NSRect) {
+        let halfPixel = 0.5 / (window?.backingScaleFactor ?? 2)
+        let border = NSBezierPath(roundedRect: rect.insetBy(dx: halfPixel, dy: halfPixel), xRadius: 4, yRadius: 4)
+        border.lineWidth = 2 * halfPixel
+        NSColor.labelColor.withAlphaComponent(0.08).setStroke()
+        border.stroke()
+    }
+
     override func drawFocusRingMask() { focusRingPath.fill() }
 
     override var focusRingMaskBounds: NSRect { bounds }

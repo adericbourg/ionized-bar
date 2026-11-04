@@ -26,6 +26,7 @@ class BarIconButton: BarButton {
         let side = bounds.height - 2 * Self.focusRingInset
         let tile = NSRect(x: (bounds.width - side) / 2, y: Self.focusRingInset, width: side, height: side)
         NSBezierPath(roundedRect: tile, xRadius: 4, yRadius: 4).fill()
+        strokeHairline(around: tile)
     }
 
     override func performClickAction() {
