@@ -69,7 +69,7 @@ The app registers itself with `SMAppService.mainApp` once, when Accessibility is
 
 ## Settings
 
-A settings window opens with "Settings…" from a right-click menu. Settings are global, apply at once and are saved in `UserDefaults`. The window has three tabs in its toolbar, General, Widgets and Windows, the macOS convention for a few panes.
+A settings window opens with "Settings…" from a right-click menu. Settings are global, apply at once and are saved in `UserDefaults`. The window has four tabs in its toolbar, General, Widgets, Windows and About, the macOS convention for a few panes.
 
 The General tab holds:
 
@@ -80,7 +80,7 @@ The General tab holds:
 - **Keep pinned app icons visible:** see [Pinned apps](#pinned-apps).
 - **Start at login:** see [Start at login](#start-at-login).
 
-The Widgets tab holds the [clock](#clock) and [calendar](#calendar) settings. The Windows tab holds [Resize tiled windows together](#resizing-tiled-windows-together).
+The Widgets tab holds the [clock](#clock) and [calendar](#calendar) settings. The Windows tab holds [Resize tiled windows together](#resizing-tiled-windows-together). The About tab shows the version and the commit it was built from, which `scripts/bundle.sh` writes into the bundle, because a local build has the same version as the last release. A release shows the last commit before its `chore: release` commit.
 
 ### Group entries
 

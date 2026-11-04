@@ -9,6 +9,7 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS"
 cp "$(swift build -c release --show-bin-path)/IonizedBar" "$app/Contents/MacOS/"
 cp Support/Info.plist "$app/Contents/"
+/usr/libexec/PlistBuddy -c "Add :IonizedBarCommit string $(git rev-parse --short HEAD)" "$app/Contents/Info.plist"
 
 # A stable identity keeps the Accessibility and Screen Recording grants across builds; ad-hoc ties them to one build.
 identity="IonizedBar Signing"

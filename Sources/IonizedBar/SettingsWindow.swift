@@ -69,6 +69,7 @@ final class SettingsWindow: AppWindow {
         tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 160)))
         tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 320, height: 320)))
         tabs.addTabViewItem(Self.tab("Windows", symbol: "macwindow", content: jointCheckbox, size: CGSize(width: 320, height: 80)))
+        tabs.addTabViewItem(Self.tab("About", symbol: "info.circle", content: Self.makeAboutContent(), size: CGSize(width: 320, height: 80)))
         toolbarStyle = .preference
         contentViewController = tabs
         updateClockRows()
@@ -107,6 +108,17 @@ final class SettingsWindow: AppWindow {
         stack.spacing = 10
         stack.setCustomSpacing(20, after: stack.arrangedSubviews[5])
         return stack
+    }
+
+    private static func makeAboutContent() -> NSView {
+        let info = Bundle.main.infoDictionary
+        let version = versionDescription(
+            version: info?["CFBundleShortVersionString"] as? String,
+            commit: info?["IonizedBarCommit"] as? String
+        )
+        let label = NSTextField(labelWithString: "IonizedBar \(version)")
+        label.isSelectable = true
+        return label
     }
 
     private static func row(_ views: [NSView], indent: CGFloat) -> NSStackView {

@@ -1389,6 +1389,13 @@ do {
     check("calendarYearPageTitle_isTheRange", calendarYearPageTitle(month: isoToday, locale: english, timeZone: utc) == "2016 – 2027")
 }
 
+// versionDescription
+do {
+    check("versionDescription_ofVersionAndCommit_returnsBoth", versionDescription(version: "0.7.0", commit: "4737db6") == "0.7.0 (4737db6)")
+    check("versionDescription_whenNoCommit_returnsVersion", versionDescription(version: "0.7.0", commit: nil) == "0.7.0")
+    check("versionDescription_whenNoVersion_returnsDevelopmentBuild", versionDescription(version: nil, commit: nil) == "development build")
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)
