@@ -22,7 +22,10 @@ class BarIconButton: BarButton {
     override func draw(_ dirtyRect: NSRect) {
         guard isHovered else { return }
         NSColor.labelColor.withAlphaComponent(0.1).setFill()
-        NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4).fill()
+        // Same height as a task tile, kept square.
+        let side = bounds.height - 2 * Self.focusRingInset
+        let tile = NSRect(x: (bounds.width - side) / 2, y: Self.focusRingInset, width: side, height: side)
+        NSBezierPath(roundedRect: tile, xRadius: 4, yRadius: 4).fill()
     }
 
     override func performClickAction() {
