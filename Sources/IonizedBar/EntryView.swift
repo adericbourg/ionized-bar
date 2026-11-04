@@ -175,6 +175,8 @@ final class EntryView: BarButton {
     override func contextMenu() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
+        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "")
+        menu.addItem(.separator())
         let appName = item.windows[0].appName
         switch item {
         case .window(let window):
@@ -193,10 +195,8 @@ final class EntryView: BarButton {
             menu.addItem(withTitle: pinTitle, action: #selector(togglePin), keyEquivalent: "").representedObject = maybeBundleID
         }
         menu.addItem(withTitle: "Quit \(appName)", action: #selector(quitApp), keyEquivalent: "")
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "")
         menu.items.forEach { $0.target = self }
-        menu.addItem(withTitle: "Quit IonizedBar", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "").target = NSApp
+        menu.insertItem(withTitle: "Quit IonizedBar", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "", at: 1).target = NSApp
         return menu
     }
 

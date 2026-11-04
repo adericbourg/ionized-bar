@@ -26,14 +26,14 @@ final class PinnedIconView: BarIconButton {
         guard let menu = super.contextMenu() else { return nil }
         menu.autoenablesItems = false
         let maybeBar = superview as? BarContentView
-        menu.insertItem(.separator(), at: 0)
-        menu.insertItem(withTitle: "Unpin", action: #selector(unpin), keyEquivalent: "", at: 0).target = self
-        let right = menu.insertItem(withTitle: "Move Right", action: #selector(movePinRight), keyEquivalent: "", at: 0)
-        right.target = self
-        right.isEnabled = maybeBar?.canMove(self, by: 1) == true
-        let left = menu.insertItem(withTitle: "Move Left", action: #selector(movePinLeft), keyEquivalent: "", at: 0)
+        menu.addItem(.separator())
+        let left = menu.addItem(withTitle: "Move Left", action: #selector(movePinLeft), keyEquivalent: "")
         left.target = self
         left.isEnabled = maybeBar?.canMove(self, by: -1) == true
+        let right = menu.addItem(withTitle: "Move Right", action: #selector(movePinRight), keyEquivalent: "")
+        right.target = self
+        right.isEnabled = maybeBar?.canMove(self, by: 1) == true
+        menu.addItem(withTitle: "Unpin", action: #selector(unpin), keyEquivalent: "").target = self
         return menu
     }
 

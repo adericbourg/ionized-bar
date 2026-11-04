@@ -54,7 +54,7 @@ To quit, right-click the bar and pick "Quit IonizedBar". The Dock comes back.
 | Click the active task | Minimizes it |
 | Click a minimized task | Restores it |
 | Middle-click | Closes the window |
-| Right-click | Opens a menu: Close, Minimize, Move Left, Move Right, Pin, Quit the app, Settings… and Quit IonizedBar |
+| Right-click | Opens a menu: Settings…, Quit IonizedBar, then Close, Minimize, Move Left, Move Right, Pin and Quit the app |
 
 A click on a group lists its windows. A middle-click on a group does nothing, so a stray click can't close several windows.
 
