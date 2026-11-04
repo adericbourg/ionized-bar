@@ -14,6 +14,10 @@ final class SettingsWindow: AppWindow {
     private let dateCheckbox = NSButton(checkboxWithTitle: "Display date", target: nil, action: nil)
     private let dateFormatLabel = NSTextField(labelWithString: "Date format:")
     private let dateFormatPopUp = NSPopUpButton()
+    private let calendarHeading = NSTextField(labelWithString: "Calendar")
+    private let firstWeekdayLabel = NSTextField(labelWithString: "First day of week:")
+    private let firstWeekdayPopUp = NSPopUpButton()
+    private let weekNumbersCheckbox = NSButton(checkboxWithTitle: "Show week numbers", target: nil, action: nil)
     private let jointCheckbox = NSButton(checkboxWithTitle: "Resize tiled windows together", target: nil, action: nil)
 
     init(settings: Settings) {
@@ -31,7 +35,10 @@ final class SettingsWindow: AppWindow {
         dateFormatPopUp.addItems(withTitles: DateFormat.allCases.map(Self.title))
         dateFormatPopUp.selectItem(at: DateFormat.allCases.firstIndex(of: settings.clock.dateFormat)!)
         dateFormatPopUp.setAccessibilityLabel("Date format")
-        for popUp in [groupingPopUp, displayPopUp, timeFormatPopUp, dateFormatPopUp] {
+        firstWeekdayPopUp.addItems(withTitles: FirstWeekday.allCases.map(Self.title))
+        firstWeekdayPopUp.selectItem(at: FirstWeekday.allCases.firstIndex(of: settings.calendar.firstWeekday)!)
+        firstWeekdayPopUp.setAccessibilityLabel("First day of week")
+        for popUp in [groupingPopUp, displayPopUp, timeFormatPopUp, dateFormatPopUp, firstWeekdayPopUp] {
             popUp.target = self
             popUp.action = #selector(selectionChanged)
         }
@@ -48,9 +55,11 @@ final class SettingsWindow: AppWindow {
         secondsCheckbox.setAccessibilityLabel("Display seconds")
         dateCheckbox.state = settings.clock.showsDate ? .on : .off
         dateCheckbox.setAccessibilityLabel("Display date")
+        weekNumbersCheckbox.state = settings.calendar.showsWeekNumbers ? .on : .off
+        weekNumbersCheckbox.setAccessibilityLabel("Show week numbers")
         jointCheckbox.state = settings.resizesJointWindows ? .on : .off
         jointCheckbox.setAccessibilityLabel("Resize tiled windows together")
-        for checkbox in [pinnedCheckbox, clockCheckbox, secondsCheckbox, dateCheckbox, jointCheckbox] {
+        for checkbox in [pinnedCheckbox, clockCheckbox, secondsCheckbox, dateCheckbox, weekNumbersCheckbox, jointCheckbox] {
             checkbox.target = self
             checkbox.action = #selector(selectionChanged)
         }
@@ -58,7 +67,7 @@ final class SettingsWindow: AppWindow {
         let tabs = NSTabViewController()
         tabs.tabStyle = .toolbar
         tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 160)))
-        tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 320, height: 210)))
+        tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 320, height: 320)))
         tabs.addTabViewItem(Self.tab("Windows", symbol: "macwindow", content: jointCheckbox, size: CGSize(width: 320, height: 80)))
         toolbarStyle = .preference
         contentViewController = tabs
@@ -81,17 +90,22 @@ final class SettingsWindow: AppWindow {
     private func makeWidgetsContent() -> NSView {
         let heading = NSTextField(labelWithString: "Clock")
         heading.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
+        calendarHeading.font = heading.font
         let stack = NSStackView(views: [
             heading,
             clockCheckbox,
             Self.row([secondsCheckbox], indent: 20),
             Self.row([timeFormatLabel, timeFormatPopUp], indent: 20),
             Self.row([dateCheckbox], indent: 20),
-            Self.row([dateFormatLabel, dateFormatPopUp], indent: 40)
+            Self.row([dateFormatLabel, dateFormatPopUp], indent: 40),
+            calendarHeading,
+            Self.row([firstWeekdayLabel, firstWeekdayPopUp], indent: 20),
+            Self.row([weekNumbersCheckbox], indent: 20)
         ])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
+        stack.setCustomSpacing(20, after: stack.arrangedSubviews[5])
         return stack
     }
 
@@ -151,6 +165,19 @@ final class SettingsWindow: AppWindow {
         }
     }
 
+    private static func title(_ weekday: FirstWeekday) -> String {
+        switch weekday {
+        case .system: "System default"
+        case .monday: "Monday"
+        case .tuesday: "Tuesday"
+        case .wednesday: "Wednesday"
+        case .thursday: "Thursday"
+        case .friday: "Friday"
+        case .saturday: "Saturday"
+        case .sunday: "Sunday"
+        }
+    }
+
     override func show() {
         loginCheckbox.state = LoginItem.isEnabled ? .on : .off
         super.show()
@@ -165,6 +192,11 @@ final class SettingsWindow: AppWindow {
         dateCheckbox.isEnabled = isClockOn
         dateFormatPopUp.isEnabled = isDateFormatOn
         dateFormatLabel.textColor = isDateFormatOn ? .labelColor : .disabledControlTextColor
+        // The calendar opens from the clock, so with no clock it can't open.
+        calendarHeading.textColor = isClockOn ? .labelColor : .disabledControlTextColor
+        firstWeekdayLabel.textColor = isClockOn ? .labelColor : .disabledControlTextColor
+        firstWeekdayPopUp.isEnabled = isClockOn
+        weekNumbersCheckbox.isEnabled = isClockOn
     }
 
     @objc private func selectionChanged() {
@@ -179,6 +211,10 @@ final class SettingsWindow: AppWindow {
                 timeFormat: TimeFormat.allCases[timeFormatPopUp.indexOfSelectedItem],
                 showsDate: dateCheckbox.state == .on,
                 dateFormat: DateFormat.allCases[dateFormatPopUp.indexOfSelectedItem]
+            ),
+            calendar: CalendarSettings(
+                firstWeekday: FirstWeekday.allCases[firstWeekdayPopUp.indexOfSelectedItem],
+                showsWeekNumbers: weekNumbersCheckbox.state == .on
             ),
             resizesJointWindows: jointCheckbox.state == .on
         ))

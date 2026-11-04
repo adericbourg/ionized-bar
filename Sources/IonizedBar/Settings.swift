@@ -15,6 +15,8 @@ struct Settings {
     private static let clockTimeFormatKey = "clockTimeFormat"
     private static let clockShowsDateKey = "clockShowsDate"
     private static let clockDateFormatKey = "clockDateFormat"
+    private static let calendarFirstWeekdayKey = "calendarFirstWeekday"
+    private static let calendarShowsWeekNumbersKey = "calendarShowsWeekNumbers"
     private static let resizesJointWindowsKey = "resizesJointWindows"
 
     var grouping: GroupingMode
@@ -22,6 +24,7 @@ struct Settings {
     var showsPreviews = false
     var keepsPinnedVisible = false
     var clock = ClockSettings()
+    var calendar = CalendarSettings()
     var resizesJointWindows = false
 
     static func load() -> Settings {
@@ -38,6 +41,10 @@ struct Settings {
                 showsDate: defaults.bool(forKey: clockShowsDateKey),
                 dateFormat: DateFormat(rawValue: defaults.string(forKey: clockDateFormatKey) ?? "") ?? .system
             ),
+            calendar: CalendarSettings(
+                firstWeekday: FirstWeekday(rawValue: defaults.string(forKey: calendarFirstWeekdayKey) ?? "") ?? .system,
+                showsWeekNumbers: defaults.bool(forKey: calendarShowsWeekNumbersKey)
+            ),
             resizesJointWindows: defaults.bool(forKey: resizesJointWindowsKey)
         )
     }
@@ -52,6 +59,8 @@ struct Settings {
         UserDefaults.standard.set(clock.timeFormat.rawValue, forKey: Self.clockTimeFormatKey)
         UserDefaults.standard.set(clock.showsDate, forKey: Self.clockShowsDateKey)
         UserDefaults.standard.set(clock.dateFormat.rawValue, forKey: Self.clockDateFormatKey)
+        UserDefaults.standard.set(calendar.firstWeekday.rawValue, forKey: Self.calendarFirstWeekdayKey)
+        UserDefaults.standard.set(calendar.showsWeekNumbers, forKey: Self.calendarShowsWeekNumbersKey)
         UserDefaults.standard.set(resizesJointWindows, forKey: Self.resizesJointWindowsKey)
     }
 }

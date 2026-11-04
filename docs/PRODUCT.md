@@ -79,7 +79,7 @@ The General tab holds:
 - **Keep pinned app icons visible:** see [Pinned apps](#pinned-apps).
 - **Start at login:** see [Start at login](#start-at-login).
 
-The Widgets tab holds the [clock](#clock) settings. The Windows tab holds [Resize tiled windows together](#resizing-tiled-windows-together).
+The Widgets tab holds the [clock](#clock) and [calendar](#calendar) settings. The Windows tab holds [Resize tiled windows together](#resizing-tiled-windows-together).
 
 ### Group entries
 
@@ -147,7 +147,7 @@ A clock at the right end of every bar, off by default. It is the first widget, s
 - **Layout:** the time alone is one vertically centred line. With the date, the time (13 pt) sits above the date (11 pt), which fits the 36 pt bar with no height change.
 - **Width:** measured on a sample date with two digits everywhere, and with monospaced digits. It changes only with the settings or the locale, so tasks don't move as the time changes. Tasks shrink and group in the width left.
 - **Updates:** on the second, or on the minute with seconds off. It also refreshes after waking from sleep and after a change of system clock, time zone or locale.
-- **Interaction:** a click does nothing, and a right-click opens the bar's menu. It isn't a keyboard stop, because it has no action. VoiceOver reads it with the date spelled out.
+- **Interaction:** a click opens the [calendar](#calendar), and a right-click opens the bar's menu. It is the last keyboard stop. VoiceOver reads it with the date spelled out.
 
 | Setting | Values |
 |---|---|
@@ -158,6 +158,24 @@ A clock at the right end of every bar, off by default. It is the first widget, s
 | Date format | System default (default), ISO (yyyy-mm-dd), dd/mm/yyyy |
 
 A setting under one that is off stays visible, greyed out, and keeps its value. The ISO and dd/mm/yyyy formats always use the Gregorian calendar.
+
+## Calendar
+
+A click on the clock opens a month calendar above it, in a panel as dark as the launcher. Another click closes it, as do Esc, a click elsewhere and a display change.
+
+- **Month:** it opens on the current month, and reopening returns to it. Arrows beside the month title go to the previous or next month.
+- **Grid:** only the rows the month needs, 4 to 6. The panel always has room for 6, so the arrows don't move under the pointer. Days of the adjacent months are shaded.
+- **Today and hover:** today has an outline in the system accent color. Hovering a day fills it with that color, the same as an active task. A click on a day does nothing.
+- **Week numbers:** week 1 is the first with at least 4 days in the new year, with the chosen first day of the week. With Monday first, these are ISO week numbers.
+- **Calendar system:** always Gregorian, because ISO weeks are only defined there. Month and weekday names follow the system locale.
+- **Keyboard and VoiceOver:** Tab reaches the arrows, and Return or Space presses them. VoiceOver reads each day as a full date, says which is today and announces the month when it changes.
+
+| Setting | Values |
+|---|---|
+| First day of week | System default (default), Monday to Sunday |
+| Show week numbers | Off (default), On |
+
+These settings are greyed out when the clock is off, because the calendar opens from the clock. A change applies the next time the calendar opens.
 
 ## Re-ordering
 
@@ -182,7 +200,7 @@ Dragging a task or a pinned icon along the bar changes its place. Only the entry
 ## Look and feel
 
 - **Material:** frosted glass (`NSVisualEffectView`, `.hudWindow`). The native Liquid Glass was prototyped and not kept.
-- **Appearance:** the bar and the launcher are always dark, with a dark tint over the material, which alone turns mid-grey over white. The preview panel follows the system appearance.
+- **Appearance:** the bar, the launcher and the calendar are always dark, with a dark tint over the material, which alone turns mid-grey over white. The preview panel follows the system appearance.
 - **Bar:** 36 pt high, flush with the bottom edge, with a hairline along its top.
 - **Entry:** a rounded tile with a 28 pt icon and the title in the 13 pt system font.
 - **Entry states:** active uses the system accent color, hover a subtle highlight, and minimized about 50% opacity.
@@ -193,7 +211,7 @@ Dragging a task or a pinned icon along the bar changes its place. Only the entry
 The app follows the spirit of WCAG 2.2 AA.
 
 - **VoiceOver:** every entry is an element with the window title, the app name and its state. Launcher rows and pinned icons have labels, and the launcher announces results and view changes.
-- **Keyboard:** ⌃⌥B reaches the bar. It walks the launcher, the pinned icons and the tasks, and Shift-F10 opens the menus.
+- **Keyboard:** ⌃⌥B reaches the bar. It walks the launcher, the pinned icons, the tasks and the clock, and Shift-F10 opens the menus.
 - **System settings:** the bar and its panels honor Reduce Motion, Reduce Transparency and Increase Contrast.
 - **Contrast:** text keeps a ratio of at least 4.5:1, using label colors rather than hard-coded grey.
 

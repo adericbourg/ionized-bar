@@ -130,7 +130,7 @@ final class BarContentView: NSView {
             maybeClock = nil
             return
         }
-        let clock = maybeClock ?? ClockView(settings: settings.clock)
+        let clock = maybeClock ?? ClockView(settings: settings.clock, manager: manager)
         if maybeClock == nil {
             clock.onWidthChange = { [weak self] in self?.rebuild() }
             addSubview(clock)
@@ -140,7 +140,7 @@ final class BarContentView: NSView {
     }
 
     // In visual order, without the entries fading out: Tab order and VoiceOver's order.
-    private var focusStops: [NSView] { [launcher] + pinnedIcons + ordered }
+    private var focusStops: [NSView] { [launcher] + pinnedIcons + ordered + (maybeClock.map { [$0] } ?? []) }
 
     var initialFocusStop: NSView { ordered.first(where: \.isActive) ?? focusStops[0] }
 
@@ -161,8 +161,7 @@ final class BarContentView: NSView {
         window?.makeFirstResponder(stops[(index + offset + stops.count) % stops.count])
     }
 
-    // The clock has no action, so it is read but isn't a focus stop.
-    override func accessibilityChildren() -> [Any]? { focusStops + (maybeClock.map { [$0] } ?? []) }
+    override func accessibilityChildren() -> [Any]? { focusStops }
 
     private func addPinnedIcon(_ bundleID: String) -> PinnedIconView {
         let icon = PinnedIconView(bundleID: bundleID, manager: manager)

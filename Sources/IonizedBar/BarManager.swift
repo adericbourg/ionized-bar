@@ -4,6 +4,7 @@ import IonizedBarCore
 @MainActor
 final class BarManager {
     let launcher = LauncherController()
+    let calendar = CalendarController()
     // The one place a capture is asked for, always after `EntryView.previewWindow` checks the setting and the grant.
     private(set) lazy var preview = PreviewController { [unowned self] in await thumbnail(of: $0) }
     // Memory only, never on disk. A minimized window can't be captured (-3811), so it shows its last image.
@@ -11,7 +12,7 @@ final class BarManager {
     let windowTracker: WindowTracker
     let settingsWindow: SettingsWindow
     private var panels: [UInt32: BarPanel] = [:]
-    private var settings = Settings.load()
+    private(set) var settings = Settings.load()
     private var latestWindowsByDisplay: [UInt32: [TrackedWindow]] = [:]
     // Across all bars, memory only: AX elements don't survive a restart.
     private var taskOrder = TaskOrder<AXUIElement>()
@@ -37,6 +38,7 @@ final class BarManager {
     func sync() {
         preview.dismiss()
         launcher.close()
+        calendar.close()
         var current: [UInt32: NSScreen] = [:]
         for screen in NSScreen.screens {
             if let id = screen.displayID { current[id] = screen }
@@ -75,7 +77,7 @@ final class BarManager {
 
     /// Previews are on and Screen Recording is granted. Asked afresh each time: the grant can change while the app runs.
     /// Preflight never prompts, and the setting comes first so that with previews off it isn't called.
-    var canPreview: Bool { settings.showsPreviews && !launcher.isOpen && CGPreflightScreenCaptureAccess() }
+    var canPreview: Bool { settings.showsPreviews && !launcher.isOpen && !calendar.isOpen && CGPreflightScreenCaptureAccess() }
 
     func setPins(_ newPins: [String]) {
         pins = newPins

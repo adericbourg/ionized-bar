@@ -104,11 +104,13 @@ Pick "Settings…" in a right-click menu of the bar.
 | Show tasks as | Icon only, App name, Content (default, the window title) |
 | Keep pinned app icons visible | Off by default |
 | Start at login | On after the first launch |
-| Display clock | Off by default. Shows a clock at the right of the bar |
+| Display clock | Off by default. Shows a clock at the right of the bar. A click on it opens a month calendar |
 | Display seconds | Off by default |
 | Time format | System default (default), 12-hour, 24-hour |
 | Display date | Off by default. Shows the date under the time |
 | Date format | System default (default), ISO (yyyy-mm-dd), dd/mm/yyyy |
+| First day of week | System default (default), Monday to Sunday. For the calendar |
+| Show week numbers | Off by default. For the calendar |
 | Resize tiled windows together | Off by default. Dragging the edge between two windows that fill the screen resizes both |
 
 ### Keyboard
@@ -117,7 +119,7 @@ Press ⌃⌥B to focus the bar under the mouse.
 
 | Key | Result |
 |---|---|
-| Tab, Shift-Tab, Left, Right | Moves between the launcher, the pinned icons and the tasks |
+| Tab, Shift-Tab, Left, Right | Moves between the launcher, the pinned icons, the tasks and the clock |
 | Return, Space | Clicks |
 | Shift-F10 | Opens the menu |
 | Escape | Leaves the bar |

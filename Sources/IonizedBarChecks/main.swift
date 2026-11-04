@@ -1261,6 +1261,75 @@ do {
     check("snapBack_afterSeparating_returnsNil", corner.snapBack(driverFrame: CGRect(x: 0, y: 0, width: 500, height: 700), followerFrames: [right]) == nil)
 }
 
+// monthGrid
+do {
+    let utc = TimeZone(identifier: "UTC")!
+    let monday = 2, sunday = 1
+    func day(_ year: Int, _ month: Int, _ day: Int, in timeZone: TimeZone = utc) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar.date(from: DateComponents(year: year, month: month, day: day, hour: 12))!
+    }
+    let farFromToday = day(2000, 1, 1)
+    func grid(_ year: Int, _ month: Int, firstWeekday: Int = monday, today: Date = farFromToday) -> [CalendarWeek] {
+        monthGrid(month: day(year, month, 15), today: today, firstWeekday: firstWeekday, timeZone: utc)
+    }
+
+    // Given months of different shapes, Then the grid has only the rows they need
+    check("monthGrid_ofFourWeekFebruary_hasFourRows", grid(2027, 2).count == 4)
+    check("monthGrid_ofSixWeekMonth_hasSixRows", grid(2026, 8).count == 6)
+    check("monthGrid_hasSevenDaysPerRow", grid(2026, 8).allSatisfy { $0.days.count == 7 })
+
+    // Given November 2026, starting on a Sunday, Then the first row starts in October, shaded
+    let november = grid(2026, 11)
+    check("monthGrid_mondayFirst_startsInThePreviousMonth", november[0].days[0].number == 26 && !november[0].days[0].isInMonth)
+    check("monthGrid_mondayFirst_marksTheFirstOfTheMonthInMonth", november[0].days[6].number == 1 && november[0].days[6].isInMonth)
+    check("monthGrid_endsInTheNextMonth", november.last!.days.last!.number == 6 && !november.last!.days.last!.isInMonth)
+    let sundayFirst = grid(2026, 11, firstWeekday: sunday)
+    check("monthGrid_sundayFirst_startsOnTheFirst", sundayFirst[0].days[0].number == 1 && sundayFirst[0].days[0].isInMonth)
+
+    // Given the turn of 2026, Monday first, Then the numbers are ISO's
+    check("monthGrid_mondayFirst_numbersLastWeekOf2026As53", grid(2026, 12).last!.number == 53 && grid(2026, 12).last!.days[0].number == 28)
+    check("monthGrid_mondayFirst_numbersFirstFullWeekOf2027As1", grid(2027, 1)[1].number == 1 && grid(2027, 1)[1].days[0].number == 4)
+    check("monthGrid_ofNovember2026_numbersFirstRow44", november[0].number == 44)
+    // Given Sunday first, Then week 1 is still the first with four days in the new year
+    check("monthGrid_sundayFirst_numbersFirstFullWeekOf2027As1", grid(2027, 1, firstWeekday: sunday)[1].number == 1 && grid(2027, 1, firstWeekday: sunday)[1].days[0].number == 3)
+
+    // Given a today in the month, Then only that day is marked
+    let withToday = grid(2026, 11, today: day(2026, 11, 4))
+    let marked = withToday.flatMap(\.days).filter(\.isToday)
+    check("monthGrid_marksOnlyToday", marked.count == 1 && marked[0].number == 4)
+
+    // Given the month of a DST change, Then no day is skipped or repeated
+    let paris = TimeZone(identifier: "Europe/Paris")!
+    let march = monthGrid(month: day(2026, 3, 15, in: paris), today: farFromToday, firstWeekday: monday, timeZone: paris)
+    check("monthGrid_acrossDST_listsEveryDayOnce", march.flatMap(\.days).filter(\.isInMonth).map(\.number) == Array(1...31))
+
+    // FirstWeekday
+    check("calendarWeekday_ofSystem_followsTheSystem", FirstWeekday.system.calendarWeekday(system: 7) == 7)
+    check("calendarWeekday_ofMonday_is2", FirstWeekday.monday.calendarWeekday(system: 7) == 2)
+    check("calendarWeekday_ofSunday_is1", FirstWeekday.sunday.calendarWeekday(system: 7) == 1)
+
+    // movedMonth: from the 31st, each step lands in the next month, even a shorter one
+    let january = day(2027, 1, 31)
+    let february = movedMonth(january, by: 1, timeZone: utc)
+    let backInDecember = movedMonth(january, by: -1, timeZone: utc)
+    check("movedMonth_fromThe31st_landsInTheNextMonth", calendarTitle(month: february, locale: Locale(identifier: "en_US"), timeZone: utc) == "February 2027")
+    check("movedMonth_backwards_crossesTheYear", calendarTitle(month: backInDecember, locale: Locale(identifier: "en_US"), timeZone: utc) == "December 2026")
+
+    // Text follows the locale
+    check("calendarTitle_ofFrench_isLocalized", calendarTitle(month: day(2026, 11, 4), locale: Locale(identifier: "fr_FR"), timeZone: utc) == "novembre 2026")
+    check("calendarWeekdayHeaders_mondayFirst_startOnMonday", calendarWeekdayHeaders(firstWeekday: monday, locale: Locale(identifier: "en_US")) == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+    check("calendarWeekdayHeaders_sundayFirst_startOnSunday", calendarWeekdayHeaders(firstWeekday: sunday, locale: Locale(identifier: "en_US")).first == "Sun")
+
+    // Accessibility: the full date, and today said aloud
+    let today = withToday.flatMap(\.days).first(where: \.isToday)!
+    let tomorrow = withToday.flatMap(\.days).first { $0.number == 5 }!
+    let english = Locale(identifier: "en_US")
+    check("calendarDayAccessibilityLabel_ofADay_isTheFullDate", calendarDayAccessibilityLabel(tomorrow, locale: english, timeZone: utc) == "Thursday, November 5, 2026")
+    check("calendarDayAccessibilityLabel_ofToday_saysSo", calendarDayAccessibilityLabel(today, locale: english, timeZone: utc) == "Wednesday, November 4, 2026, today")
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)
