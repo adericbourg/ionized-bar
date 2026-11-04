@@ -28,7 +28,9 @@ let tracker = AppTracker(
     }
 )
 
-let dock = defaultsDockStore()
+let dockLock = openDockLock()
+dockLock?.hold()
+let dock = defaultsDockStore(lock: dockLock)
 restoreDockOnTermination { restoreDock(dock) }
 
 // The one place that runs once Accessibility is granted, on the main thread.
@@ -57,6 +59,8 @@ if AXIsProcessTrusted() {
     log("Accessibility permission required; waiting for it to be granted")
     // After a crash with the permission lost (each upgrade loses it), the Dock would stay hidden above an empty bar.
     restoreDock(dock)
+    // The restore's check gave up the lock, and this copy keeps running.
+    dockLock?.hold()
     onboardingWindow.show()
     Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
         guard AXIsProcessTrusted() else { return }

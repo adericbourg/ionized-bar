@@ -21,9 +21,27 @@ func killallDock() -> Bool {
     return true
 }
 
-func defaultsDockStore() -> DockStore {
-    let appDefaults = UserDefaults.standard
+/// In Application Support, as macOS purges old files from the temporary directory, and a copy opening a new file wouldn't see the running one.
+func openDockLock() -> DockLock? {
+    do {
+        let directory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("IonizedBar")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        guard let lock = DockLock(path: directory.appendingPathComponent("dock.lock").path) else {
+            log("Dock lock file failed to open")
+            return nil
+        }
+        return lock
+    } catch {
+        log("Dock lock directory failed: \(error)")
+        return nil
+    }
+}
+
+func defaultsDockStore(lock: DockLock?) -> DockStore {
     let dockDomain = "com.apple.dock" as CFString
+    // Fixed, not the process's own domain: a `swift run` build has a different one and would miss the installed app's saved state.
+    let appDomain = "io.github.adericbourg.ionized-bar" as CFString
     return DockStore(
         read: {
             // Picks up what another process wrote since the last read.
@@ -45,16 +63,22 @@ func defaultsDockStore() -> DockStore {
             return CFPreferencesAppSynchronize(dockDomain)
         },
         relaunchDock: killallDock,
-        loadSaved: { appDefaults.dictionary(forKey: savedDockKey).flatMap(DockPrefs.init(dictionary:)) },
+        loadSaved: {
+            // Picks up what another copy wrote since the last read.
+            CFPreferencesAppSynchronize(appDomain)
+            let saved = CFPreferencesCopyAppValue(savedDockKey as CFString, appDomain) as? [String: Any]
+            return saved.flatMap(DockPrefs.init(dictionary:))
+        },
         save: { prefs in
-            appDefaults.set(prefs.dictionary, forKey: savedDockKey)
+            CFPreferencesSetAppValue(savedDockKey as CFString, prefs.dictionary as CFDictionary, appDomain)
             // Writes otherwise reach disk later: a crash right after hiding would lose the originals.
-            return appDefaults.synchronize()
+            return CFPreferencesAppSynchronize(appDomain)
         },
         clearSaved: {
-            appDefaults.removeObject(forKey: savedDockKey)
-            appDefaults.synchronize()
+            CFPreferencesSetAppValue(savedDockKey as CFString, nil, appDomain)
+            CFPreferencesAppSynchronize(appDomain)
         },
+        isOtherCopyRunning: { lock?.isOtherCopyRunning() ?? false },
         log: log
     )
 }

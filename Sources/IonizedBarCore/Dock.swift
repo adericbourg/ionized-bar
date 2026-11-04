@@ -43,18 +43,43 @@ public struct DockStore {
     public var loadSaved: () -> DockPrefs?
     public var save: (DockPrefs) -> Bool
     public var clearSaved: () -> Void
+    public var isOtherCopyRunning: () -> Bool
     public var log: (String) -> Void
 
     public init(read: @escaping () -> DockPrefs?, write: @escaping (DockPrefs) -> Bool, relaunchDock: @escaping () -> Bool,
                 loadSaved: @escaping () -> DockPrefs?, save: @escaping (DockPrefs) -> Bool, clearSaved: @escaping () -> Void,
-                log: @escaping (String) -> Void) {
+                isOtherCopyRunning: @escaping () -> Bool, log: @escaping (String) -> Void) {
         self.read = read
         self.write = write
         self.relaunchDock = relaunchDock
         self.loadSaved = loadSaved
         self.save = save
         self.clearSaved = clearSaved
+        self.isOtherCopyRunning = isOtherCopyRunning
         self.log = log
+    }
+}
+
+/// Held by every running copy, so the last one to quit can tell it is the last. The kernel drops it on any exit, `kill -9` included.
+public struct DockLock {
+    private let descriptor: Int32
+
+    /// Nil when the file can't be opened.
+    public init?(path: String) {
+        // O_CLOEXEC: a spawned process inheriting the descriptor would keep the lock alive after this copy exits.
+        descriptor = open(path, O_CREAT | O_RDWR | O_CLOEXEC, 0o600)
+        guard descriptor >= 0 else { return nil }
+    }
+
+    public func hold() {
+        flock(descriptor, LOCK_SH)
+    }
+
+    /// Gives up the lock. Call `hold()` again to keep running.
+    public func isOtherCopyRunning() -> Bool {
+        // Unlock first: two copies quitting together, each still holding its own lock, would both see the other and neither would restore.
+        flock(descriptor, LOCK_UN)
+        return flock(descriptor, LOCK_EX | LOCK_NB) != 0
     }
 }
 
@@ -75,6 +100,10 @@ public func hideDock(_ store: DockStore) -> Bool {
 
 public func restoreDock(_ store: DockStore) {
     guard let originals = store.loadSaved() else { return }
+    guard !store.isOtherCopyRunning() else {
+        store.log("Another copy is running; the Dock stays hidden")
+        return
+    }
     let isWritten = store.write(originals)
     // Even after a failed write: one of the two keys may have been written.
     _ = store.relaunchDock()

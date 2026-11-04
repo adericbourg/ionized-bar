@@ -37,6 +37,7 @@ The Dock can't be removed, because it hosts Cmd-Tab, Mission Control and Spaces.
 
 - **Hiding:** the app saves the Dock prefs, then sets `autohide` to true and `autohide-delay` to 1000 s through `CFPreferences`, and runs `killall Dock`. It waits for the Accessibility permission, since the bar shows no tasks until then.
 - **Restoring:** a normal quit, `SIGTERM` or `SIGINT` restores the saved values. A key that wasn't set is deleted, not given a default.
+- **Several copies:** a dev build and the installed app share the saved values, and each holds a file lock while it runs. Only the last copy to quit restores the Dock, so the Dock doesn't show under a bar that is still running.
 - **After a crash:** the saved values live in the app's own prefs, so the next launch recovers them instead of saving the hidden values as the originals.
 - **Leftovers:** an `autohide-delay` of 60 s or more means another taskbar or a lost state left the Dock hidden. The app doesn't treat it as a preference, so a quit leaves the Dock visible.
 

@@ -209,6 +209,7 @@ do {
         var isWriteOK = true
         var isRelaunchOK = true
         var isSaveOK = true
+        var isOtherCopyRunning = false
 
         init(current: DockPrefs, saved: DockPrefs? = nil) {
             self.current = current
@@ -231,6 +232,7 @@ do {
                     return self.isSaveOK
                 },
                 clearSaved: { self.calls.append("clear"); self.saved = nil },
+                isOtherCopyRunning: { self.isOtherCopyRunning },
                 log: { self.logs.append($0) }
             )
         }
@@ -330,6 +332,40 @@ do {
     restoreRelaunchFails.isRelaunchOK = false
     restoreDock(restoreRelaunchFails.store)
     check("restoreDock_whenRelaunchFails_clearsState", restoreRelaunchFails.current == user && restoreRelaunchFails.saved == nil)
+
+    // Given another copy still running, When restoring, Then the Dock stays hidden, and the last copy to quit restores it
+    let twoCopies = FakeDock(current: .hidden, saved: user)
+    twoCopies.isOtherCopyRunning = true
+    restoreDock(twoCopies.store)
+    check("restoreDock_whenOtherCopyRunning_keepsDockHidden", twoCopies.calls.isEmpty && twoCopies.current == .hidden && twoCopies.saved == user)
+    check("restoreDock_whenOtherCopyRunning_logsOnce", twoCopies.logs.count == 1)
+    twoCopies.isOtherCopyRunning = false
+    restoreDock(twoCopies.store)
+    check("restoreDock_whenLastCopyQuits_restoresOriginals", twoCopies.current == user && twoCopies.saved == nil)
+}
+
+// DockLock
+do {
+    let path = NSTemporaryDirectory() + "ionized-bar-checks-\(UUID().uuidString).lock"
+    defer { try? FileManager.default.removeItem(atPath: path) }
+    guard let first = DockLock(path: path), let second = DockLock(path: path) else {
+        check("DockLock_opensItsFile", false)
+        exit(1)
+    }
+
+    // Given a single copy, When it quits, Then it is the last
+    first.hold()
+    check("isOtherCopyRunning_whenAlone_returnsFalse", !first.isOtherCopyRunning())
+
+    // Given a copy that checked at launch and holds again, When another quits, Then it is still seen
+    first.hold()
+    check("isOtherCopyRunning_whenOtherCopyHolds_returnsTrue", second.isOtherCopyRunning())
+
+    // Given two copies quitting one after the other (killall), When each checks, Then only the last one to check is alone
+    second.hold()
+    first.hold()
+    check("isOtherCopyRunning_whenBothQuit_firstReturnsTrue", first.isOtherCopyRunning())
+    check("isOtherCopyRunning_whenBothQuit_lastOneReturnsFalse", !second.isOtherCopyRunning())
 }
 
 // overlapsBar / pushedFrame
