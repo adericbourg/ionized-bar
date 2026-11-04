@@ -149,7 +149,7 @@ Dragging a task or a pinned icon along the bar changes its place. Only the entry
 - **Material:** frosted glass (`NSVisualEffectView`, `.hudWindow`). The native Liquid Glass was prototyped and not kept.
 - **Appearance:** the bar and the launcher are always dark, with a dark tint over the material, which alone turns mid-grey over white. The preview panel follows the system appearance.
 - **Bar:** 36 pt high, flush with the bottom edge, with a hairline along its top.
-- **Entry:** a rounded tile with a 16 pt icon and the title in the 13 pt system font.
+- **Entry:** a rounded tile with a 28 pt icon and the title in the 13 pt system font.
 - **Entry states:** active uses the system accent color, hover a subtle highlight, and minimized about 50% opacity.
 - **Motion:** entries animate in, out and on resize in under 150 ms.
 

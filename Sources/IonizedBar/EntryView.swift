@@ -3,7 +3,8 @@ import IonizedBarCore
 
 final class EntryView: BarButton {
     private static let padding: CGFloat = 8
-    private static let iconSize: CGFloat = 16
+    private static let iconSize: CGFloat = 28
+    private static let iconInset: CGFloat = 4
     private static let countGap: CGFloat = 2
 
     private var item: BarItem<TrackedWindow>
@@ -89,7 +90,7 @@ final class EntryView: BarButton {
         let gap = isCountShown ? Self.countGap : Self.padding
         let contentWidth = isCountShown ? Self.iconSize + gap + title.intrinsicContentSize.width : Self.iconSize
         // Rounded: an integer point is on a device pixel at every scale, so the icon and text stay sharp.
-        let iconX = isIconOnly ? max(0, ((bounds.width - contentWidth) / 2).rounded()) : Self.padding
+        let iconX = isIconOnly ? max(0, ((bounds.width - contentWidth) / 2).rounded()) : Self.iconInset
         icon.frame = CGRect(x: iconX, y: ((bounds.height - Self.iconSize) / 2).rounded(), width: Self.iconSize, height: Self.iconSize)
         let titleX = icon.frame.maxX + gap
         let titleSize = title.intrinsicContentSize
