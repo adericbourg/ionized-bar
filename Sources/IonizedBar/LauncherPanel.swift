@@ -480,7 +480,7 @@ private final class SidebarTableView: NSTableView {
     }
 }
 
-private final class FooterButton: NSButton {
+final class FooterButton: NSButton {
     private var isHovered = false { didSet { needsDisplay = true } }
 
     // Without this, Tab skips buttons unless the user turned on macOS's full keyboard navigation.
@@ -651,7 +651,7 @@ final class LauncherController {
         }
     )
     private var button: NSView?
-    private var mouseMonitors: [Any] = []
+    private var maybeClickMonitor: PanelClickMonitor?
 
     var isOpen: Bool { button != nil }
 
@@ -671,7 +671,7 @@ final class LauncherController {
         }
         // The last list shows at once, and the fresh read replaces it.
         panel.show(in: launcherFrame(button: buttonFrame, size: LauncherPanel.size, screen: screen.visibleFrame, gap: Self.gap), favorites: favorites)
-        addMouseMonitors()
+        maybeClickMonitor = PanelClickMonitor(panel: panel, button: button) { [weak self] in self?.close() }
         let folders = ["/Applications", "/System/Applications", NSHomeDirectory() + "/Applications"].map { URL(fileURLWithPath: $0) }
         Task { [weak self] in
             let apps = await Task.detached { listApplications(in: folders) }.value
@@ -682,27 +682,33 @@ final class LauncherController {
     func close() {
         guard button != nil else { return }
         button = nil
-        mouseMonitors.forEach(NSEvent.removeMonitor)
-        mouseMonitors = []
+        maybeClickMonitor = nil
         // Ordering out is what hands key back to the frontmost app, as in BarPanel.endKeyboardMode.
         panel.orderOut(nil)
     }
+}
 
-    // Only while open. The panel can stay key through a click in the frontmost app, which activates nothing, so
-    // resign-key alone isn't enough: the global monitor gets clicks in other apps, the local one those on this app's windows.
-    private func addMouseMonitors() {
+/// Dismisses a panel on a click outside it, for as long as it lives. The panel can stay key through a click in the frontmost
+/// app, which activates nothing, so resign-key alone isn't enough: the global monitor gets clicks in other apps, the local
+/// one those on this app's windows.
+@MainActor
+final class PanelClickMonitor {
+    private var monitors: [Any] = []
+
+    init(panel: NSPanel, button: NSView, onDismiss: @escaping () -> Void) {
         let clicks: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-        let global = NSEvent.addGlobalMonitorForEvents(matching: clicks) { [weak self] _ in self?.close() }
-        let local = NSEvent.addLocalMonitorForEvents(matching: clicks) { [weak self] event in
-            guard let self else { return event }
-            if event.window !== panel && !isToggleClick(event) { close() }
+        let global = NSEvent.addGlobalMonitorForEvents(matching: clicks) { _ in onDismiss() }
+        let local = NSEvent.addLocalMonitorForEvents(matching: clicks) { [weak panel, weak button] event in
+            if event.window !== panel && !Self.isToggleClick(event, on: button) { onDismiss() }
             return event
         }
-        mouseMonitors = [global, local].compactMap { $0 }
+        monitors = [global, local].compactMap { $0 }
     }
 
+    isolated deinit { monitors.forEach(NSEvent.removeMonitor) }
+
     // The button acts on mouse-up: closing on its mouse-down would make that mouse-up open the panel again.
-    private func isToggleClick(_ event: NSEvent) -> Bool {
+    private static func isToggleClick(_ event: NSEvent, on button: NSView?) -> Bool {
         guard let button, event.window === button.window, event.type == .leftMouseDown, !event.modifierFlags.contains(.control) else { return false }
         return button.bounds.contains(button.convert(event.locationInWindow, from: nil))
     }
