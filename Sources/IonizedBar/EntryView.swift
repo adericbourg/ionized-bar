@@ -6,6 +6,7 @@ final class EntryView: BarButton {
     private static let iconSize: CGFloat = 28
     private static let iconInset: CGFloat = 4
     private static let countGap: CGFloat = 2
+    private static let activeTintAlpha: CGFloat = 0.3
 
     private var item: BarItem<TrackedWindow>
     private let icon = NSImageView()
@@ -79,7 +80,7 @@ final class EntryView: BarButton {
         setAccessibilityLabel(accessibilityText)
         icon.alphaValue = isMinimized ? 0.5 : 1
         title.font = .systemFont(ofSize: 13)
-        title.textColor = isActive ? .alternateSelectedControlTextColor : isMinimized ? .secondaryLabelColor : .labelColor
+        title.textColor = isMinimized ? .secondaryLabelColor : .labelColor
         needsLayout = true
     }
 
@@ -101,12 +102,16 @@ final class EntryView: BarButton {
 
     override func draw(_ dirtyRect: NSRect) {
         // A tile on the focus ring's inset, so entries stand apart from the bar and from each other.
-        (isActive ? NSColor.controlAccentColor : NSColor.labelColor.withAlphaComponent(isHovered ? 0.1 : 0.05)).setFill()
+        (isActive ? NSColor.controlAccentColor.withAlphaComponent(Self.activeTintAlpha) : NSColor.labelColor.withAlphaComponent(isHovered ? 0.1 : 0.05)).setFill()
         focusRingPath.fill()
-        if !isActive {
-            strokeHairline(around: bounds.insetBy(dx: Self.focusRingInset, dy: Self.focusRingInset))
+        let tile = bounds.insetBy(dx: Self.focusRingInset, dy: Self.focusRingInset)
+        // The tint alone is too close to an inactive tile: the outline is what makes the state stand out.
+        if isActive {
+            strokeHairline(around: tile, color: .controlAccentColor)
+        } else {
+            strokeHairline(around: tile)
         }
-        // The system focus ring is accent-derived, so it does not show on the accent fill.
+        // The system focus ring is accent-derived, so it would not stand out from the accent outline.
         if isActive && window?.isKeyWindow == true && window?.firstResponder === self {
             NSColor.alternateSelectedControlTextColor.setStroke()
             let outline = focusRingPath

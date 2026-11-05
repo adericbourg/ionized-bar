@@ -99,11 +99,11 @@ class BarButton: NSView {
     }
 
     /// A 1 px outline of `rect`, half a pixel in so it lands on whole device pixels.
-    func strokeHairline(around rect: NSRect) {
+    func strokeHairline(around rect: NSRect, color: NSColor = .labelColor.withAlphaComponent(0.08)) {
         let halfPixel = 0.5 / (window?.backingScaleFactor ?? 2)
         let border = NSBezierPath(roundedRect: rect.insetBy(dx: halfPixel, dy: halfPixel), xRadius: 4, yRadius: 4)
         border.lineWidth = 2 * halfPixel
-        NSColor.labelColor.withAlphaComponent(0.08).setStroke()
+        color.setStroke()
         border.stroke()
     }
 
