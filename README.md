@@ -113,7 +113,7 @@ Pick "Settings…" in a right-click menu of the bar.
 | Show week numbers | Off by default. For the calendar |
 | Resize tiled windows together | Off by default. Dragging the edge between two windows that fill the screen resizes both |
 
-The About tab shows the version and commit you are running. Include them when you report a bug.
+The About tab shows the version and commit you are running. Include them when you report a bug. It also links to the GitHub repository.
 
 ### Keyboard
 

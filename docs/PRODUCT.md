@@ -80,7 +80,7 @@ The General tab holds:
 - **Keep pinned app icons visible:** see [Pinned apps](#pinned-apps).
 - **Start at login:** see [Start at login](#start-at-login).
 
-The Widgets tab holds the [clock](#clock) and [calendar](#calendar) settings. The Windows tab holds [Resize tiled windows together](#resizing-tiled-windows-together). The About tab shows the version and the commit it was built from, which `scripts/bundle.sh` writes into the bundle, because a local build has the same version as the last release. A release shows the last commit before its `chore: release` commit.
+The Widgets tab holds the [clock](#clock) and [calendar](#calendar) settings. The Windows tab holds [Resize tiled windows together](#resizing-tiled-windows-together). The About tab shows the version and the commit it was built from, which `scripts/bundle.sh` writes into the bundle, because a local build has the same version as the last release. A release shows the last commit before its `chore: release` commit. Below them, a link opens the GitHub repository in the browser.
 
 ### Group entries
 

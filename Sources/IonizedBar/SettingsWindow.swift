@@ -2,6 +2,7 @@ import AppKit
 import IonizedBarCore
 
 final class SettingsWindow: AppWindow {
+    private static let repositoryURL = URL(string: "https://github.com/adericbourg/ionized-bar/")!
     var onChange: ((Settings) -> Void)?
     private let groupingPopUp = NSPopUpButton()
     private let displayPopUp = NSPopUpButton()
@@ -69,7 +70,7 @@ final class SettingsWindow: AppWindow {
         tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 160)))
         tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 320, height: 320)))
         tabs.addTabViewItem(Self.tab("Windows", symbol: "macwindow", content: jointCheckbox, size: CGSize(width: 320, height: 80)))
-        tabs.addTabViewItem(Self.tab("About", symbol: "info.circle", content: Self.makeAboutContent(), size: CGSize(width: 320, height: 80)))
+        tabs.addTabViewItem(Self.tab("About", symbol: "info.circle", content: makeAboutContent(), size: CGSize(width: 320, height: 80)))
         toolbarStyle = .preference
         contentViewController = tabs
         updateClockRows()
@@ -110,7 +111,7 @@ final class SettingsWindow: AppWindow {
         return stack
     }
 
-    private static func makeAboutContent() -> NSView {
+    private func makeAboutContent() -> NSView {
         let info = Bundle.main.infoDictionary
         let version = versionDescription(
             version: info?["CFBundleShortVersionString"] as? String,
@@ -118,7 +119,17 @@ final class SettingsWindow: AppWindow {
         )
         let label = NSTextField(labelWithString: "IonizedBar \(version)")
         label.isSelectable = true
-        return label
+        let link = NSButton(title: Self.repositoryURL.absoluteString, target: self, action: #selector(openRepository))
+        link.isBordered = false
+        link.contentTintColor = .linkColor
+        let stack = NSStackView(views: [label, link])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        return stack
+    }
+
+    @objc private func openRepository() {
+        NSWorkspace.shared.open(Self.repositoryURL)
     }
 
     private static func row(_ views: [NSView], indent: CGFloat) -> NSStackView {
