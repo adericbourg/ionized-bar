@@ -17,7 +17,7 @@ enum WindowModel {
             let frame = flipRect(window.frame, primaryScreenHeight: primary.frame.height)
             var target: CGRect?
             if let display = assignDisplay(windowFrame: frame, displays: displays) {
-                byDisplay[display.id, default: []].append(window)
+                if window.isEntry { byDisplay[display.id, default: []].append(window) }
                 // A window straddling two displays is only checked against its assigned display's bar.
                 if let visibleFrame = screens.first(where: { $0.displayID == display.id })?.visibleFrame {
                     target = pushTarget(frame, isMinimized: window.isMinimized, isFullScreen: window.isFullScreen, screenFrame: display.frame, visibleFrame: visibleFrame)

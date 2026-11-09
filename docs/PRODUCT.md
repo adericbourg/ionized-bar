@@ -48,6 +48,7 @@ A window that overlaps the bar is resized or moved through the Accessibility API
 - **Target:** the screen's frame minus the bar, and never above the top of `NSScreen.visibleFrame`, so a push doesn't go under the menu bar.
 - **Timing:** no push while a mouse button is held or before the frame has settled, so the app doesn't fight a drag.
 - **Fullscreen:** fullscreen windows are left alone.
+- **Non-entry windows:** Chrome's "is sharing a window" bar (AX subrole `AXUnknown`, as during a Google Meet share) is pushed too, without getting a taskbar entry.
 - **Windows that resist:** a window left over the bar, by its minimum size or its app, is not pushed again until its frame changes. This avoids jitter with apps that reposition themselves.
 - **Two displays:** a window is only checked against the bar of its assigned display.
 

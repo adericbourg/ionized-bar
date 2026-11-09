@@ -78,6 +78,15 @@ do {
     check("isRealWindow_ofUnknownWhenMinimized_returnsFalse", !isRealWindow(subrole: "AXUnknown", isMinimized: true, isAppHidden: false))
 }
 
+// isPushable
+do {
+    // Given a subrole, When filtering, Then standard windows and Chrome's sharing bar (AXUnknown) are pushed, dialogs aren't
+    check("isPushable_ofStandard_returnsTrue", isPushable(subrole: "AXStandardWindow"))
+    check("isPushable_ofUnknown_returnsTrue", isPushable(subrole: "AXUnknown"))
+    check("isPushable_ofDialog_returnsFalse", !isPushable(subrole: "AXDialog"))
+    check("isPushable_ofNoSubrole_returnsFalse", !isPushable(subrole: nil))
+}
+
 // isOnCurrentSpace
 do {
     // Given a window of pid 1, and an on-screen list

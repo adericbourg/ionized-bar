@@ -111,6 +111,11 @@ public func isRealWindow(subrole: String?, isMinimized: Bool, isAppHidden: Bool)
     subrole == "AXStandardWindow" || ((isMinimized || isAppHidden) && subrole == "AXDialog")
 }
 
+/// Pushed off the bar, even when not a taskbar entry. Chrome's "is sharing a window" bar reports AXUnknown.
+public func isPushable(subrole: String?) -> Bool {
+    subrole == "AXStandardWindow" || subrole == "AXUnknown"
+}
+
 public func isOnCurrentSpace(pid: Int32, frame: CGRect, isMinimized: Bool, isAppHidden: Bool, onScreen: [OnScreenWindow]) -> Bool {
     if isMinimized || isAppHidden { return true }
     return onScreen.contains { window in

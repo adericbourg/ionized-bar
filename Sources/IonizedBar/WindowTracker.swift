@@ -14,6 +14,8 @@ struct TrackedWindow: Sendable {
     let isMinimized: Bool
     let isFullScreen: Bool
     var isFocused: Bool
+    /// Shown in the taskbar. The other windows are only pushed off the bar.
+    var isEntry = true
 }
 
 /// Confined to its own thread: every entry point hops there, and the observer callbacks run there.
@@ -420,7 +422,8 @@ final class WindowTracker: @unchecked Sendable {
             let isAppHidden = NSRunningApplication(processIdentifier: pid)?.isHidden ?? false
             return apps[pid]!.windows.compactMap { cached -> TrackedWindow? in
                 var window = cached.window
-                guard isRealWindow(subrole: cached.subrole, isMinimized: window.isMinimized, isAppHidden: isAppHidden) else { return nil }
+                window.isEntry = isRealWindow(subrole: cached.subrole, isMinimized: window.isMinimized, isAppHidden: isAppHidden)
+                guard window.isEntry || isPushable(subrole: cached.subrole) else { return nil }
                 // A failed read leaves a stale frame. Measured on TextEdit: the first read after a minimize fails.
                 guard (!pids.contains(pid) && onSpace.contains(window.element)) || retrying.contains(pid) || moving.contains(window.element) || isOnCurrentSpace(pid: pid, frame: window.frame, isMinimized: window.isMinimized, isAppHidden: isAppHidden, onScreen: onScreen) else { return nil }
                 passed.insert(window.element)
