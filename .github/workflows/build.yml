@@ -13,4 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: ./scripts/bundle.sh
+      - name: Refuse a build without the hardened runtime, which would open the users' grants to any process
+        run: codesign -d --verbose build/IonizedBar.app 2>&1 | grep -q 'flags=.*runtime'
       - run: swift run IonizedBarChecks

@@ -13,9 +13,10 @@ cp Support/Info.plist "$app/Contents/"
 
 # A stable identity keeps the Accessibility and Screen Recording grants across builds; ad-hoc ties them to one build.
 identity="IonizedBar Signing"
-if security find-identity -p codesigning | grep -q "\"$identity\""; then
-    codesign --force --sign "$identity" "$app"
-else
+if ! security find-identity -p codesigning | grep -q "\"$identity\""; then
     echo "warning: no '$identity' identity in the keychain, signing ad-hoc" >&2
-    codesign --force --sign - "$app"
+    identity=-
 fi
+# Hardened runtime: without it any process can load code into the app (DYLD_INSERT_LIBRARIES) and use its grants.
+# It blocks Apple events too, hence the entitlement for the restart and shutdown dialogs.
+codesign --force --options runtime --entitlements Support/IonizedBar.entitlements --sign "$identity" "$app"

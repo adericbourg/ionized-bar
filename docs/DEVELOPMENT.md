@@ -9,7 +9,7 @@ Command Line Tools are enough, Xcode is not needed.
 open --stderr "$(tty)" build/IonizedBar.app
 ```
 
-`bundle.sh` signs with the `IonizedBar Signing` identity when it is in the keychain, and ad-hoc otherwise (with a warning). An ad-hoc build loses the permissions on every rebuild.
+`bundle.sh` signs with the `IonizedBar Signing` identity when it is in the keychain, and ad-hoc otherwise (with a warning). An ad-hoc build loses the permissions on every rebuild. Both sign with the hardened runtime, so that no other process can load code into the app and use its permissions; `Support/IonizedBar.entitlements` holds the one exception the app needs, sending Apple events (the restart and shutdown dialogs).
 
 Coming from an ad-hoc build, grant the permissions once more. If IonizedBar already shows ON but the bar stays empty, reset the grant, then grant it again:
 
