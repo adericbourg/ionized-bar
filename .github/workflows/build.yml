@@ -14,7 +14,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: ./scripts/bundle.sh
       - name: Refuse a build without the hardened runtime, which would open the users' grants to any process
         run: codesign -d --verbose build/IonizedBar.app 2>&1 | grep -q 'flags=.*runtime'
