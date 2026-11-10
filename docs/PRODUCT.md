@@ -229,6 +229,7 @@ The app follows the spirit of WCAG 2.2 AA.
 - **Preview capture:** `SCScreenshotManager`, since `CGWindowListCreateImage` is unavailable in the macOS 15+ SDK.
 - **Re-ordering:** mouse tracking in the entry views rather than `NSDraggingSource`, since nothing leaves the bar. One relative order of all windows is projected onto each bar, so a move doesn't disturb other bars or windows on another Space.
 - **Pure logic in `IonizedBarCore`:** a check executable tests it, because Command Line Tools have no working test framework.
+- **Hardened runtime:** the app is signed with it, so another process can't load code into it and act with its Accessibility and Screen Recording grants.
 - **Self-signed certificate:** the Transparency, Consent and Control (TCC) database then pins grants to the identifier and certificate, not to each build's hash, so they survive upgrades. Gatekeeper doesn't trust it, and a fix needs a paid Developer ID with notarization. Until then the cask removes the quarantine attribute, which a third-party tap may do. See [Signing certificate](DEVELOPMENT.md#signing-certificate).
 
 ## Out of scope
