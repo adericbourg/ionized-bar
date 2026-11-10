@@ -66,7 +66,7 @@ With "Resize tiled windows together" on, dragging the edge shared by two windows
 
 ## Start at login
 
-The app registers itself with `SMAppService.mainApp` once, when Accessibility is first granted. "Start at login" in Settings shows the real status and applies at once. It is not saved separately, and a relaunch doesn't turn it back on.
+The app registers itself with `SMAppService.mainApp` once, when Accessibility is first granted; if that fails, the next launch tries again. "Start at login" in Settings shows the real status and applies at once. It is not saved separately, and a relaunch doesn't turn it back on.
 
 ## Settings
 
