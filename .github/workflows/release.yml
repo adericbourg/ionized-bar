@@ -57,7 +57,7 @@ jobs:
         run: |
           rm -f "$RUNNER_TEMP/signing.p12"
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
-      # Pushed only once the build passed, so a failed run leaves the version unchanged; fails if main moved meanwhile
+      # Only once the build passed, so a failed run leaves the version unchanged. Fails if main moved meanwhile, and then takes the release back
       - name: Commit the version and release it
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,8 +66,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: release $TAG" Support/Info.plist
+          git tag "$TAG"
+          # The tag carries the commit to the remote, so the release can be made before main moves
+          git push origin "refs/tags/$TAG"
+          # With no release yet, the delete fails and only the tag is left to remove
+          trap 'gh release delete "$TAG" --cleanup-tag --yes || git push origin ":refs/tags/$TAG"' ERR
+          gh release create "$TAG" build/IonizedBar-*.zip --verify-tag --title "$TAG" --generate-notes
+          # Last, as the one step that can't be undone
           git push origin HEAD:main
-          gh release create "$TAG" build/IonizedBar-*.zip --target "$(git rev-parse HEAD)" --title "$TAG" --generate-notes
 
   cask:
     needs: release
