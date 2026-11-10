@@ -170,6 +170,7 @@ A click on the clock opens a month calendar above it, in a panel as dark as the 
 - **Month and year selectors:** a click on the title replaces the days with the 12 months of that year, under the year as title. A click on that year replaces them with 12 years, under their range as title. Picking a year shows its months, and picking a month shows its days. The panel keeps its size, and the arrows move by a year or by 12 years. Year pages start on multiples of 12, and the current month and year have the same outline as today.
 - **Grid:** only the rows the month needs, 4 to 6. The panel always has room for 6, so the arrows don't move under the pointer. Days of the adjacent months are shaded.
 - **Today and hover:** today has an outline in the system accent color. Hovering a day fills it with that color. A click on a day does nothing.
+- **Time from today:** hovering a day shows under the grid how far it is from today, in whole days: "Today", "In 3 days", "2 weeks and 1 day ago", "In 1 year, 2 months and 5 days". The units follow the setting, and units at zero are left out. VoiceOver reads it after each day's date.
 - **Week numbers:** week 1 is the first with at least 4 days in the new year, with the chosen first day of the week. With Monday first, these are ISO week numbers.
 - **Calendar system:** always Gregorian, because ISO weeks are only defined there. Month and weekday names follow the system locale.
 - **Keyboard and VoiceOver:** Tab reaches the title, the arrows and the months or years, and Return or Space presses them. VoiceOver reads each day as a full date, says which is today and announces the new title when it changes.
@@ -178,6 +179,7 @@ A click on the clock opens a month calendar above it, in a panel as dark as the 
 |---|---|
 | First day of week | System default (default), Monday to Sunday |
 | Show week numbers | Off (default), On |
+| Time from today | Days (default), Weeks and days, Years, months and days |
 
 These settings are greyed out when the clock is off, because the calendar opens from the clock. A change applies the next time the calendar opens.
 

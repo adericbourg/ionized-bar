@@ -18,13 +18,19 @@ public enum FirstWeekday: String, CaseIterable, Sendable {
     }
 }
 
+public enum DistanceFormat: String, CaseIterable, Sendable {
+    case days, weeksAndDays, yearsMonthsAndDays
+}
+
 public struct CalendarSettings: Equatable, Sendable {
     public var firstWeekday: FirstWeekday
     public var showsWeekNumbers: Bool
+    public var distanceFormat: DistanceFormat
 
-    public init(firstWeekday: FirstWeekday = .system, showsWeekNumbers: Bool = false) {
+    public init(firstWeekday: FirstWeekday = .system, showsWeekNumbers: Bool = false, distanceFormat: DistanceFormat = .days) {
         self.firstWeekday = firstWeekday
         self.showsWeekNumbers = showsWeekNumbers
+        self.distanceFormat = distanceFormat
     }
 }
 
@@ -143,6 +149,28 @@ public func calendarWeekdayHeaders(firstWeekday: Int, locale: Locale = .autoupda
     return (0..<7).map { offset in
         formatter.string(from: sunday.addingTimeInterval(TimeInterval((firstWeekday - 1 + offset) % 7) * 86400))
     }
+}
+
+/// In English like the rest of the interface, hence the fixed locale.
+public func calendarDistanceText(from today: Date, to date: Date, format: DistanceFormat, timeZone: TimeZone = .autoupdatingCurrent) -> String {
+    var calendar = gridCalendar(timeZone: timeZone)
+    calendar.locale = Locale(identifier: "en_US")
+    let start = calendar.startOfDay(for: today), end = calendar.startOfDay(for: date)
+    guard start != end else { return "Today" }
+    let isFuture = end > start
+    let (from, to) = isFuture ? (start, end) : (end, start)
+    let formatter = DateComponentsFormatter()
+    formatter.allowedUnits = switch format {
+    case .days: [.day]
+    case .weeksAndDays: [.weekOfMonth, .day]
+    case .yearsMonthsAndDays: [.year, .month, .day]
+    }
+    formatter.calendar = calendar
+    formatter.unitsStyle = .full
+    formatter.zeroFormattingBehavior = .dropAll
+    var text = formatter.string(from: from, to: to)!
+    if let lastComma = text.range(of: ", ", options: .backwards) { text.replaceSubrange(lastComma, with: " and ") }
+    return isFuture ? "In \(text)" : "\(text) ago"
 }
 
 public func calendarDayAccessibilityLabel(_ day: CalendarDay, locale: Locale = .autoupdatingCurrent, timeZone: TimeZone = .autoupdatingCurrent) -> String {

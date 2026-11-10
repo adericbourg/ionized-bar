@@ -17,6 +17,7 @@ struct Settings {
     private static let clockDateFormatKey = "clockDateFormat"
     private static let calendarFirstWeekdayKey = "calendarFirstWeekday"
     private static let calendarShowsWeekNumbersKey = "calendarShowsWeekNumbers"
+    private static let calendarDistanceFormatKey = "calendarDistanceFormat"
     private static let resizesJointWindowsKey = "resizesJointWindows"
     private static let barHeightKey = "barHeight"
 
@@ -45,7 +46,8 @@ struct Settings {
             ),
             calendar: CalendarSettings(
                 firstWeekday: FirstWeekday(rawValue: defaults.string(forKey: calendarFirstWeekdayKey) ?? "") ?? .system,
-                showsWeekNumbers: defaults.bool(forKey: calendarShowsWeekNumbersKey)
+                showsWeekNumbers: defaults.bool(forKey: calendarShowsWeekNumbersKey),
+                distanceFormat: DistanceFormat(rawValue: defaults.string(forKey: calendarDistanceFormatKey) ?? "") ?? .days
             ),
             resizesJointWindows: defaults.bool(forKey: resizesJointWindowsKey),
             barHeight: BarHeight(rawValue: defaults.string(forKey: barHeightKey) ?? "") ?? .small
@@ -64,6 +66,7 @@ struct Settings {
         UserDefaults.standard.set(clock.dateFormat.rawValue, forKey: Self.clockDateFormatKey)
         UserDefaults.standard.set(calendar.firstWeekday.rawValue, forKey: Self.calendarFirstWeekdayKey)
         UserDefaults.standard.set(calendar.showsWeekNumbers, forKey: Self.calendarShowsWeekNumbersKey)
+        UserDefaults.standard.set(calendar.distanceFormat.rawValue, forKey: Self.calendarDistanceFormatKey)
         UserDefaults.standard.set(resizesJointWindows, forKey: Self.resizesJointWindowsKey)
         UserDefaults.standard.set(barHeight.rawValue, forKey: Self.barHeightKey)
     }

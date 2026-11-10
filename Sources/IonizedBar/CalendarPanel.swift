@@ -10,6 +10,7 @@ final class CalendarPanel: NSPanel {
     private static let titleHeight: CGFloat = 36
     private static let arrowSize: CGFloat = 28
     private static let headerHeight: CGFloat = 32
+    private static let footerHeight: CGFloat = 24
     private static let cellSize = CGSize(width: 44, height: 44)
     private static let weekColumnWidth: CGFloat = 44
     // Always room for the longest month, so that the arrows stay under the pointer from month to month.
@@ -21,7 +22,7 @@ final class CalendarPanel: NSPanel {
     static func size(showsWeekNumbers: Bool) -> CGSize {
         CGSize(
             width: 2 * padding + 7 * cellSize.width + (showsWeekNumbers ? weekColumnWidth : 0),
-            height: 2 * padding + titleHeight + headerHeight + maxRows * cellSize.height
+            height: 2 * padding + titleHeight + headerHeight + maxRows * cellSize.height + footerHeight
         )
     }
 
@@ -31,6 +32,8 @@ final class CalendarPanel: NSPanel {
     private lazy var previousButton = FooterButton(title: "", symbolName: "chevron.left", target: self, action: #selector(previousClicked))
     private lazy var nextButton = FooterButton(title: "", symbolName: "chevron.right", target: self, action: #selector(nextClicked))
     private let grid = NSView()
+    private let footerLabel = NSTextField(labelWithString: "")
+    private weak var maybeHoveredCell: DayCell?
     private var mode = Mode.days
     private var month = Date()
     private var settings = CalendarSettings()
@@ -46,7 +49,11 @@ final class CalendarPanel: NSPanel {
         titleButton.font = titleLabel.font
         previousButton.imagePosition = .imageOnly
         nextButton.imagePosition = .imageOnly
-        for view in [tint, titleLabel, titleButton, previousButton, nextButton, grid] { frosted.addSubview(view) }
+        footerLabel.textColor = .secondaryLabelColor
+        footerLabel.alignment = .center
+        // VoiceOver reads the same text in each day's label.
+        footerLabel.setAccessibilityElement(false)
+        for view in [tint, titleLabel, titleButton, previousButton, nextButton, grid, footerLabel] { frosted.addSubview(view) }
     }
 
     override var canBecomeKey: Bool { true }
@@ -78,7 +85,13 @@ final class CalendarPanel: NSPanel {
             x: Self.padding, y: titleY + ((Self.titleHeight - titleHeight) / 2).rounded(),
             width: previousButton.frame.minX - Self.padding, height: titleHeight
         )
-        grid.frame = CGRect(x: Self.padding, y: Self.padding, width: frame.width - 2 * Self.padding, height: titleY - Self.padding)
+        let footerTextHeight = footerLabel.intrinsicContentSize.height
+        footerLabel.frame = CGRect(
+            x: Self.padding, y: Self.padding + ((Self.footerHeight - footerTextHeight) / 2).rounded(),
+            width: frame.width - 2 * Self.padding, height: footerTextHeight
+        )
+        let gridY = Self.padding + Self.footerHeight
+        grid.frame = CGRect(x: Self.padding, y: gridY, width: frame.width - 2 * Self.padding, height: titleY - gridY)
         reload()
         invalidateShadow()
         orderFrontRegardless()
@@ -89,6 +102,7 @@ final class CalendarPanel: NSPanel {
 
     private func reload() {
         grid.subviews.forEach { $0.removeFromSuperview() }
+        footerLabel.stringValue = ""
         switch mode {
         case .days:
             reloadDays()
@@ -138,20 +152,33 @@ final class CalendarPanel: NSPanel {
     private func reloadDays() {
         let firstWeekday = settings.firstWeekday.calendarWeekday()
         let daysX = settings.showsWeekNumbers ? Self.weekColumnWidth : 0
+        let today = Date()
         let headerY = grid.bounds.height - Self.headerHeight
         for (column, text) in calendarWeekdayHeaders(firstWeekday: firstWeekday).enumerated() {
             addLabel(text, in: CGRect(x: daysX + CGFloat(column) * Self.cellSize.width, y: headerY, width: Self.cellSize.width, height: Self.headerHeight))
         }
-        for (row, week) in monthGrid(month: month, today: Date(), firstWeekday: firstWeekday).enumerated() {
+        for (row, week) in monthGrid(month: month, today: today, firstWeekday: firstWeekday).enumerated() {
             let y = headerY - CGFloat(row + 1) * Self.cellSize.height
             if settings.showsWeekNumbers {
                 addLabel("W\(week.number)", in: CGRect(x: 0, y: y, width: Self.weekColumnWidth, height: Self.cellSize.height))
             }
             for (column, day) in week.days.enumerated() {
-                let cell = DayCell(day: day)
+                let cell = DayCell(day: day, distance: calendarDistanceText(from: today, to: day.date, format: settings.distanceFormat))
+                cell.onHover = { [unowned self] cell, isHovered in hoverChanged(cell, isHovered: isHovered) }
                 cell.frame = CGRect(x: daysX + CGFloat(column) * Self.cellSize.width, y: y, width: Self.cellSize.width, height: Self.cellSize.height)
                 grid.addSubview(cell)
             }
+        }
+    }
+
+    // Leaving one day and entering the next can come in either order.
+    private func hoverChanged(_ cell: DayCell, isHovered: Bool) {
+        if isHovered {
+            maybeHoveredCell = cell
+            footerLabel.stringValue = cell.distance
+        } else if maybeHoveredCell === cell {
+            maybeHoveredCell = nil
+            footerLabel.stringValue = ""
         }
     }
 
@@ -254,16 +281,20 @@ private final class PickCell: FooterButton {
 /// Text for VoiceOver, not a button: the hover only helps to read across rows and columns.
 private final class DayCell: NSView {
     private let day: CalendarDay
+    let distance: String
+    var onHover: ((DayCell, Bool) -> Void)?
     private let label: NSTextField
     private var isHovered = false {
         didSet {
             needsDisplay = true
             updateTextColor()
+            onHover?(self, isHovered)
         }
     }
 
-    init(day: CalendarDay) {
+    init(day: CalendarDay, distance: String) {
         self.day = day
+        self.distance = distance
         label = NSTextField(labelWithString: String(day.number))
         super.init(frame: .zero)
         label.font = .monospacedDigitSystemFont(ofSize: 15, weight: .regular)
@@ -273,7 +304,8 @@ private final class DayCell: NSView {
         updateTextColor()
         setAccessibilityElement(true)
         setAccessibilityRole(.staticText)
-        setAccessibilityLabel(calendarDayAccessibilityLabel(day))
+        let date = calendarDayAccessibilityLabel(day)
+        setAccessibilityLabel(day.isToday ? date : "\(date), \(distance.lowercased())")
         // Always active: this app is never the active one while the panel is open.
         addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
     }

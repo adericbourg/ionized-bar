@@ -112,6 +112,7 @@ Pick "Settings…" in a right-click menu of the bar.
 | Date format | System default (default), ISO (yyyy-mm-dd), dd/mm/yyyy |
 | First day of week | System default (default), Monday to Sunday. For the calendar |
 | Show week numbers | Off by default. For the calendar |
+| Time from today | Days (default), Weeks and days, Years, months and days. Shown in the calendar when hovering a day |
 | Resize tiled windows together | Off by default. Dragging the edge between two windows that fill the screen resizes both |
 
 The About tab shows the version and commit you are running. Include them when you report a bug. It also links to the GitHub repository.

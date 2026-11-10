@@ -1365,6 +1365,23 @@ do {
     let march = monthGrid(month: day(2026, 3, 15, in: paris), today: farFromToday, firstWeekday: monday, timeZone: paris)
     check("monthGrid_acrossDST_listsEveryDayOnce", march.flatMap(\.days).filter(\.isInMonth).map(\.number) == Array(1...31))
 
+    // calendarDistanceText
+    func distance(to date: Date, _ format: DistanceFormat = .days, from today: Date = day(2026, 11, 4)) -> String {
+        calendarDistanceText(from: today, to: date, format: format, timeZone: utc)
+    }
+    check("calendarDistanceText_ofToday_isToday", distance(to: day(2026, 11, 4)) == "Today" && distance(to: day(2026, 11, 4), .yearsMonthsAndDays) == "Today")
+    check("calendarDistanceText_ofFutureDays_saysIn", distance(to: day(2026, 11, 5)) == "In 1 day" && distance(to: day(2026, 11, 7)) == "In 3 days")
+    check("calendarDistanceText_ofPastDays_saysAgo", distance(to: day(2026, 11, 1)) == "3 days ago")
+    check("calendarDistanceText_ofDays_countsOnlyDays", distance(to: day(2027, 11, 4)) == "In 365 days")
+    check("calendarDistanceText_weeksAndDays_splitsWeeks", distance(to: day(2026, 11, 21), .weeksAndDays) == "In 2 weeks and 3 days" && distance(to: day(2026, 11, 18), .weeksAndDays) == "In 2 weeks")
+    check("calendarDistanceText_weeksAndDays_ofPast_saysAgo", distance(to: day(2026, 10, 27), .weeksAndDays) == "1 week and 1 day ago")
+    check("calendarDistanceText_yearsMonthsAndDays_listsEachUnit", distance(to: day(2028, 1, 9), .yearsMonthsAndDays) == "In 1 year, 2 months and 5 days")
+    check("calendarDistanceText_yearsMonthsAndDays_dropsZeros", distance(to: day(2027, 11, 4), .yearsMonthsAndDays) == "In 1 year")
+    check("calendarDistanceText_yearsMonthsAndDays_ofPast_saysAgo", distance(to: day(2025, 10, 3), .yearsMonthsAndDays) == "1 year, 1 month and 1 day ago")
+    // Given a today late in the evening and a day across the DST change, Then whole days are counted
+    let parisToday = day(2026, 3, 28, in: paris).addingTimeInterval(11 * 3600)
+    check("calendarDistanceText_acrossDST_countsWholeDays", calendarDistanceText(from: parisToday, to: day(2026, 3, 30, in: paris), format: .days, timeZone: paris) == "In 2 days")
+
     // FirstWeekday
     check("calendarWeekday_ofSystem_followsTheSystem", FirstWeekday.system.calendarWeekday(system: 7) == 7)
     check("calendarWeekday_ofMonday_is2", FirstWeekday.monday.calendarWeekday(system: 7) == 2)

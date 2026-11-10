@@ -19,6 +19,8 @@ final class SettingsWindow: AppWindow {
     private let calendarHeading = NSTextField(labelWithString: "Calendar")
     private let firstWeekdayLabel = NSTextField(labelWithString: "First day of week:")
     private let firstWeekdayPopUp = NSPopUpButton()
+    private let distanceFormatLabel = NSTextField(labelWithString: "Time from today:")
+    private let distanceFormatPopUp = NSPopUpButton()
     private let weekNumbersCheckbox = NSButton(checkboxWithTitle: "Show week numbers", target: nil, action: nil)
     private let jointCheckbox = NSButton(checkboxWithTitle: "Resize tiled windows together", target: nil, action: nil)
 
@@ -43,7 +45,10 @@ final class SettingsWindow: AppWindow {
         firstWeekdayPopUp.addItems(withTitles: FirstWeekday.allCases.map(Self.title))
         firstWeekdayPopUp.selectItem(at: FirstWeekday.allCases.firstIndex(of: settings.calendar.firstWeekday)!)
         firstWeekdayPopUp.setAccessibilityLabel("First day of week")
-        for popUp in [groupingPopUp, displayPopUp, heightPopUp, timeFormatPopUp, dateFormatPopUp, firstWeekdayPopUp] {
+        distanceFormatPopUp.addItems(withTitles: DistanceFormat.allCases.map(Self.title))
+        distanceFormatPopUp.selectItem(at: DistanceFormat.allCases.firstIndex(of: settings.calendar.distanceFormat)!)
+        distanceFormatPopUp.setAccessibilityLabel("Time from today")
+        for popUp in [groupingPopUp, displayPopUp, heightPopUp, timeFormatPopUp, dateFormatPopUp, firstWeekdayPopUp, distanceFormatPopUp] {
             popUp.target = self
             popUp.action = #selector(selectionChanged)
         }
@@ -72,7 +77,7 @@ final class SettingsWindow: AppWindow {
         let tabs = NSTabViewController()
         tabs.tabStyle = .toolbar
         tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 200)))
-        tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 320, height: 320)))
+        tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 360, height: 360)))
         tabs.addTabViewItem(Self.tab("Windows", symbol: "macwindow", content: jointCheckbox, size: CGSize(width: 320, height: 80)))
         tabs.addTabViewItem(Self.tab("About", symbol: "info.circle", content: makeAboutContent(), size: CGSize(width: 320, height: 80)))
         toolbarStyle = .preference
@@ -107,7 +112,8 @@ final class SettingsWindow: AppWindow {
             Self.row([dateFormatLabel, dateFormatPopUp], indent: 40),
             calendarHeading,
             Self.row([firstWeekdayLabel, firstWeekdayPopUp], indent: 20),
-            Self.row([weekNumbersCheckbox], indent: 20)
+            Self.row([weekNumbersCheckbox], indent: 20),
+            Self.row([distanceFormatLabel, distanceFormatPopUp], indent: 20)
         ])
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -216,6 +222,14 @@ final class SettingsWindow: AppWindow {
         }
     }
 
+    private static func title(_ format: DistanceFormat) -> String {
+        switch format {
+        case .days: "Days"
+        case .weeksAndDays: "Weeks and days"
+        case .yearsMonthsAndDays: "Years, months and days"
+        }
+    }
+
     override func show() {
         loginCheckbox.state = LoginItem.isEnabled ? .on : .off
         super.show()
@@ -235,6 +249,8 @@ final class SettingsWindow: AppWindow {
         firstWeekdayLabel.textColor = isClockOn ? .labelColor : .disabledControlTextColor
         firstWeekdayPopUp.isEnabled = isClockOn
         weekNumbersCheckbox.isEnabled = isClockOn
+        distanceFormatLabel.textColor = isClockOn ? .labelColor : .disabledControlTextColor
+        distanceFormatPopUp.isEnabled = isClockOn
     }
 
     @objc private func selectionChanged() {
@@ -252,7 +268,8 @@ final class SettingsWindow: AppWindow {
             ),
             calendar: CalendarSettings(
                 firstWeekday: FirstWeekday.allCases[firstWeekdayPopUp.indexOfSelectedItem],
-                showsWeekNumbers: weekNumbersCheckbox.state == .on
+                showsWeekNumbers: weekNumbersCheckbox.state == .on,
+                distanceFormat: DistanceFormat.allCases[distanceFormatPopUp.indexOfSelectedItem]
             ),
             resizesJointWindows: jointCheckbox.state == .on,
             barHeight: BarHeight.allCases[heightPopUp.indexOfSelectedItem]
