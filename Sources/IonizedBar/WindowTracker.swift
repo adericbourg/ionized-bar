@@ -154,7 +154,8 @@ final class WindowTracker: @unchecked Sendable {
         onThread { [self] in
             var button: CFTypeRef?
             let error = AXUIElementCopyAttributeValue(window.element, kAXCloseButtonAttribute as CFString, &button)
-            guard error == .success, let button else {
+            // The app supplies the value, and a cast to a CF type never fails.
+            guard error == .success, let button, CFGetTypeID(button) == AXUIElementGetTypeID() else {
                 log("no close button on \(window.appName) pid=\(window.pid): AX error \(error.rawValue)")
                 return
             }
