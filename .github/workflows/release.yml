@@ -9,9 +9,6 @@ on:
         options: [patch, minor, major]
         default: minor
 
-permissions:
-  contents: write
-
 # Two runs at once would compute the same version
 concurrency: release
 
@@ -20,9 +17,10 @@ jobs:
     # A manual run from another branch would release unmerged code
     if: github.ref == 'refs/heads/main'
     runs-on: xcode-27
+    permissions:
+      contents: write
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       tag: ${{ steps.version.outputs.tag }}
     steps:
@@ -60,6 +58,7 @@ jobs:
       # Pushed only once the build passed, so a failed run leaves the version unchanged; fails if main moved meanwhile
       - name: Commit the version and release it
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           git config user.name "github-actions[bot]"
@@ -71,8 +70,9 @@ jobs:
   cask:
     needs: release
     runs-on: ubuntu-slim
+    permissions:
+      contents: read
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TAG: ${{ needs.release.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
@@ -80,6 +80,8 @@ jobs:
           repository: adericbourg/homebrew-tap
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       - name: Point the cask at the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'IonizedBar-*.zip' --dir "$RUNNER_TEMP"
           sha=$(sha256sum "$RUNNER_TEMP"/IonizedBar-*.zip | cut -d' ' -f1)
