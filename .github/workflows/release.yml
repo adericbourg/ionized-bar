@@ -52,9 +52,11 @@ jobs:
       - run: ./scripts/archive.sh
       - name: Refuse an ad-hoc build, which would lose the users' grants
         run: codesign -dr - build/IonizedBar.app 2>&1 | grep -q 'certificate leaf'
-      - name: Delete the signing keychain
+      - name: Delete the signing keychain and certificate
         if: always()
-        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+        run: |
+          rm -f "$RUNNER_TEMP/signing.p12"
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
       # Pushed only once the build passed, so a failed run leaves the version unchanged; fails if main moved meanwhile
       - name: Commit the version and release it
         env:
