@@ -78,6 +78,7 @@ The General tab holds:
 - **When full:** apps merge when entries would drop below about 120 pt, or 48 pt with Icon only. The app with the most windows merges first, and merging stops once entries fit. On a tie, the later app on the bar merges first.
 - **Show tasks as:** Icon only, App name or Content (default, the window title). A title that isn't shown moves to a tooltip, and VoiceOver reads it in every mode.
 - **Icon only:** compact entries of about 48 pt, packed from the left. This is the one exception to the equal width.
+- **Bar height:** Extra small (28 pt), Small (default, 36 pt), Medium (44 pt), Large (52 pt) or Extra large (60 pt). Icons, the launcher and pinned icons, icon-only entries and the clock's fonts scale with it; task titles stay at 13 pt. Windows are pushed above the new height.
 - **Keep pinned app icons visible:** see [Pinned apps](#pinned-apps).
 - **Start at login:** see [Start at login](#start-at-login).
 
@@ -146,7 +147,7 @@ Pinning keeps an app's icon on the bar while the app is closed. The bar reads, f
 
 A clock at the right end of every bar, off by default. It is the first widget, so the code has no widget abstraction until a second one shows what it should be. The layout follows Plasma's panel clock.
 
-- **Layout:** the time alone is one vertically centred line. With the date, the time (13 pt) sits above the date (11 pt), which fits the 36 pt bar with no height change.
+- **Layout:** the time alone is one vertically centred line. With the date, the time (13 pt) sits above the date (11 pt), which fits the default 36 pt bar. Both sizes scale with the [bar height](#settings); when the two lines don't fit the bar, as at Extra small, the date goes beside the time, at the time's size.
 - **Width:** measured on a sample date with two digits everywhere, and with monospaced digits. It changes only with the settings or the locale, so tasks don't move as the time changes. Tasks shrink and group in the width left.
 - **Updates:** on the second, or on the minute with seconds off. It also refreshes after waking from sleep and after a change of system clock, time zone or locale.
 - **Interaction:** a click opens the [calendar](#calendar), and a right-click opens the bar's menu. It is the last keyboard stop. VoiceOver reads it with the date spelled out.

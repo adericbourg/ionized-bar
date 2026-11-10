@@ -5,7 +5,7 @@ import CoreGraphics
 let jointTolerance: CGFloat = 32
 
 /// Cocoa coordinates. The room `pushedFrame` leaves: from the bar's top to `visibleFrame`'s top.
-public func usableArea(screenFrame: CGRect, visibleFrame: CGRect, barHeight: CGFloat = 36) -> CGRect {
+public func usableArea(screenFrame: CGRect, visibleFrame: CGRect, barHeight: CGFloat) -> CGRect {
     let bottom = screenFrame.minY + barHeight
     return CGRect(x: screenFrame.minX, y: bottom, width: screenFrame.width, height: visibleFrame.maxY - bottom)
 }

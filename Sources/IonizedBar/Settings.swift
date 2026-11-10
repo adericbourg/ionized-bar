@@ -18,6 +18,7 @@ struct Settings {
     private static let calendarFirstWeekdayKey = "calendarFirstWeekday"
     private static let calendarShowsWeekNumbersKey = "calendarShowsWeekNumbers"
     private static let resizesJointWindowsKey = "resizesJointWindows"
+    private static let barHeightKey = "barHeight"
 
     var grouping: GroupingMode
     var taskDisplay: TaskDisplay
@@ -26,6 +27,7 @@ struct Settings {
     var clock = ClockSettings()
     var calendar = CalendarSettings()
     var resizesJointWindows = false
+    var barHeight = BarHeight.small
 
     static func load() -> Settings {
         let defaults = UserDefaults.standard
@@ -45,7 +47,8 @@ struct Settings {
                 firstWeekday: FirstWeekday(rawValue: defaults.string(forKey: calendarFirstWeekdayKey) ?? "") ?? .system,
                 showsWeekNumbers: defaults.bool(forKey: calendarShowsWeekNumbersKey)
             ),
-            resizesJointWindows: defaults.bool(forKey: resizesJointWindowsKey)
+            resizesJointWindows: defaults.bool(forKey: resizesJointWindowsKey),
+            barHeight: BarHeight(rawValue: defaults.string(forKey: barHeightKey) ?? "") ?? .small
         )
     }
 
@@ -62,5 +65,6 @@ struct Settings {
         UserDefaults.standard.set(calendar.firstWeekday.rawValue, forKey: Self.calendarFirstWeekdayKey)
         UserDefaults.standard.set(calendar.showsWeekNumbers, forKey: Self.calendarShowsWeekNumbersKey)
         UserDefaults.standard.set(resizesJointWindows, forKey: Self.resizesJointWindowsKey)
+        UserDefaults.standard.set(barHeight.rawValue, forKey: Self.barHeightKey)
     }
 }

@@ -47,7 +47,7 @@ final class BarManager {
             panels.removeValue(forKey: id)?.close()
         }
         for (id, screen) in current {
-            let frame = barFrame(screenFrame: screen.frame)
+            let frame = barFrame(screenFrame: screen.frame, height: settings.barHeight.points)
             if let panel = panels[id] {
                 panel.setFrame(frame, display: true)
             } else {
@@ -138,12 +138,18 @@ final class BarManager {
 
     private func apply(_ newSettings: Settings) {
         let isEnablingPreviews = newSettings.showsPreviews && !settings.showsPreviews
+        let isResizing = newSettings.barHeight != settings.barHeight
         settings = newSettings
         if !settings.showsPreviews { preview.dismiss() }
         if isEnablingPreviews { CGRequestScreenCaptureAccess() }
         settings.save()
-        updateJointAreas()
-        update(windowsByDisplay: latestWindowsByDisplay)
+        if isResizing {
+            // Resizes every bar, then updates the joint areas and the bars' content.
+            sync()
+        } else {
+            updateJointAreas()
+            update(windowsByDisplay: latestWindowsByDisplay)
+        }
     }
 
     private func updateJointAreas() {
@@ -152,7 +158,7 @@ final class BarManager {
             return
         }
         windowTracker.setJointAreas(NSScreen.screens.map {
-            flipRect(usableArea(screenFrame: $0.frame, visibleFrame: $0.visibleFrame), primaryScreenHeight: primary.frame.height)
+            flipRect(usableArea(screenFrame: $0.frame, visibleFrame: $0.visibleFrame, barHeight: settings.barHeight.points), primaryScreenHeight: primary.frame.height)
         })
     }
 }

@@ -3,23 +3,23 @@ import IonizedBarCore
 
 final class ClockView: BarButton {
     private static let padding: CGFloat = 8
+    private static let singleLineSpacing: CGFloat = 6
 
     var onWidthChange: (() -> Void)?
     private(set) var width: CGFloat = 0
     private var settings: ClockSettings
+    private var barHeight: BarHeight
     private let timeLabel = NSTextField(labelWithString: "")
     private let dateLabel = NSTextField(labelWithString: "")
+    private let stack = NSStackView()
     private var maybeTick: Timer?
 
-    init(settings: ClockSettings, manager: BarManager) {
+    init(settings: ClockSettings, barHeight: BarHeight, manager: BarManager) {
         self.settings = settings
+        self.barHeight = barHeight
         super.init(manager: manager)
-        // Monospaced digits: the text doesn't jitter as the seconds change.
-        timeLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
-        dateLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-        let stack = NSStackView(views: [timeLabel, dateLabel])
-        stack.orientation = .vertical
-        stack.spacing = 0
+        stack.addArrangedSubview(timeLabel)
+        stack.addArrangedSubview(dateLabel)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
@@ -56,9 +56,10 @@ final class ClockView: BarButton {
         strokeHairline(around: tile)
     }
 
-    func update(settings newSettings: ClockSettings) {
-        guard newSettings != settings else { return }
+    func update(settings newSettings: ClockSettings, barHeight newBarHeight: BarHeight) {
+        guard newSettings != settings || newBarHeight != barHeight else { return }
         settings = newSettings
+        barHeight = newBarHeight
         measure()
         refresh()
     }
@@ -99,7 +100,19 @@ final class ClockView: BarButton {
         let widest = clockText(date: clockWidestDate, settings: settings, timeZone: TimeZone(identifier: "UTC")!)
         timeLabel.stringValue = widest.time
         dateLabel.stringValue = widest.date ?? ""
-        let textWidth = max(timeLabel.intrinsicContentSize.width, widest.date == nil ? 0 : dateLabel.intrinsicContentSize.width)
+        // Monospaced digits: the text doesn't jitter as the seconds change.
+        timeLabel.font = .monospacedDigitSystemFont(ofSize: 13 * barHeight.scale, weight: .regular)
+        dateLabel.font = .monospacedDigitSystemFont(ofSize: 11 * barHeight.scale, weight: .regular)
+        // The date goes beside the time when the two lines don't fit the bar's tile.
+        let isSingleLine = widest.date != nil
+            && timeLabel.intrinsicContentSize.height + dateLabel.intrinsicContentSize.height > barHeight.points - 2 * Self.focusRingInset
+        if isSingleLine { dateLabel.font = timeLabel.font }
+        stack.orientation = isSingleLine ? .horizontal : .vertical
+        stack.spacing = isSingleLine ? Self.singleLineSpacing : 0
+        let dateWidth = widest.date == nil ? 0 : dateLabel.intrinsicContentSize.width
+        let textWidth = isSingleLine
+            ? timeLabel.intrinsicContentSize.width + Self.singleLineSpacing + dateWidth
+            : max(timeLabel.intrinsicContentSize.width, dateWidth)
         width = textWidth.rounded(.up) + 2 * Self.padding
     }
 }

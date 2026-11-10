@@ -91,17 +91,35 @@ public func assignDisplay(windowFrame: CGRect, displays: [Display]) -> Display? 
     return best?.display
 }
 
-public func entryWidth(barWidth: CGFloat, entryCount: Int, maxWidth: CGFloat = 220) -> EntryWidth {
+public func entryWidth(barWidth: CGFloat, entryCount: Int, maxWidth: CGFloat = 220, iconOnlyBelow: CGFloat = 48) -> EntryWidth {
     guard entryCount > 0 else { return EntryWidth(width: 0, isIconOnly: false) }
     let width = min(maxWidth, barWidth / CGFloat(entryCount))
-    return EntryWidth(width: width, isIconOnly: width < 48)
+    return EntryWidth(width: width, isIconOnly: width < iconOnlyBelow)
 }
 
-public let launcherWidth: CGFloat = 48
-public let pinnedIconWidth: CGFloat = 36
+/// What holds an icon scales with the bar, from its size on the 36 pt default bar.
+public enum BarHeight: String, CaseIterable, Sendable {
+    case extraSmall, small, medium, large, extraLarge
+
+    public var points: CGFloat {
+        switch self {
+        case .extraSmall: 28
+        case .small: 36
+        case .medium: 44
+        case .large: 52
+        case .extraLarge: 60
+        }
+    }
+
+    public var scale: CGFloat { points / 36 }
+    public var launcherWidth: CGFloat { (48 * scale).rounded() }
+    /// Square, like the icon tile.
+    public var pinnedIconWidth: CGFloat { points }
+    public var iconOnlyWidth: CGFloat { (48 * scale).rounded() }
+}
 
 /// Where a bar's tasks start and the width they share: what's left after the launcher, the pinned icons after it, and the clock at the far end.
-public func taskSlot(barWidth: CGFloat, pinnedWidth: CGFloat = 0, clockWidth: CGFloat = 0) -> (x: CGFloat, width: CGFloat) {
+public func taskSlot(barWidth: CGFloat, launcherWidth: CGFloat, pinnedWidth: CGFloat = 0, clockWidth: CGFloat = 0) -> (x: CGFloat, width: CGFloat) {
     let x = launcherWidth + pinnedWidth
     return (x, max(0, barWidth - x - clockWidth))
 }
@@ -123,7 +141,7 @@ public func isOnCurrentSpace(pid: Int32, frame: CGRect, isMinimized: Bool, isApp
     }
 }
 
-public func barFrame(screenFrame: CGRect, height: CGFloat = 36) -> CGRect {
+public func barFrame(screenFrame: CGRect, height: CGFloat) -> CGRect {
     CGRect(x: screenFrame.minX, y: screenFrame.minY, width: screenFrame.width, height: height)
 }
 
@@ -144,7 +162,7 @@ public func pushedFrame(_ window: CGRect, screenFrame: CGRect, visibleFrame: CGR
 
 /// Cocoa coordinates. Nil when the window must not be pushed, including when there is no room above the bar.
 public func pushTarget(
-    _ window: CGRect, isMinimized: Bool, isFullScreen: Bool, screenFrame: CGRect, visibleFrame: CGRect, barHeight: CGFloat = 36
+    _ window: CGRect, isMinimized: Bool, isFullScreen: Bool, screenFrame: CGRect, visibleFrame: CGRect, barHeight: CGFloat
 ) -> CGRect? {
     let bar = barFrame(screenFrame: screenFrame, height: barHeight)
     guard !isMinimized, !isFullScreen, overlapsBar(window, bar: bar), visibleFrame.maxY > bar.maxY else { return nil }

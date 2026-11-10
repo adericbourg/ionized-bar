@@ -11,7 +11,6 @@ final class PinnedIconView: BarIconButton {
         self.bundleID = bundleID
         let maybeURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
         let maybeImage = maybeURL.map { NSWorkspace.shared.icon(forFile: $0.path) }
-        maybeImage?.size = NSSize(width: Self.iconSize, height: Self.iconSize)
         let name = maybeURL.map { FileManager.default.displayName(atPath: $0.path) } ?? bundleID
         super.init(image: maybeImage, label: name, manager: manager)
         setAccessibilityLabel("\(name), pinned")
@@ -19,6 +18,12 @@ final class PinnedIconView: BarIconButton {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    override func layout() {
+        super.layout()
+        let side = (Self.iconSize * bounds.height / BarHeight.small.points).rounded()
+        icon.image?.size = NSSize(width: side, height: side)
+    }
 
     override func open() { manager.openPinnedApp(bundleID) }
 

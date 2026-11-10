@@ -2,9 +2,10 @@ import AppKit
 
 /// A fixed-width icon button on the bar. Not an `EntryView`: it stands for no window, so it has no preview, no window action and makes no AX call.
 class BarIconButton: BarButton {
+    let icon = NSImageView()
+
     init(image: NSImage?, label: String, manager: BarManager) {
         super.init(manager: manager)
-        let icon = NSImageView()
         icon.image = image
         icon.contentTintColor = .labelColor
         icon.autoresizingMask = [.width, .height]

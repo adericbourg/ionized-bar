@@ -3,7 +3,6 @@ import IonizedBarCore
 
 final class EntryView: BarButton {
     private static let padding: CGFloat = 8
-    private static let iconSize: CGFloat = 28
     private static let iconInset: CGFloat = 4
     private static let countGap: CGFloat = 2
     private static let activeTintAlpha: CGFloat = 0.3
@@ -25,6 +24,8 @@ final class EntryView: BarButton {
         self.item = item
         super.init(manager: manager)
         icon.image = NSRunningApplication(processIdentifier: item.windows[0].pid)?.icon
+        // The icon follows the bar height, which can make it larger than the image.
+        icon.imageScaling = .scaleProportionallyUpOrDown
         title.lineBreakMode = .byTruncatingTail
         addSubview(icon)
         addSubview(title)
@@ -89,10 +90,11 @@ final class EntryView: BarButton {
         // A group that lost its name shows its count beside the icon, so the pair is centered.
         let isCountShown = isIconOnly && !title.isHidden
         let gap = isCountShown ? Self.countGap : Self.padding
-        let contentWidth = isCountShown ? Self.iconSize + gap + title.intrinsicContentSize.width : Self.iconSize
+        let iconSize = (28 * bounds.height / BarHeight.small.points).rounded()
+        let contentWidth = isCountShown ? iconSize + gap + title.intrinsicContentSize.width : iconSize
         // Rounded: an integer point is on a device pixel at every scale, so the icon and text stay sharp.
         let iconX = isIconOnly ? max(0, ((bounds.width - contentWidth) / 2).rounded()) : Self.iconInset
-        icon.frame = CGRect(x: iconX, y: ((bounds.height - Self.iconSize) / 2).rounded(), width: Self.iconSize, height: Self.iconSize)
+        icon.frame = CGRect(x: iconX, y: ((bounds.height - iconSize) / 2).rounded(), width: iconSize, height: iconSize)
         let titleX = icon.frame.maxX + gap
         let titleSize = title.intrinsicContentSize
         let titleWidth = isCountShown ? titleSize.width : max(0, bounds.width - titleX - Self.padding)

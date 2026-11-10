@@ -6,6 +6,7 @@ final class SettingsWindow: AppWindow {
     var onChange: ((Settings) -> Void)?
     private let groupingPopUp = NSPopUpButton()
     private let displayPopUp = NSPopUpButton()
+    private let heightPopUp = NSPopUpButton()
     private let loginCheckbox = NSButton(checkboxWithTitle: "Start at login", target: nil, action: nil)
     private let pinnedCheckbox = NSButton(checkboxWithTitle: "Keep pinned app icons visible", target: nil, action: nil)
     private let clockCheckbox = NSButton(checkboxWithTitle: "Display clock", target: nil, action: nil)
@@ -30,6 +31,9 @@ final class SettingsWindow: AppWindow {
         displayPopUp.addItems(withTitles: TaskDisplay.allCases.map(Self.title))
         displayPopUp.selectItem(at: TaskDisplay.allCases.firstIndex(of: settings.taskDisplay)!)
         displayPopUp.setAccessibilityLabel("Show tasks as")
+        heightPopUp.addItems(withTitles: BarHeight.allCases.map(Self.title))
+        heightPopUp.selectItem(at: BarHeight.allCases.firstIndex(of: settings.barHeight)!)
+        heightPopUp.setAccessibilityLabel("Bar height")
         timeFormatPopUp.addItems(withTitles: TimeFormat.allCases.map(Self.title))
         timeFormatPopUp.selectItem(at: TimeFormat.allCases.firstIndex(of: settings.clock.timeFormat)!)
         timeFormatPopUp.setAccessibilityLabel("Time format")
@@ -39,7 +43,7 @@ final class SettingsWindow: AppWindow {
         firstWeekdayPopUp.addItems(withTitles: FirstWeekday.allCases.map(Self.title))
         firstWeekdayPopUp.selectItem(at: FirstWeekday.allCases.firstIndex(of: settings.calendar.firstWeekday)!)
         firstWeekdayPopUp.setAccessibilityLabel("First day of week")
-        for popUp in [groupingPopUp, displayPopUp, timeFormatPopUp, dateFormatPopUp, firstWeekdayPopUp] {
+        for popUp in [groupingPopUp, displayPopUp, heightPopUp, timeFormatPopUp, dateFormatPopUp, firstWeekdayPopUp] {
             popUp.target = self
             popUp.action = #selector(selectionChanged)
         }
@@ -67,7 +71,7 @@ final class SettingsWindow: AppWindow {
 
         let tabs = NSTabViewController()
         tabs.tabStyle = .toolbar
-        tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 160)))
+        tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 200)))
         tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 320, height: 320)))
         tabs.addTabViewItem(Self.tab("Windows", symbol: "macwindow", content: jointCheckbox, size: CGSize(width: 320, height: 80)))
         tabs.addTabViewItem(Self.tab("About", symbol: "info.circle", content: makeAboutContent(), size: CGSize(width: 320, height: 80)))
@@ -81,6 +85,7 @@ final class SettingsWindow: AppWindow {
         let grid = NSGridView(views: [
             [NSTextField(labelWithString: "Group windows:"), groupingPopUp],
             [NSTextField(labelWithString: "Show tasks as:"), displayPopUp],
+            [NSTextField(labelWithString: "Bar height:"), heightPopUp],
             [NSGridCell.emptyContentView, pinnedCheckbox],
             [NSGridCell.emptyContentView, loginCheckbox]
         ])
@@ -172,6 +177,16 @@ final class SettingsWindow: AppWindow {
         }
     }
 
+    private static func title(_ height: BarHeight) -> String {
+        switch height {
+        case .extraSmall: "Extra small"
+        case .small: "Small"
+        case .medium: "Medium"
+        case .large: "Large"
+        case .extraLarge: "Extra large"
+        }
+    }
+
     private static func title(_ format: TimeFormat) -> String {
         switch format {
         case .system: "System default"
@@ -239,7 +254,8 @@ final class SettingsWindow: AppWindow {
                 firstWeekday: FirstWeekday.allCases[firstWeekdayPopUp.indexOfSelectedItem],
                 showsWeekNumbers: weekNumbersCheckbox.state == .on
             ),
-            resizesJointWindows: jointCheckbox.state == .on
+            resizesJointWindows: jointCheckbox.state == .on,
+            barHeight: BarHeight.allCases[heightPopUp.indexOfSelectedItem]
         ))
     }
 

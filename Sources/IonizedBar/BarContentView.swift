@@ -40,7 +40,6 @@ final class BarContentView: NSView {
     private var maybeClock: ClockView?
 
     private static let duration: TimeInterval = 0.12
-    private static let iconOnlyWidth: CGFloat = 48
     private static let groupWhenFullBelow: CGFloat = 120
     private var isMotionReduced: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
@@ -80,7 +79,10 @@ final class BarContentView: NSView {
 
     // Read by both the grouping decision and the layout, so that they can't disagree.
     private var slot: (x: CGFloat, width: CGFloat) {
-        taskSlot(barWidth: bounds.width, pinnedWidth: CGFloat(pinnedIcons.count) * pinnedIconWidth, clockWidth: maybeClock?.width ?? 0)
+        taskSlot(
+            barWidth: bounds.width, launcherWidth: settings.barHeight.launcherWidth,
+            pinnedWidth: CGFloat(pinnedIcons.count) * settings.barHeight.pinnedIconWidth, clockWidth: maybeClock?.width ?? 0
+        )
     }
 
     private func rebuild() {
@@ -97,7 +99,7 @@ final class BarContentView: NSView {
         }
         items = barItems(
             windows, pid: \.pid, barWidth: slot.width, mode: settings.grouping,
-            minEntryWidth: settings.taskDisplay == .iconOnly ? Self.iconOnlyWidth : Self.groupWhenFullBelow
+            minEntryWidth: settings.taskDisplay == .iconOnly ? settings.barHeight.iconOnlyWidth : Self.groupWhenFullBelow
         )
         var gone = entries
         ordered = items.map { item in
@@ -130,13 +132,13 @@ final class BarContentView: NSView {
             maybeClock = nil
             return
         }
-        let clock = maybeClock ?? ClockView(settings: settings.clock, manager: manager)
+        let clock = maybeClock ?? ClockView(settings: settings.clock, barHeight: settings.barHeight, manager: manager)
         if maybeClock == nil {
             clock.onWidthChange = { [weak self] in self?.rebuild() }
             addSubview(clock)
             maybeClock = clock
         }
-        clock.update(settings: settings.clock)
+        clock.update(settings: settings.clock, barHeight: settings.barHeight)
     }
 
     // In visual order, without the entries fading out: Tab order and VoiceOver's order.
@@ -272,7 +274,7 @@ final class BarContentView: NSView {
 
     // What the dragged view moves along: pins stay between the launcher and the tasks, tasks stay after the pins.
     private func dragRow(_ drag: Drag) -> (views: [BarButton], slotX: CGFloat, width: CGFloat) {
-        drag.button is PinnedIconView ? (pinnedIcons, launcherWidth, pinnedIconWidth) : (ordered, slot.x, layoutWidth.width)
+        drag.button is PinnedIconView ? (pinnedIcons, settings.barHeight.launcherWidth, settings.barHeight.pinnedIconWidth) : (ordered, slot.x, layoutWidth.width)
     }
 
     private func dragPlace(_ drag: Drag) -> (x: CGFloat, from: Int, to: Int) {
@@ -297,13 +299,13 @@ final class BarContentView: NSView {
 
     private var layoutWidth: EntryWidth {
         settings.taskDisplay == .iconOnly
-            ? entryWidth(barWidth: slot.width, entryCount: ordered.count, maxWidth: Self.iconOnlyWidth)
-            : entryWidth(barWidth: slot.width, entryCount: ordered.count)
+            ? entryWidth(barWidth: slot.width, entryCount: ordered.count, maxWidth: settings.barHeight.iconOnlyWidth, iconOnlyBelow: settings.barHeight.iconOnlyWidth)
+            : entryWidth(barWidth: slot.width, entryCount: ordered.count, iconOnlyBelow: settings.barHeight.iconOnlyWidth)
     }
 
     override func layout() {
         super.layout()
-        launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
+        launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: settings.barHeight.launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
         if let maybeClock {
             maybeClock.frame = backingAlignedRect(CGRect(x: bounds.width - maybeClock.width, y: 0, width: maybeClock.width, height: bounds.height), options: .alignAllEdgesNearest)
         }
@@ -324,7 +326,11 @@ final class BarContentView: NSView {
         }
         for (index, icon) in shownIcons.enumerated() {
             if icon === maybeDrag?.button { continue }
-            let target = backingAlignedRect(CGRect(x: launcherWidth + CGFloat(index) * pinnedIconWidth, y: 0, width: pinnedIconWidth, height: bounds.height), options: .alignAllEdgesNearest)
+            let pinnedIconWidth = settings.barHeight.pinnedIconWidth
+            let target = backingAlignedRect(
+                CGRect(x: settings.barHeight.launcherWidth + CGFloat(index) * pinnedIconWidth, y: 0, width: pinnedIconWidth, height: bounds.height),
+                options: .alignAllEdgesNearest
+            )
             if icon.frame == .zero {
                 icon.frame = target
             } else if icon.frame != target {

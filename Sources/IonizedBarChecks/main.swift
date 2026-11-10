@@ -63,6 +63,20 @@ do {
           entryWidth(barWidth: 470, entryCount: 10) == EntryWidth(width: 47, isIconOnly: true))
     check("entryWidth_ofZeroEntries_returnsZeroNotIconOnly",
           entryWidth(barWidth: 1000, entryCount: 0) == EntryWidth(width: 0, isIconOnly: false))
+    // Given a taller bar, Then the icon-only threshold follows it
+    check("entryWidth_ofBelowCustomThreshold_isIconOnly",
+          entryWidth(barWidth: 790, entryCount: 10, iconOnlyBelow: 80) == EntryWidth(width: 79, isIconOnly: true))
+}
+
+// BarHeight
+do {
+    // Given each bar height, Then it maps to its points, and Small is the former fixed 36pt bar
+    check("barHeight_points_are28To60By8", BarHeight.allCases.map(\.points) == [28, 36, 44, 52, 60])
+    check("barHeight_ofSmall_keepsTheFormerSizes",
+          BarHeight.small.scale == 1 && BarHeight.small.launcherWidth == 48 && BarHeight.small.pinnedIconWidth == 36 && BarHeight.small.iconOnlyWidth == 48)
+    check("barHeight_ofExtraLarge_scalesIconHolders",
+          BarHeight.extraLarge.launcherWidth == 80 && BarHeight.extraLarge.pinnedIconWidth == 60 && BarHeight.extraLarge.iconOnlyWidth == 80)
+    check("barHeight_ofExtraSmall_roundsToWholePoints", BarHeight.extraSmall.launcherWidth == 37)
 }
 
 // isRealWindow
@@ -122,7 +136,7 @@ do {
     let screen = CGRect(x: -800, y: 1000, width: 800, height: 600)
     // When computing the bar frame, Then it is full width, 36pt high and flush with the screen bottom
     check("barFrame_ofOffsetScreen_isFullWidthAtBottom",
-          barFrame(screenFrame: screen) == CGRect(x: -800, y: 1000, width: 800, height: 36))
+          barFrame(screenFrame: screen, height: 36) == CGRect(x: -800, y: 1000, width: 800, height: 36))
     check("barFrame_ofCustomHeight_usesIt",
           barFrame(screenFrame: screen, height: 20).height == 20)
 }
@@ -382,7 +396,7 @@ do {
     // Given a screen at a non-zero origin with a 25pt menu bar (Cocoa coordinates, bar 36pt at the bottom)
     let screen = CGRect(x: -800, y: 1000, width: 800, height: 600)
     let visible = CGRect(x: -800, y: 1000, width: 800, height: 575)
-    let bar = barFrame(screenFrame: screen)
+    let bar = barFrame(screenFrame: screen, height: 36)
     let above = CGRect(x: -700, y: 1100, width: 300, height: 200)
     let over = CGRect(x: -700, y: 1010, width: 300, height: 200)
     check("overlapsBar_ofWindowAbove_isFalse", !overlapsBar(above, bar: bar))
@@ -411,7 +425,7 @@ do {
     let visible = CGRect(x: 0, y: 0, width: 800, height: 575)
     let over = CGRect(x: 100, y: 10, width: 300, height: 200)
     func target(_ window: CGRect, isMinimized: Bool = false, isFullScreen: Bool = false, visibleFrame: CGRect = visible) -> CGRect? {
-        pushTarget(window, isMinimized: isMinimized, isFullScreen: isFullScreen, screenFrame: screen, visibleFrame: visibleFrame)
+        pushTarget(window, isMinimized: isMinimized, isFullScreen: isFullScreen, screenFrame: screen, visibleFrame: visibleFrame, barHeight: 36)
     }
     check("pushTarget_ofOverlappingWindow_isItsPushedFrame", target(over) == CGRect(x: 100, y: 36, width: 300, height: 200))
     // Given a window clear of the bar but taller than the room, Then pushedFrame must not get to shrink it
@@ -583,17 +597,17 @@ do {
 // taskSlot
 do {
     // Given a 1000pt bar, When asking where its tasks go, Then they start after the launcher and share the rest
-    let slot = taskSlot(barWidth: 1000)
-    check("taskSlot_startsAfterTheLauncher", slot.x == launcherWidth && launcherWidth == 48)
+    let slot = taskSlot(barWidth: 1000, launcherWidth: 48)
+    check("taskSlot_startsAfterTheLauncher", slot.x == 48)
     check("taskSlot_sharesTheWidthLeft", slot.width == 952)
     // Given pinned icons, Then they sit between the launcher and the tasks
-    let withPins = taskSlot(barWidth: 1000, pinnedWidth: 96)
+    let withPins = taskSlot(barWidth: 1000, launcherWidth: 48, pinnedWidth: 96)
     check("taskSlot_withPinnedIcons_startsAfterThem", withPins.x == 144 && withPins.width == 856)
-    check("taskSlot_ofBarNarrowerThanLauncher_hasNoWidth", taskSlot(barWidth: 10).width == 0)
+    check("taskSlot_ofBarNarrowerThanLauncher_hasNoWidth", taskSlot(barWidth: 10, launcherWidth: 48).width == 0)
     // Given a clock, Then tasks keep their start and lose its width
-    let withClock = taskSlot(barWidth: 1000, pinnedWidth: 96, clockWidth: 100)
+    let withClock = taskSlot(barWidth: 1000, launcherWidth: 48, pinnedWidth: 96, clockWidth: 100)
     check("taskSlot_withClock_endsBeforeIt", withClock.x == 144 && withClock.width == 756)
-    check("taskSlot_withClockWiderThanTheRoomLeft_hasNoWidth", taskSlot(barWidth: 100, clockWidth: 100).width == 0)
+    check("taskSlot_withClockWiderThanTheRoomLeft_hasNoWidth", taskSlot(barWidth: 100, launcherWidth: 48, clockWidth: 100).width == 0)
 
     // Given a width where the full bar would still fit but the width left doesn't
     check("entryWidth_ofWidthLeft_isAnEqualShareOfIt",
@@ -911,10 +925,11 @@ do {
 // pinnedIconWidth
 do {
     // Given two pinned icons of about 36pt, Then tasks start after them and pins never shrink, even with no width left
-    let slot = taskSlot(barWidth: 1000, pinnedWidth: 2 * pinnedIconWidth)
+    let pinnedIconWidth = BarHeight.small.pinnedIconWidth
+    let slot = taskSlot(barWidth: 1000, launcherWidth: 48, pinnedWidth: 2 * pinnedIconWidth)
     check("pinnedIconWidth_isAbout36Points", pinnedIconWidth == 36)
     check("taskSlot_withTwoPinnedIcons_startsAfterThem", slot.x == 120 && slot.width == 880)
-    check("taskSlot_withMorePinsThanFit_hasNoWidth", taskSlot(barWidth: 100, pinnedWidth: 3 * pinnedIconWidth).width == 0)
+    check("taskSlot_withMorePinsThanFit_hasNoWidth", taskSlot(barWidth: 100, launcherWidth: 48, pinnedWidth: 3 * pinnedIconWidth).width == 0)
 }
 
 // TaskOrder
@@ -1195,7 +1210,7 @@ do {
 // usableArea
 do {
     // Given a screen with a menu bar, When computing the area, Then the bar and the menu bar are out
-    let area = usableArea(screenFrame: CGRect(x: 100, y: 0, width: 1000, height: 800), visibleFrame: CGRect(x: 100, y: 0, width: 1000, height: 770))
+    let area = usableArea(screenFrame: CGRect(x: 100, y: 0, width: 1000, height: 800), visibleFrame: CGRect(x: 100, y: 0, width: 1000, height: 770), barHeight: 36)
     check("usableArea_excludesTheBarAndTheMenuBar", area == CGRect(x: 100, y: 36, width: 1000, height: 734))
 }
 

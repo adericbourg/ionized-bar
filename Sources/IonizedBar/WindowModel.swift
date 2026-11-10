@@ -20,7 +20,7 @@ enum WindowModel {
                 if window.isEntry { byDisplay[display.id, default: []].append(window) }
                 // A window straddling two displays is only checked against its assigned display's bar.
                 if let visibleFrame = screens.first(where: { $0.displayID == display.id })?.visibleFrame {
-                    target = pushTarget(frame, isMinimized: window.isMinimized, isFullScreen: window.isFullScreen, screenFrame: display.frame, visibleFrame: visibleFrame)
+                    target = pushTarget(frame, isMinimized: window.isMinimized, isFullScreen: window.isFullScreen, screenFrame: display.frame, visibleFrame: visibleFrame, barHeight: barManager.settings.barHeight.points)
                         .map { flipRect($0, primaryScreenHeight: primary.frame.height) }
                 }
             }

@@ -102,6 +102,7 @@ Pick "Settings…" in a right-click menu of the bar.
 |---|---|
 | Group windows | Never (default), When full, Always |
 | Show tasks as | Icon only, App name, Content (default, the window title) |
+| Bar height | Extra small, Small (default), Medium, Large, Extra large. Icons and the clock scale with it |
 | Keep pinned app icons visible | Off by default |
 | Start at login | On after the first launch |
 | Display clock | Off by default. Shows a clock at the right of the bar. A click on it opens a month calendar |
