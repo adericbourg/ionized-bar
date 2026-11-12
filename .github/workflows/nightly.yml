@@ -1,0 +1,107 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+concurrency: nightly
+
+jobs:
+  check:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # Saves a macOS runner when main hasn't moved since the last nightly
+      - id: check
+        run: |
+          echo "tag=nightly-$(date -u +%F)" >> "$GITHUB_OUTPUT"
+          last=$(git tag --list 'nightly-*' --sort=-refname | head -1)
+          if [ -n "$last" ] && [ "$(git rev-list -n1 "$last")" = "$(git rev-parse HEAD)" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    needs: check
+    if: needs.check.outputs.skip != 'true'
+    runs-on: xcode-27
+    permissions:
+      contents: write
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+      TAG: ${{ needs.check.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: swift run IonizedBarChecks
+      - name: Import the signing certificate
+        env:
+          SIGNING_CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
+          SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password=$(openssl rand -base64 24)
+          echo "$SIGNING_CERT_P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$SIGNING_CERT_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/signing.p12"
+          # Lets codesign use the key without a UI prompt
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+      - run: ./scripts/archive.sh
+      - name: Refuse an ad-hoc build, which would lose the users' grants
+        run: codesign -dr - build/IonizedBar.app 2>&1 | grep -q 'certificate leaf'
+      - name: Delete the signing keychain and certificate
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/signing.p12"
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+      - name: Release the nightly
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mv build/IonizedBar-*.zip "build/IonizedBar-$TAG.zip"
+          # A second run on the same day replaces that day's nightly
+          gh release delete "$TAG" --cleanup-tag --yes 2>/dev/null || true
+          # Pre-release, so it never becomes "latest" for the stable cask's livecheck
+          gh release create "$TAG" "build/IonizedBar-$TAG.zip" --target "$GITHUB_SHA" --prerelease --title "$TAG" --generate-notes
+
+  cask:
+    needs: [check, release]
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.check.outputs.tag }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: adericbourg/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      - name: Point the cask at the nightly
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "IonizedBar-$TAG.zip" --dir "$RUNNER_TEMP"
+          sha=$(sha256sum "$RUNNER_TEMP/IonizedBar-$TAG.zip" | cut -d' ' -f1)
+          sed -i -E "s/^  version \".*\"/  version \"${TAG#nightly-}\"/; s/^  sha256 \"[^\"]*\"/  sha256 \"$sha\"/" Casks/ionized-bar-nightly.rb
+      - name: Push to the tap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Brew cask update for ionized-bar-nightly version $TAG"
+          git push
+      # Last, so the cask never points at a deleted release
+      - name: Delete the previous nightlies
+        run: |
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName -q '.[].tagName' \
+            | grep '^nightly-' | grep -vx "$TAG" \
+            | xargs -r -n1 gh release delete --cleanup-tag --yes --repo "$GITHUB_REPOSITORY"

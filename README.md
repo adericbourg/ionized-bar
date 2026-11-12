@@ -19,6 +19,13 @@ You need macOS 27.2 or later on Apple silicon.
 brew install --cask adericbourg/tap/ionized-bar
 ```
 
+To test the latest `main`, install the daily build `ionized-bar-nightly` instead. It's the same app, so it replaces `ionized-bar` and keeps its permissions and settings:
+
+```sh
+brew uninstall --cask ionized-bar
+brew install --cask adericbourg/tap/ionized-bar-nightly
+```
+
 The app is self-signed and not notarized, so Gatekeeper would refuse to open it. The cask removes the quarantine attribute after installing, so installing from the tap means trusting it to bypass Gatekeeper for this app.
 
 To install by hand instead:
