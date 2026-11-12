@@ -30,6 +30,7 @@ uBar and boringBar don't fit the need: a KDE Plasma–style taskbar for macOS, w
 - A click on a minimized entry restores it.
 - A middle-click closes the window.
 - A right-click opens a menu: Settings… and Quit IonizedBar, a separator, then Close, Minimize and Quit the app. The empty bar offers the first two.
+- A file dragged over an entry brings its window forward, or restores it, so the file can be dropped there. It waits for the macOS spring-loading delay (System Settings › Accessibility › Pointer Control), so a drag across the bar raises nothing, and does nothing if spring-loading is off there.
 
 ## Replacing the Dock
 
@@ -92,6 +93,7 @@ A group entry holds all of an app's windows on that bar (2 or more), placed wher
 - It is highlighted if any of its windows has focus, and dimmed only if all of them are minimized.
 - A click opens a native menu that lists the windows. The focused window has a checkmark, and minimized windows say so.
 - A middle-click does nothing, so a stray click can't close several windows.
+- A file dragged over it splits the app back into one entry per window on that bar, after the spring-loading delay, so the target window can be picked. The group returns once the drag has left those entries for the same delay.
 - A right-click offers Settings… and Quit IonizedBar, a separator, then Close All Windows, the move and pin items and Quit the app.
 
 ## Window previews

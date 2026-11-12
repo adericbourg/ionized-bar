@@ -38,6 +38,9 @@ final class BarContentView: NSView {
     // Fading out; one is revived if its pin returns before the fade ends.
     private var leavingIcons: [PinnedIconView] = []
     private var maybeClock: ClockView?
+    // Apps split apart while a file is dragged over the bar, so each of their windows can be sprung.
+    private var ungroupedDuringDrag: Set<pid_t> = []
+    private var maybeRegroupTimer: Timer?
 
     private static let duration: TimeInterval = 0.12
     private static let groupWhenFullBelow: CGFloat = 120
@@ -99,7 +102,8 @@ final class BarContentView: NSView {
         }
         items = barItems(
             windows, pid: \.pid, barWidth: slot.width, mode: settings.grouping,
-            minEntryWidth: settings.taskDisplay == .iconOnly ? settings.barHeight.iconOnlyWidth : Self.groupWhenFullBelow
+            minEntryWidth: settings.taskDisplay == .iconOnly ? settings.barHeight.iconOnlyWidth : Self.groupWhenFullBelow,
+            ungrouped: ungroupedDuringDrag
         )
         var gone = entries
         ordered = items.map { item in
@@ -123,6 +127,32 @@ final class BarContentView: NSView {
             window?.makeFirstResponder(focusStops[min(focusedIndex, focusStops.count - 1)])
         }
         needsLayout = true
+    }
+
+    func ungroupDuringDrag(_ pid: pid_t) {
+        ungroupedDuringDrag.insert(pid)
+        rebuild()
+    }
+
+    func dragEnteredEntry() {
+        maybeRegroupTimer?.invalidate()
+        maybeRegroupTimer = nil
+    }
+
+    /// Regroups after the same delay as the ungrouping, so moving from one window's entry to the next keeps them apart.
+    func dragLeftEntry() {
+        guard !ungroupedDuringDrag.isEmpty else { return }
+        maybeRegroupTimer?.invalidate()
+        // The value set in System Settings › Accessibility › Pointer Control, absent until changed there.
+        let delay = UserDefaults.standard.object(forKey: "com.apple.springing.delay") as? Double ?? 0.5
+        maybeRegroupTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.maybeRegroupTimer = nil
+                self.ungroupedDuringDrag = []
+                self.rebuild()
+            }
+        }
     }
 
     // Before anything reads `slot`, which depends on the clock's width.

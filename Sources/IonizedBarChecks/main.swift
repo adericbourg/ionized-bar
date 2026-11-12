@@ -204,9 +204,9 @@ do {
 do {
     // Given windows (pid, name) whose apps interleave on the bar
     let windows: [(pid: Int32, name: String)] = [(1, "a"), (2, "b"), (1, "c"), (3, "d")]
-    func items(mode: GroupingMode) -> [BarItem<(pid: Int32, name: String)>] {
+    func items(mode: GroupingMode, ungrouped: Set<Int32> = []) -> [BarItem<(pid: Int32, name: String)>] {
         // When building the bar's items
-        barItems(windows, pid: \.pid, barWidth: 1000, mode: mode, minEntryWidth: 100)
+        barItems(windows, pid: \.pid, barWidth: 1000, mode: mode, minEntryWidth: 100, ungrouped: ungrouped)
     }
     func describe(_ items: [BarItem<(pid: Int32, name: String)>]) -> [String] {
         items.map { item in
@@ -219,6 +219,8 @@ do {
     // Then a group sits where its app's first window was, and keeps its windows in bar order
     check("barItems_whenAlways_groupsAtFirstWindowPosition", describe(items(mode: .always)) == ["1:ac", "b", "d"])
     check("barItems_whenNever_keepsEveryWindow", describe(items(mode: .never)) == ["a", "b", "c", "d"])
+    // Then an app ungrouped during a drag keeps its windows apart
+    check("barItems_withUngroupedPid_keepsItsWindowsSeparate", describe(items(mode: .always, ungrouped: [1])) == ["a", "b", "c", "d"])
 }
 
 // hideDock, restoreDock

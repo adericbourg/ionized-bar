@@ -12,6 +12,7 @@ final class EntryView: BarButton {
     private let title = NSTextField(labelWithString: "")
     private(set) var isActive = false { didSet { needsDisplay = true } }
     private var display = TaskDisplay.content
+    private var isSpringHighlighted = false { didSet { needsDisplay = true } }
     var isIconOnly = false {
         didSet {
             guard isIconOnly != oldValue else { return }
@@ -31,6 +32,8 @@ final class EntryView: BarButton {
         addSubview(title)
         icon.setAccessibilityElement(false)
         title.setAccessibilityElement(false)
+        // File promises cover attachments dragged from apps such as Mail or Photos.
+        registerForDraggedTypes([.fileURL] + NSFilePromiseReceiver.readableDraggedTypes.map { NSPasteboard.PasteboardType($0) })
     }
 
     @available(*, unavailable)
@@ -104,7 +107,7 @@ final class EntryView: BarButton {
 
     override func draw(_ dirtyRect: NSRect) {
         // A tile on the focus ring's inset, so entries stand apart from the bar and from each other.
-        (isActive ? NSColor.controlAccentColor.withAlphaComponent(Self.activeTintAlpha) : NSColor.labelColor.withAlphaComponent(isHovered ? 0.1 : 0.05)).setFill()
+        (isActive ? NSColor.controlAccentColor.withAlphaComponent(Self.activeTintAlpha) : NSColor.labelColor.withAlphaComponent(isHovered || isSpringHighlighted ? 0.1 : 0.05)).setFill()
         focusRingPath.fill()
         let tile = bounds.insetBy(dx: Self.focusRingInset, dy: Self.focusRingInset)
         // The tint alone is too close to an inactive tile: the outline is what makes the state stand out.
@@ -204,6 +207,10 @@ final class EntryView: BarButton {
 
     @objc private func pickWindow(_ sender: NSMenuItem) {
         guard let window = sender.representedObject as? TrackedWindow else { return }
+        bringForward(window)
+    }
+
+    private func bringForward(_ window: TrackedWindow) {
         if window.isMinimized { manager.windowTracker.restore(window) } else { manager.windowTracker.raise(window) }
     }
 
@@ -220,4 +227,35 @@ final class EntryView: BarButton {
     }
 
     @objc private func quitApp() { NSRunningApplication(processIdentifier: item.windows[0].pid)?.terminate() }
+}
+
+/// A file dragged over an entry brings its window forward after the system spring-loading delay, so it can be dropped there.
+extension EntryView: NSSpringLoadingDestination {
+    // No drop on the entry itself: the file goes into the window.
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        (superview as? BarContentView)?.dragEnteredEntry()
+        return []
+    }
+
+    override func draggingExited(_ sender: (any NSDraggingInfo)?) {
+        (superview as? BarContentView)?.dragLeftEntry()
+    }
+
+    override func draggingEnded(_ sender: any NSDraggingInfo) {
+        (superview as? BarContentView)?.dragLeftEntry()
+    }
+
+    func springLoadingEntered(_ draggingInfo: any NSDraggingInfo) -> NSSpringLoadingOptions { .enabled }
+
+    func springLoadingHighlightChanged(_ draggingInfo: any NSDraggingInfo) {
+        isSpringHighlighted = draggingInfo.springLoadingHighlight != .none
+    }
+
+    func springLoadingActivated(_ activated: Bool, draggingInfo: any NSDraggingInfo) {
+        guard activated else { return }
+        switch item {
+        case .window(let window): bringForward(window)
+        case .group(let pid, _): (superview as? BarContentView)?.ungroupDuringDrag(pid)
+        }
+    }
 }

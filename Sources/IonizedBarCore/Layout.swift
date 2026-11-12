@@ -274,12 +274,13 @@ public func appsToGroup(
 }
 
 public func barItems<Window>(
-    _ windows: [Window], pid: (Window) -> Int32, barWidth: CGFloat, mode: GroupingMode, minEntryWidth: CGFloat
+    _ windows: [Window], pid: (Window) -> Int32, barWidth: CGFloat, mode: GroupingMode, minEntryWidth: CGFloat,
+    ungrouped: Set<Int32> = []
 ) -> [BarItem<Window>] {
     let windowsByPid = Dictionary(grouping: windows, by: pid)
     var counted: Set<Int32> = []
     let counts = windows.map(pid).filter { counted.insert($0).inserted }.map { (pid: $0, count: windowsByPid[$0]!.count) }
-    let grouped = appsToGroup(windowCounts: counts, barWidth: barWidth, mode: mode, minEntryWidth: minEntryWidth)
+    let grouped = appsToGroup(windowCounts: counts, barWidth: barWidth, mode: mode, minEntryWidth: minEntryWidth).subtracting(ungrouped)
     var placed: Set<Int32> = []
     return windows.compactMap { window in
         let windowPid = pid(window)
