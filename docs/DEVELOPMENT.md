@@ -27,7 +27,7 @@ Apple silicon only. `./scripts/archive.sh` builds the bundle and zips it into `b
 
 ### Nightly
 
-The Nightly workflow builds `main` every day at 03:00 UTC, or when started from the Actions tab. If `main` hasn't moved since the last nightly, it stops there. Otherwise it runs the checks, builds and signs the zip as a release does, and publishes it as the pre-release `nightly-<YYYY-MM-DD>` without changing the version. A second run on the same day replaces that day's nightly. It then sets `version` and `sha256` in `Casks/ionized-bar-nightly.rb` of the tap, and only after that deletes the previous `nightly-*` releases and their tags. The About tab tells nightlies apart by their commit.
+The Nightly workflow builds `main` every day at 03:00 UTC, or when started from the Actions tab. If `main` hasn't moved since the last nightly, it stops there. Otherwise it runs the checks, builds and signs the zip as a release does, and publishes it as the pre-release `nightly-<YYYY-MM-DD>`. The bundle's `CFBundleShortVersionString` is that tag, so the About tab shows `nightly-<YYYY-MM-DD> (<commit>)`; the version in `Support/Info.plist` on `main` doesn't change. A second run on the same day replaces that day's nightly. It then sets `version` and `sha256` in `Casks/ionized-bar-nightly.rb` of the tap, and only after that deletes the previous `nightly-*` releases and their tags.
 
 ### Signing certificate
 

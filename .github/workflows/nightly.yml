@@ -57,6 +57,8 @@ jobs:
           # Lets codesign use the key without a UI prompt
           security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" >/dev/null
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+      # Shown in the About tab, and names the zip. Not committed: main keeps the last release's version
+      - run: /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $TAG" Support/Info.plist
       - run: ./scripts/archive.sh
       - name: Refuse an ad-hoc build, which would lose the users' grants
         run: codesign -dr - build/IonizedBar.app 2>&1 | grep -q 'certificate leaf'
@@ -69,7 +71,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mv build/IonizedBar-*.zip "build/IonizedBar-$TAG.zip"
           # A second run on the same day replaces that day's nightly
           gh release delete "$TAG" --cleanup-tag --yes 2>/dev/null || true
           # Pre-release, so it never becomes "latest" for the stable cask's livecheck
