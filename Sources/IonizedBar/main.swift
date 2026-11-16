@@ -48,6 +48,10 @@ restoreDockOnTermination { restoreDock(dock) }
     NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { _ in
         MainActor.assumeIsolated { windowTracker.markAllDirty() }
     }
+    // Screen changes while locked are checked against a CG window list that hides everything behind the lock screen.
+    DistributedNotificationCenter.default().addObserver(forName: .init("com.apple.screenIsUnlocked"), object: nil, queue: .main) { _ in
+        MainActor.assumeIsolated { windowTracker.markAllDirty() }
+    }
     log(hideDock(dock) ? "Dock hidden" : "Dock not hidden")
     LoginItem.registerOnce()
 }
