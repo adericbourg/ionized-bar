@@ -13,6 +13,7 @@ final class EntryView: BarButton {
     private(set) var isActive = false { didSet { needsDisplay = true } }
     private var display = TaskDisplay.content
     private var isSpringHighlighted = false { didSet { needsDisplay = true } }
+    private var maybeSpringTimer: Timer?
     var isIconOnly = false {
         didSet {
             guard isIconOnly != oldValue else { return }
@@ -230,29 +231,37 @@ final class EntryView: BarButton {
 }
 
 /// A file dragged over an entry brings its window forward after the system spring-loading delay, so it can be dropped there.
-extension EntryView: NSSpringLoadingDestination {
+/// A timer rather than NSSpringLoadingDestination: AppKit never activates spring-loading on a destination that refuses the drop,
+/// and accepting it adds a drop badge to the cursor and AppKit's flash animation after the delay.
+extension EntryView {
     // No drop on the entry itself: the file goes into the window.
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
         (superview as? BarContentView)?.dragEnteredEntry()
+        // System Settings › Accessibility › Pointer Control, absent until changed there.
+        guard UserDefaults.standard.object(forKey: "com.apple.springing.enabled") as? Bool ?? true else { return [] }
+        isSpringHighlighted = true
+        maybeSpringTimer = Timer.scheduledTimer(withTimeInterval: BarContentView.springingDelay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.spring() }
+        }
         return []
     }
 
     override func draggingExited(_ sender: (any NSDraggingInfo)?) {
-        (superview as? BarContentView)?.dragLeftEntry()
+        stopSpringing()
     }
 
     override func draggingEnded(_ sender: any NSDraggingInfo) {
+        stopSpringing()
+    }
+
+    private func stopSpringing() {
+        maybeSpringTimer?.invalidate()
+        maybeSpringTimer = nil
+        isSpringHighlighted = false
         (superview as? BarContentView)?.dragLeftEntry()
     }
 
-    func springLoadingEntered(_ draggingInfo: any NSDraggingInfo) -> NSSpringLoadingOptions { .enabled }
-
-    func springLoadingHighlightChanged(_ draggingInfo: any NSDraggingInfo) {
-        isSpringHighlighted = draggingInfo.springLoadingHighlight != .none
-    }
-
-    func springLoadingActivated(_ activated: Bool, draggingInfo: any NSDraggingInfo) {
-        guard activated else { return }
+    private func spring() {
         switch item {
         case .window(let window): bringForward(window)
         case .group(let pid, _): (superview as? BarContentView)?.ungroupDuringDrag(pid)

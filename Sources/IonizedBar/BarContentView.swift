@@ -129,6 +129,9 @@ final class BarContentView: NSView {
         needsLayout = true
     }
 
+    // The value set in System Settings › Accessibility › Pointer Control, absent until changed there.
+    static var springingDelay: TimeInterval { UserDefaults.standard.object(forKey: "com.apple.springing.delay") as? Double ?? 0.5 }
+
     func ungroupDuringDrag(_ pid: pid_t) {
         ungroupedDuringDrag.insert(pid)
         rebuild()
@@ -143,9 +146,7 @@ final class BarContentView: NSView {
     func dragLeftEntry() {
         guard !ungroupedDuringDrag.isEmpty else { return }
         maybeRegroupTimer?.invalidate()
-        // The value set in System Settings › Accessibility › Pointer Control, absent until changed there.
-        let delay = UserDefaults.standard.object(forKey: "com.apple.springing.delay") as? Double ?? 0.5
-        maybeRegroupTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+        maybeRegroupTimer = Timer.scheduledTimer(withTimeInterval: Self.springingDelay, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
                 self.maybeRegroupTimer = nil
