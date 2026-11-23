@@ -7,6 +7,9 @@ enum WindowModel {
     static func update(_ windows: [TrackedWindow], aliveWindows: Set<AXUIElement>, barManager: BarManager, pusher: WindowPusher) {
         let screens = NSScreen.screens
         guard let primary = screens.first else { return }
+        let windows = barManager.desktops.reconcile(
+            windows, aliveWindows: aliveWindows, screens: screens.map { flipRect($0.frame, primaryScreenHeight: primary.frame.height) }
+        )
         let displays = screens.compactMap { screen -> Display? in
             guard let id = screen.displayID else { return nil }
             return Display(id: id, frame: screen.frame)

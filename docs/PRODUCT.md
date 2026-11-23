@@ -65,6 +65,27 @@ With "Resize tiled windows together" on, dragging the edge shared by two windows
 - **Minimum size:** macOS doesn't let another app stop a drag, so the windows overlap once the follower can't shrink further. On release, the dragged window goes back to the follower's edge.
 - **More than two windows:** quarter tiling isn't covered, because a quarter window never fills the screen with one other window.
 
+## Virtual desktops
+
+As in Plasma, windows can be spread over up to 8 virtual desktops, set with "Virtual desktops" in Settings (1 by default). With one desktop, nothing below applies and the bar shows no pager.
+
+- **Pager:** numbered squares at the right end of every bar, after the clock: one row for 2 desktops, two rows from 3 on. The current desktop has the accent tint and outline of the active entry, and a click on a square switches to it. One desktop is current on all displays at once.
+- **Switching:** the other desktops' windows leave the bars and the screen. The window last focused on the new desktop is raised.
+- **Shortcuts:** ⌃⌥1 to ⌃⌥8 switch to a desktop, and ⌃⌥⇧1 to ⌃⌥⇧8 send the focused window there. They are only registered with several desktops, and only up to their number, so other apps keep them otherwise.
+- **Moving a window:** "Move to Desktop" in a window entry's menu, or the shortcut. New windows open on the current desktop, and a minimized window stays on its desktop.
+- **Focus from elsewhere:** Cmd-Tab, Mission Control or a notification can focus a window of another desktop, and the bar then switches to that desktop.
+- **Fewer desktops:** the windows of the removed desktops go to the new last one.
+- **Memory only:** after a relaunch, all windows are on desktop 1.
+
+**How windows are hidden.** macOS has no public API to create Spaces or move another app's windows between them, so the app parks the other desktops' windows in a bottom corner of their display through AX, as AeroSpace does. macOS keeps 1 × 32 pt of a parked window on screen, behind the bar.
+
+- **Corner:** the bottom-right one, or the bottom-left one when the window would overlap another display there, since macOS would move it onto that display. A display with neighbours at both bottom corners keeps the right corner, and a sliver can show on the neighbour.
+- **Extra small bar:** at 28 pt, the bar is lower than what macOS leaves, so a 1 pt strip coloured like the bar covers each bottom corner.
+- **Pushing:** parked windows aren't pushed off the bar.
+- **Fullscreen windows** are on their own Space, and are left alone.
+- **Quitting:** a normal quit, `SIGTERM` or `SIGINT` brings every window back. After a crash or a `kill -9`, the next launch brings windows it finds parked back to the middle of their display.
+- **Still visible:** Mission Control and Cmd-Tab still show parked windows. Native Spaces still work: desktops apply to the windows of the current Space.
+
 ## Start at login
 
 The app registers itself with `SMAppService.mainApp` once, when Accessibility is first granted; if that fails, the next launch tries again, unless the setting was changed in the meantime. "Start at login" in Settings shows the real status and applies at once. It is not saved separately, and a relaunch doesn't turn it back on.
@@ -79,6 +100,7 @@ The General tab holds:
 - **When full:** apps merge when entries would drop below about 120 pt, or 48 pt with Icon only. The app with the most windows merges first, and merging stops once entries fit. On a tie, the later app on the bar merges first.
 - **Show tasks as:** Icon only, App name or Content (default, the window title). A title that isn't shown moves to a tooltip, and VoiceOver reads it in every mode.
 - **Icon only:** compact entries of about 48 pt, packed from the left. This is the one exception to the equal width.
+- **Virtual desktops:** 1 (default) to 8. See [Virtual desktops](#virtual-desktops).
 - **Bar height:** Extra small (28 pt), Small (default, 36 pt), Medium (44 pt), Large (52 pt) or Extra large (60 pt). Icons, the launcher and pinned icons, icon-only entries and the clock's fonts scale with it; task titles stay at 13 pt. Windows are pushed above the new height.
 - **Keep pinned app icons visible:** see [Pinned apps](#pinned-apps).
 - **Start at login:** see [Start at login](#start-at-login).
@@ -136,7 +158,7 @@ A button at the left of every bar opens a panel in the layout of Plasma's launch
 
 ## Pinned apps
 
-Pinning keeps an app's icon on the bar while the app is closed. The bar reads, from the left: launcher, pinned icons, tasks, then the [clock](#clock) when it is on.
+Pinning keeps an app's icon on the bar while the app is closed. The bar reads, from the left: launcher, pinned icons, tasks, then the [clock](#clock) when it is on, and the [pager](#virtual-desktops) with several desktops.
 
 - **Pinning:** "Pin" and "Unpin" are in the menu of a task or group, since a pin belongs to the app and not to a window. "Unpin" is also in the icon's menu. An app with no bundle identifier can't be pinned.
 - **Icon:** about 36 pt wide with a 28 pt icon, and the app name as tooltip. A click opens the app. A running app comes to the front and decides whether to reopen a window.
@@ -219,7 +241,7 @@ Dragging a task or a pinned icon along the bar changes its place. Only the entry
 The app follows the spirit of WCAG 2.2 AA.
 
 - **VoiceOver:** every entry is an element with the window title, the app name and its state. Launcher rows and pinned icons have labels, and the launcher announces results and view changes.
-- **Keyboard:** ⌃⌥B reaches the bar. It walks the launcher, the pinned icons, the tasks and the clock, and Shift-F10 opens the menus.
+- **Keyboard:** ⌃⌥B reaches the bar. It walks the launcher, the pinned icons, the tasks, the clock and the pager, and Shift-F10 opens the menus. ⌃⌥1 to ⌃⌥8 switch desktops.
 - **System settings:** the bar and its panels honor Reduce Motion, Reduce Transparency and Increase Contrast.
 - **Contrast:** text keeps a ratio of at least 4.5:1, using label colors rather than hard-coded grey.
 

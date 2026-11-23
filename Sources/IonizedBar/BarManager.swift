@@ -11,7 +11,10 @@ final class BarManager {
     private var lastCaptures: [AXUIElement: CGImage] = [:]
     let windowTracker: WindowTracker
     let settingsWindow: SettingsWindow
+    let desktops: Desktops
     private var panels: [UInt32: BarPanel] = [:]
+    /// Over the corners where windows are parked, when the bar is lower than what macOS leaves of them.
+    private var cornerCovers: [NSPanel] = []
     private(set) var settings = Settings.load()
     private var latestWindowsByDisplay: [UInt32: [TrackedWindow]] = [:]
     // Across all bars, memory only: AX elements don't survive a restart.
@@ -22,6 +25,7 @@ final class BarManager {
 
     init(windowTracker: WindowTracker) {
         self.windowTracker = windowTracker
+        desktops = Desktops(tracker: windowTracker, count: settings.desktopCount)
         let settingsWindow = SettingsWindow(settings: settings)
         self.settingsWindow = settingsWindow
         // The settings window knows nothing of previews, so keep their current value.
@@ -30,6 +34,10 @@ final class BarManager {
             var newSettings = $0
             newSettings.showsPreviews = settings.showsPreviews
             apply(newSettings)
+        }
+        desktops.onSwitch = { [weak self] in
+            guard let self else { return }
+            update(windowsByDisplay: latestWindowsByDisplay)
         }
         // Read-only status: no prompt. Only the opt-in toggle may ask.
         if settings.showsPreviews { log("screen recording \(CGPreflightScreenCaptureAccess() ? "granted" : "not granted")") }
@@ -57,6 +65,7 @@ final class BarManager {
             }
         }
         updateJointAreas()
+        updateCornerCovers()
         // Pinned icons need no window: without this a new bar shows none until the first snapshot.
         update(windowsByDisplay: latestWindowsByDisplay)
     }
@@ -139,6 +148,10 @@ final class BarManager {
     private func apply(_ newSettings: Settings) {
         let isEnablingPreviews = newSettings.showsPreviews && !settings.showsPreviews
         let isResizing = newSettings.barHeight != settings.barHeight
+        if newSettings.desktopCount != settings.desktopCount {
+            desktops.setCount(newSettings.desktopCount)
+            BarHotKey.setDesktopCount(newSettings.desktopCount)
+        }
         settings = newSettings
         if !settings.showsPreviews { preview.dismiss() }
         if isEnablingPreviews { CGRequestScreenCaptureAccess() }
@@ -148,7 +161,31 @@ final class BarManager {
             sync()
         } else {
             updateJointAreas()
+            updateCornerCovers()
             update(windowsByDisplay: latestWindowsByDisplay)
+        }
+    }
+
+    /// A 1 pt strip at each bottom corner, coloured like the bar: macOS leaves `parkedVisibleHeight` of a parked window.
+    private func updateCornerCovers() {
+        cornerCovers.forEach { $0.close() }
+        cornerCovers = []
+        guard settings.desktopCount > 1, settings.barHeight.points < parkedVisibleHeight else { return }
+        for screen in NSScreen.screens {
+            for x in [screen.frame.minX, screen.frame.maxX - 1] {
+                let cover = NSPanel(contentRect: CGRect(x: x, y: screen.frame.minY, width: 1, height: parkedVisibleHeight), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+                // The bar's material and tint, so the strip reads as the bar.
+                let frosted = cover.setUpFloating()
+                let tint = makeDarkTint()
+                tint.frame = frosted.bounds
+                frosted.addSubview(tint)
+                cover.appearance = NSAppearance(named: .darkAqua)
+                cover.isReleasedWhenClosed = false
+                cover.hasShadow = false
+                cover.ignoresMouseEvents = true
+                cover.orderFrontRegardless()
+                cornerCovers.append(cover)
+            }
         }
     }
 

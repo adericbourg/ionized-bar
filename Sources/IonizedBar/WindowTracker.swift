@@ -163,6 +163,30 @@ final class WindowTracker: @unchecked Sendable {
         }
     }
 
+    /// `origin` is in AX coordinates. The size stays: for parking a window on another desktop and bringing it back.
+    func move(_ window: TrackedWindow, to origin: CGPoint) {
+        onThread { [self] in setOrigin(window, origin) }
+    }
+
+    /// Waits for the writes, for quitting: the process exits right after. The messaging timeout bounds each write.
+    func moveNow(_ moves: [(window: TrackedWindow, origin: CGPoint)]) {
+        guard !moves.isEmpty else { return }
+        let done = DispatchSemaphore(value: 0)
+        onThread { [self] in
+            for (window, origin) in moves { setOrigin(window, origin) }
+            done.signal()
+        }
+        done.wait()
+    }
+
+    private func setOrigin(_ window: TrackedWindow, _ origin: CGPoint) {
+        var value = origin
+        set(kAXPositionAttribute, to: AXValueCreate(.cgPoint, &value)!, on: window.element, of: window)
+        // Not every app posts moved for an AX write.
+        moving.insert(window.element)
+        markDirty(window.pid)
+    }
+
     /// `target` is in AX coordinates. `onStale` runs when the frame has moved on from `window.frame`, so nothing was written.
     func push(_ window: TrackedWindow, to target: CGRect, onStale: @escaping @Sendable () -> Void) {
         onThread { [self] in

@@ -7,6 +7,7 @@ final class SettingsWindow: AppWindow {
     private let groupingPopUp = NSPopUpButton()
     private let displayPopUp = NSPopUpButton()
     private let heightPopUp = NSPopUpButton()
+    private let desktopsPopUp = NSPopUpButton()
     private let loginCheckbox = NSButton(checkboxWithTitle: "Start at login", target: nil, action: nil)
     private let pinnedCheckbox = NSButton(checkboxWithTitle: "Keep pinned app icons visible", target: nil, action: nil)
     private let clockCheckbox = NSButton(checkboxWithTitle: "Display clock", target: nil, action: nil)
@@ -36,6 +37,9 @@ final class SettingsWindow: AppWindow {
         heightPopUp.addItems(withTitles: BarHeight.allCases.map(Self.title))
         heightPopUp.selectItem(at: BarHeight.allCases.firstIndex(of: settings.barHeight)!)
         heightPopUp.setAccessibilityLabel("Bar height")
+        desktopsPopUp.addItems(withTitles: (1...VirtualDesktops<Int>.maxCount).map(String.init))
+        desktopsPopUp.selectItem(at: settings.desktopCount - 1)
+        desktopsPopUp.setAccessibilityLabel("Virtual desktops")
         timeFormatPopUp.addItems(withTitles: TimeFormat.allCases.map(Self.title))
         timeFormatPopUp.selectItem(at: TimeFormat.allCases.firstIndex(of: settings.clock.timeFormat)!)
         timeFormatPopUp.setAccessibilityLabel("Time format")
@@ -48,7 +52,7 @@ final class SettingsWindow: AppWindow {
         distanceFormatPopUp.addItems(withTitles: DistanceFormat.allCases.map(Self.title))
         distanceFormatPopUp.selectItem(at: DistanceFormat.allCases.firstIndex(of: settings.calendar.distanceFormat)!)
         distanceFormatPopUp.setAccessibilityLabel("Time from today")
-        for popUp in [groupingPopUp, displayPopUp, heightPopUp, timeFormatPopUp, dateFormatPopUp, firstWeekdayPopUp, distanceFormatPopUp] {
+        for popUp in [groupingPopUp, displayPopUp, heightPopUp, desktopsPopUp, timeFormatPopUp, dateFormatPopUp, firstWeekdayPopUp, distanceFormatPopUp] {
             popUp.target = self
             popUp.action = #selector(selectionChanged)
         }
@@ -76,7 +80,7 @@ final class SettingsWindow: AppWindow {
 
         let tabs = NSTabViewController()
         tabs.tabStyle = .toolbar
-        tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 200)))
+        tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 240)))
         tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 360, height: 360)))
         tabs.addTabViewItem(Self.tab("Windows", symbol: "macwindow", content: jointCheckbox, size: CGSize(width: 320, height: 80)))
         tabs.addTabViewItem(Self.tab("About", symbol: "info.circle", content: makeAboutContent(), size: CGSize(width: 320, height: 80)))
@@ -91,6 +95,7 @@ final class SettingsWindow: AppWindow {
             [NSTextField(labelWithString: "Group windows:"), groupingPopUp],
             [NSTextField(labelWithString: "Show tasks as:"), displayPopUp],
             [NSTextField(labelWithString: "Bar height:"), heightPopUp],
+            [NSTextField(labelWithString: "Virtual desktops:"), desktopsPopUp],
             [NSGridCell.emptyContentView, pinnedCheckbox],
             [NSGridCell.emptyContentView, loginCheckbox]
         ])
@@ -272,7 +277,8 @@ final class SettingsWindow: AppWindow {
                 distanceFormat: DistanceFormat.allCases[distanceFormatPopUp.indexOfSelectedItem]
             ),
             resizesJointWindows: jointCheckbox.state == .on,
-            barHeight: BarHeight.allCases[heightPopUp.indexOfSelectedItem]
+            barHeight: BarHeight.allCases[heightPopUp.indexOfSelectedItem],
+            desktopCount: desktopsPopUp.indexOfSelectedItem + 1
         ))
     }
 

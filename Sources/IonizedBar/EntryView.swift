@@ -190,6 +190,16 @@ final class EntryView: BarButton {
             menu.addItem(withTitle: "Minimize", action: #selector(minimizeWindow), keyEquivalent: "").isEnabled = !window.isMinimized
             let previews = menu.addItem(withTitle: "Show window previews", action: #selector(togglePreviews), keyEquivalent: "")
             previews.state = manager.showsPreviews ? .on : .off
+            if manager.desktops.count > 1 {
+                let desktops = NSMenu()
+                for desktop in 1...manager.desktops.count {
+                    let row = desktops.addItem(withTitle: "Desktop \(desktop)", action: #selector(moveToDesktop), keyEquivalent: "")
+                    row.target = self
+                    row.tag = desktop
+                    row.state = desktop == manager.desktops.current ? .on : .off
+                }
+                menu.addItem(withTitle: "Move to Desktop", action: nil, keyEquivalent: "").submenu = desktops
+            }
         case .group:
             menu.addItem(withTitle: "Close All Windows", action: #selector(closeWindows), keyEquivalent: "")
         }
@@ -219,6 +229,10 @@ final class EntryView: BarButton {
     @objc private func togglePreviews() { manager.setShowsPreviews(!manager.showsPreviews) }
     @objc private func closeWindows() { item.windows.forEach(manager.windowTracker.close) }
     @objc private func minimizeWindow() { item.windows.forEach(manager.windowTracker.minimize) }
+    @objc private func moveToDesktop(_ sender: NSMenuItem) {
+        guard case .window(let window) = item else { return }
+        manager.desktops.move(window, to: sender.tag)
+    }
     @objc private func moveEntryLeft() { (superview as? BarContentView)?.move(self, by: -1) }
     @objc private func moveEntryRight() { (superview as? BarContentView)?.move(self, by: 1) }
     @objc private func togglePin(_ sender: NSMenuItem) {

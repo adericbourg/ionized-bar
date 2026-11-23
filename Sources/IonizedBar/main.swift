@@ -14,7 +14,12 @@ let windowTracker = WindowTracker { windows, aliveWindows in
 let barManager: BarManager = BarManager(windowTracker: windowTracker)
 let windowPusher: WindowPusher = WindowPusher(tracker: windowTracker)
 barManager.sync()
-BarHotKey.register { barManager.beginKeyboardMode() }
+BarHotKey.register(
+    onBar: { barManager.beginKeyboardMode() },
+    onDesktop: { barManager.desktops.switchTo($0) },
+    onMoveToDesktop: { barManager.desktops.moveFocused(to: $0) }
+)
+BarHotKey.setDesktopCount(barManager.settings.desktopCount)
 
 let tracker = AppTracker(
     onLaunch: { pid in
@@ -31,7 +36,10 @@ let tracker = AppTracker(
 let dockLock = openDockLock()
 dockLock?.hold()
 let dock = defaultsDockStore(lock: dockLock)
-restoreDockOnTermination { restoreDock(dock) }
+restoreDockOnTermination {
+    barManager.desktops.unparkAll()
+    restoreDock(dock)
+}
 
 // The one place that runs once Accessibility is granted, on the main thread.
 @MainActor func onAccessibilityTrusted() {

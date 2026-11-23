@@ -20,6 +20,7 @@ struct Settings {
     private static let calendarDistanceFormatKey = "calendarDistanceFormat"
     private static let resizesJointWindowsKey = "resizesJointWindows"
     private static let barHeightKey = "barHeight"
+    private static let desktopCountKey = "desktopCount"
 
     var grouping: GroupingMode
     var taskDisplay: TaskDisplay
@@ -29,6 +30,7 @@ struct Settings {
     var calendar = CalendarSettings()
     var resizesJointWindows = false
     var barHeight = BarHeight.small
+    var desktopCount = 1
 
     static func load() -> Settings {
         let defaults = UserDefaults.standard
@@ -50,7 +52,9 @@ struct Settings {
                 distanceFormat: DistanceFormat(rawValue: defaults.string(forKey: calendarDistanceFormatKey) ?? "") ?? .days
             ),
             resizesJointWindows: defaults.bool(forKey: resizesJointWindowsKey),
-            barHeight: BarHeight(rawValue: defaults.string(forKey: barHeightKey) ?? "") ?? .small
+            barHeight: BarHeight(rawValue: defaults.string(forKey: barHeightKey) ?? "") ?? .small,
+            // 0 when absent.
+            desktopCount: min(max(defaults.integer(forKey: desktopCountKey), 1), VirtualDesktops<Int>.maxCount)
         )
     }
 
@@ -69,5 +73,6 @@ struct Settings {
         UserDefaults.standard.set(calendar.distanceFormat.rawValue, forKey: Self.calendarDistanceFormatKey)
         UserDefaults.standard.set(resizesJointWindows, forKey: Self.resizesJointWindowsKey)
         UserDefaults.standard.set(barHeight.rawValue, forKey: Self.barHeightKey)
+        UserDefaults.standard.set(desktopCount, forKey: Self.desktopCountKey)
     }
 }

@@ -38,12 +38,14 @@ final class BarContentView: NSView {
     // Fading out; one is revived if its pin returns before the fade ends.
     private var leavingIcons: [PinnedIconView] = []
     private var maybeClock: ClockView?
+    private var desktopButtons: [DesktopButton] = []
     // Apps split apart while a file is dragged over the bar, so each of their windows can be sprung.
     private var ungroupedDuringDrag: Set<pid_t> = []
     private var maybeRegroupTimer: Timer?
 
     private static let duration: TimeInterval = 0.12
     private static let groupWhenFullBelow: CGFloat = 120
+    private static let pagerPadding: CGFloat = 2
     private var isMotionReduced: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
     init(manager: BarManager) {
@@ -84,14 +86,21 @@ final class BarContentView: NSView {
     private var slot: (x: CGFloat, width: CGFloat) {
         taskSlot(
             barWidth: bounds.width, launcherWidth: settings.barHeight.launcherWidth,
-            pinnedWidth: CGFloat(pinnedIcons.count) * settings.barHeight.pinnedIconWidth, clockWidth: maybeClock?.width ?? 0
+            pinnedWidth: CGFloat(pinnedIcons.count) * settings.barHeight.pinnedIconWidth, clockWidth: (maybeClock?.width ?? 0) + pagerWidth
         )
+    }
+
+    private var pagerCellSize: CGFloat { settings.barHeight.points / CGFloat(pagerGrid(count: desktopButtons.count).rows) }
+
+    private var pagerWidth: CGFloat {
+        desktopButtons.isEmpty ? 0 : CGFloat(pagerGrid(count: desktopButtons.count).columns) * pagerCellSize + 2 * Self.pagerPadding
     }
 
     private func rebuild() {
         let maybeFocused = window?.firstResponder as? NSView
         let focusedIndex = focusStops.firstIndex { $0 === maybeFocused }
         updateClock()
+        updatePager()
         let previousIcons = pinnedIcons
         pinnedIcons = pins.map { bundleID in previousIcons.first { $0.bundleID == bundleID } ?? reviveIcon(bundleID) ?? addPinnedIcon(bundleID) }
         for icon in previousIcons where !pinnedIcons.contains(icon) {
@@ -172,8 +181,22 @@ final class BarContentView: NSView {
         clock.update(settings: settings.clock, barHeight: settings.barHeight)
     }
 
+    /// Hidden with a single desktop. Before anything reads `slot`, which depends on the pager's width.
+    private func updatePager() {
+        let count = settings.desktopCount > 1 ? settings.desktopCount : 0
+        if desktopButtons.count != count {
+            desktopButtons.forEach { $0.removeFromSuperview() }
+            desktopButtons = (1..<count + 1).map { desktop in
+                let button = DesktopButton(desktop: desktop, manager: manager)
+                addSubview(button)
+                return button
+            }
+        }
+        for button in desktopButtons { button.isCurrent = button.desktop == manager.desktops.current }
+    }
+
     // In visual order, without the entries fading out: Tab order and VoiceOver's order.
-    private var focusStops: [NSView] { [launcher] + pinnedIcons + ordered + (maybeClock.map { [$0] } ?? []) }
+    private var focusStops: [NSView] { [launcher] + pinnedIcons + ordered + (maybeClock.map { [$0] } ?? []) + desktopButtons }
 
     var initialFocusStop: NSView { ordered.first(where: \.isActive) ?? focusStops[0] }
 
@@ -338,7 +361,14 @@ final class BarContentView: NSView {
         super.layout()
         launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: settings.barHeight.launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
         if let maybeClock {
-            maybeClock.frame = backingAlignedRect(CGRect(x: bounds.width - maybeClock.width, y: 0, width: maybeClock.width, height: bounds.height), options: .alignAllEdgesNearest)
+            maybeClock.frame = backingAlignedRect(CGRect(x: bounds.width - pagerWidth - maybeClock.width, y: 0, width: maybeClock.width, height: bounds.height), options: .alignAllEdgesNearest)
+        }
+        let grid = pagerGrid(count: desktopButtons.count)
+        let cellHeight = bounds.height / CGFloat(max(grid.rows, 1))
+        for (index, button) in desktopButtons.enumerated() {
+            let x = bounds.width - pagerWidth + Self.pagerPadding + CGFloat(index % grid.columns) * pagerCellSize
+            let y = bounds.height - CGFloat(index / grid.columns + 1) * cellHeight
+            button.frame = backingAlignedRect(CGRect(x: x, y: y, width: pagerCellSize, height: cellHeight), options: .alignAllEdgesNearest)
         }
         var shownIcons = pinnedIcons
         var shown = ordered

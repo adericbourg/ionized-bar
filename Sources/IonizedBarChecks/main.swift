@@ -1439,6 +1439,107 @@ do {
     check("versionDescription_whenNoVersion_returnsDevelopmentBuild", versionDescription(version: nil, commit: nil) == "development build")
 }
 
+// VirtualDesktops
+do {
+    // Given 4 desktops and two windows seen on desktop 1
+    var desktops = VirtualDesktops<String>(count: 4)
+    let firstNew = desktops.update(seen: ["a", "b"], alive: [])
+    check("VirtualDesktops_update_returnsTheNewWindows", firstNew == ["a", "b"])
+    check("VirtualDesktops_update_putsNewWindowsOnTheCurrentDesktop", desktops.desktop(of: "a") == 1 && desktops.isOnCurrent("b"))
+    // When switching to desktop 2 and a window opens
+    desktops.switchTo(2)
+    let secondNew = desktops.update(seen: ["a", "b", "c"], alive: [])
+    // Then only it is new, it opens there, and the others are on another desktop
+    check("VirtualDesktops_update_ofKnownWindows_returnsOnlyTheNewOne", secondNew == ["c"])
+    check("VirtualDesktops_switchTo_hidesTheOtherDesktops", desktops.isOnCurrent("c") && !desktops.isOnCurrent("a"))
+    check("VirtualDesktops_isOnCurrent_ofUnseenWindow_isTrue", desktops.isOnCurrent("z"))
+    // When moving a window, Then it changes desktop; an unknown window or desktop is ignored
+    desktops.move("a", to: 3)
+    desktops.move("a", to: 9)
+    desktops.move("z", to: 1)
+    check("VirtualDesktops_move_changesTheDesktop", desktops.desktop(of: "a") == 3)
+    check("VirtualDesktops_move_ofUnknownWindow_doesNothing", desktops.desktop(of: "z") == nil)
+    desktops.switchTo(0)
+    desktops.switchTo(5)
+    check("VirtualDesktops_switchTo_outOfRange_doesNothing", desktops.current == 2)
+    // When a window is gone from the snapshot but alive, Then it's kept; once destroyed, it's forgotten
+    desktops.update(seen: ["c"], alive: ["a"])
+    check("VirtualDesktops_update_keepsAliveWindows", desktops.desktop(of: "a") == 3 && desktops.desktop(of: "b") == nil)
+    // When lowering the count below the current desktop and a window's desktop, Then both fold into the last one
+    desktops.switchTo(3)
+    desktops.setCount(2)
+    check("VirtualDesktops_setCount_foldsRemovedDesktopsIntoTheLast", desktops.desktop(of: "a") == 2 && desktops.current == 2 && desktops.count == 2)
+    desktops.setCount(20)
+    check("VirtualDesktops_setCount_isClamped", desktops.count == 8 && VirtualDesktops<String>(count: 0).count == 1)
+}
+
+// VirtualDesktops focus
+do {
+    // Given window a on desktop 1 and b on desktop 2, a focused
+    var desktops = VirtualDesktops<String>(count: 4)
+    desktops.update(seen: ["a"], alive: [])
+    desktops.switchTo(2)
+    desktops.update(seen: ["a", "b"], alive: [])
+    desktops.switchTo(1)
+    check("focus_ofWindowOnTheCurrentDesktop_staysThere", !desktops.focus("a") && desktops.current == 1)
+    // When focus comes to b from elsewhere (Cmd-Tab), Then the desktop follows it
+    check("focus_ofWindowOnAnotherDesktop_switchesToIt", desktops.focus("b") && desktops.current == 2)
+    // When switching away with focus left on b, Then the same focus doesn't switch back
+    desktops.switchTo(1)
+    check("focus_unchangedAfterSwitchingAway_staysOnTheNewDesktop", !desktops.focus("b") && desktops.current == 1)
+    check("windowToRaise_returnsTheLastFocusedWindowOfTheDesktop", desktops.windowToRaise(on: 2) == "b")
+    // When the remembered window moves to another desktop, Then it isn't raised there any more: raising it would switch back
+    desktops.move("b", to: 3)
+    check("windowToRaise_ofWindowMovedAway_isNil", desktops.windowToRaise(on: 2) == nil)
+    // When it is destroyed, Then it is forgotten
+    desktops.update(seen: ["a"], alive: [])
+    check("windowToRaise_ofDestroyedWindow_isNil", desktops.windowToRaise(on: 3) == nil)
+    check("focus_ofUnknownWindow_doesNothing", !desktops.focus("z") && desktops.current == 1)
+}
+
+// placement
+do {
+    check("placement_ofWindowOnTheCurrentDesktop_isShow", placement(isOnCurrent: true, isParked: false, canPark: true) == .show)
+    check("placement_ofParkedWindowNowOnTheCurrentDesktop_isBringBack", placement(isOnCurrent: true, isParked: true, canPark: true) == .bringBack)
+    check("placement_ofWindowOnAnotherDesktop_isPark", placement(isOnCurrent: false, isParked: false, canPark: true) == .park)
+    check("placement_ofParkedWindowOnAnotherDesktop_isStayHidden", placement(isOnCurrent: false, isParked: true, canPark: true) == .stayHidden)
+    check("placement_ofMinimizedWindowOnAnotherDesktop_isStayHidden", placement(isOnCurrent: false, isParked: false, canPark: false) == .stayHidden)
+}
+
+// parkingOrigin, isParked, recoveredOrigin, pagerGrid (AX coordinates, the layout measured on a laptop with two displays above it)
+do {
+    let laptop = CGRect(x: 0, y: 0, width: 2056, height: 1329)
+    let upperLeft = CGRect(x: -968, y: -1080, width: 1920, height: 1080)
+    let upperRight = CGRect(x: 952, y: -1080, width: 1920, height: 1080)
+    let size = CGSize(width: 945, height: 602)
+    // Given a display with nothing below or beside, Then the window goes to its bottom-right corner, 1 pt in
+    check("parkingOrigin_ofFreeDisplay_isTheBottomRightCorner",
+          parkingOrigin(size: size, screen: laptop, otherScreens: [upperLeft, upperRight]) == CGPoint(x: 2055, y: 1328))
+    // Given a display whose bottom-right corner touches the others, Then it goes to the bottom-left corner
+    check("parkingOrigin_whenRightCornerTouchesAnotherDisplay_isTheBottomLeftCorner",
+          parkingOrigin(size: size, screen: upperLeft, otherScreens: [laptop, upperRight]) == CGPoint(x: -1912, y: -1))
+    check("parkingOrigin_ofDisplayFreeOnTheRight_isTheBottomRightCorner",
+          parkingOrigin(size: size, screen: upperRight, otherScreens: [laptop, upperLeft]) == CGPoint(x: 2871, y: -1))
+    // Given neighbours on both sides, Then the right corner
+    let leftOfLaptop = CGRect(x: -1000, y: 500, width: 1000, height: 1000)
+    let rightOfLaptop = CGRect(x: 2056, y: 500, width: 1000, height: 1000)
+    check("parkingOrigin_whenBothCornersTouchADisplay_isTheBottomRightCorner",
+          parkingOrigin(size: size, screen: laptop, otherScreens: [leftOfLaptop, rightOfLaptop]) == CGPoint(x: 2055, y: 1328))
+
+    let screens = [laptop, upperLeft, upperRight]
+    check("isParked_ofWindowWhereMacOSLeavesIt_isTrue", isParked(CGRect(x: 2055, y: 1297, width: 945, height: 602), screens: screens))
+    check("isParked_ofOrdinaryWindow_isFalse", !isParked(CGRect(x: 234, y: 104, width: 945, height: 602), screens: screens))
+    check("isParked_ofWindowPulledBack40pt_isFalse", !isParked(CGRect(x: 2016, y: 1297, width: 945, height: 602), screens: screens))
+    check("isParked_ofWindowOffEveryDisplay_isFalse", !isParked(CGRect(x: 9000, y: 9000, width: 100, height: 100), screens: screens))
+    check("recoveredOrigin_centresTheWindow", recoveredOrigin(size: CGSize(width: 1056, height: 329), screen: laptop) == CGPoint(x: 500, y: 500))
+    check("recoveredOrigin_ofWindowLargerThanTheDisplay_keepsItsTopLeftOnIt",
+          recoveredOrigin(size: CGSize(width: 3000, height: 2000), screen: upperLeft) == CGPoint(x: -968, y: -1080))
+
+    check("pagerGrid_ofTwo_isOneRow", pagerGrid(count: 2) == (1, 2))
+    check("pagerGrid_ofFour_isTwoByTwo", pagerGrid(count: 4) == (2, 2))
+    check("pagerGrid_ofFive_isTwoRowsOfThree", pagerGrid(count: 5) == (2, 3))
+}
+
 if failures > 0 {
     print("\(failures) check(s) failed")
     exit(1)
