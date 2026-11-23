@@ -71,7 +71,7 @@ As in Plasma, windows can be spread over up to 8 virtual desktops, set with "Vir
 
 - **Pager:** numbered squares at the right end of every bar, after the clock: one row for 2 desktops, two rows from 3 on. The current desktop has the accent tint and outline of the active entry, and a click on a square switches to it. One desktop is current on all displays at once.
 - **Switching:** the other desktops' windows leave the bars and the screen. The window last focused on the new desktop is raised.
-- **Shortcuts:** ⌃⌥1 to ⌃⌥8 switch to a desktop, and ⌃⌥⇧1 to ⌃⌥⇧8 send the focused window there. They are only registered with several desktops, and only up to their number, so other apps keep them otherwise.
+- **Shortcuts:** ⌃⌥1 to ⌃⌥8 switch to a desktop, and ⌃⌥⇧1 to ⌃⌥⇧8 send the focused window there. ⌃⌥⇧← and ⌃⌥⇧→ send it to the previous or next desktop, and do nothing past the first or last one. The view stays on the current desktop. They are only registered with several desktops, and only up to their number, so other apps keep them otherwise.
 - **Moving a window:** "Move to Desktop" in a window entry's menu, or the shortcut. New windows open on the current desktop, and a minimized window stays on its desktop.
 - **Focus from elsewhere:** Cmd-Tab, Mission Control or a notification can focus a window of another desktop, and the bar then switches to that desktop.
 - **Fewer desktops:** the windows of the removed desktops go to the new last one.

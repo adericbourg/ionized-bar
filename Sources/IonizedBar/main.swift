@@ -17,7 +17,9 @@ barManager.sync()
 BarHotKey.register(
     onBar: { barManager.beginKeyboardMode() },
     onDesktop: { barManager.desktops.switchTo($0) },
-    onMoveToDesktop: { barManager.desktops.moveFocused(to: $0) }
+    onMoveToDesktop: { barManager.desktops.moveFocused(to: $0) },
+    // No wrapping: past the first or last desktop, the window stays.
+    onMoveByDesktops: { barManager.desktops.moveFocused(to: barManager.desktops.current + $0) }
 )
 BarHotKey.setDesktopCount(barManager.settings.desktopCount)
 
