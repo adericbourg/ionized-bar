@@ -211,7 +211,7 @@ These settings are greyed out when the clock is off, because the calendar opens 
 
 One icon per plugged-in storage device (USB key, SD card, external drive), left of the clock, as in Plasma's Disks & Devices. "Display devices" in the Widgets tab turns them off; it is on by default, and an icon only shows while its device is plugged in.
 
-- **Which devices:** external hardware that is removable or ejectable, with a file system. Internal disks, disk images and network shares have no icon.
+- **Which devices:** removable or ejectable media with a file system, a card in the built-in SD reader included. Internal disks, disk images and network shares have no icon.
 - **One icon per device:** all its volumes share it, APFS ones included, which macOS lists as a disk of their own. Two keys show two icons side by side, in the order they were plugged in.
 - **Tooltip:** the names of its mounted volumes, or the device's name when none is, which VoiceOver reads too.
 - **Menu:** a click opens a menu headed by the device's vendor and model. Under each mounted volume's name come its free space, read when the menu opens, then Open in Finder and Eject. An unmounted volume offers Mount. With several volumes, Eject All ends it.

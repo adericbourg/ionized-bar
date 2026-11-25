@@ -1544,17 +1544,20 @@ do {
 do {
     // Given a USB key, Then it counts; Given an internal disk, a disk image or a partition with no file system, Then it doesn't
     check("isPhysicalVolume_ofUSBKey_isTrue",
-          isPhysicalVolume(isInternal: false, isRemovable: true, isEjectable: true, deviceProtocol: "USB", isMountable: true))
+          isPhysicalVolume(isRemovable: true, isEjectable: true, deviceProtocol: "USB", isMountable: true))
     check("isPhysicalVolume_ofEjectableOnlyCardReader_isTrue",
-          isPhysicalVolume(isInternal: false, isRemovable: false, isEjectable: true, deviceProtocol: "Secure Digital", isMountable: true))
+          isPhysicalVolume(isRemovable: false, isEjectable: true, deviceProtocol: "Secure Digital", isMountable: true))
+    // Given a card in the Mac's own SD reader, which reports itself as internal, Then it counts: the media is removable
+    check("isPhysicalVolume_ofCardInBuiltInReader_isTrue",
+          isPhysicalVolume(isRemovable: true, isEjectable: true, deviceProtocol: "Secure Digital", isMountable: true))
     check("isPhysicalVolume_ofInternalDisk_isFalse",
-          !isPhysicalVolume(isInternal: true, isRemovable: false, isEjectable: false, deviceProtocol: "Apple Fabric", isMountable: true))
+          !isPhysicalVolume(isRemovable: false, isEjectable: false, deviceProtocol: "Apple Fabric", isMountable: true))
     check("isPhysicalVolume_ofDiskImage_isFalse",
-          !isPhysicalVolume(isInternal: false, isRemovable: true, isEjectable: true, deviceProtocol: "Virtual Interface", isMountable: true))
+          !isPhysicalVolume(isRemovable: true, isEjectable: true, deviceProtocol: "Virtual Interface", isMountable: true))
     check("isPhysicalVolume_ofFixedExternalDisk_isFalse",
-          !isPhysicalVolume(isInternal: false, isRemovable: false, isEjectable: false, deviceProtocol: "USB", isMountable: true))
+          !isPhysicalVolume(isRemovable: false, isEjectable: false, deviceProtocol: "USB", isMountable: true))
     check("isPhysicalVolume_ofPartitionWithoutFileSystem_isFalse",
-          !isPhysicalVolume(isInternal: false, isRemovable: true, isEjectable: true, deviceProtocol: "USB", isMountable: false))
+          !isPhysicalVolume(isRemovable: true, isEjectable: true, deviceProtocol: "USB", isMountable: false))
 
     // Given two keys, the first with partitions listed out of order (s10 before s2), and one on an APFS disk of its own (disk6)
     let mounted = URL(filePath: "/Volumes/KEY")

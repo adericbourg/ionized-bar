@@ -53,7 +53,6 @@ final class DeviceMonitor {
               let bsdName = description[kDADiskDescriptionMediaBSDNameKey] as? String,
               let deviceID = description[kDADiskDescriptionDevicePathKey] as? String,
               isPhysicalVolume(
-                  isInternal: description[kDADiskDescriptionDeviceInternalKey] as? Bool ?? false,
                   isRemovable: description[kDADiskDescriptionMediaRemovableKey] as? Bool ?? false,
                   isEjectable: description[kDADiskDescriptionMediaEjectableKey] as? Bool ?? false,
                   deviceProtocol: description[kDADiskDescriptionDeviceProtocolKey] as? String,

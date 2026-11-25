@@ -31,10 +31,11 @@ public struct Device: Equatable, Sendable {
     }
 }
 
-/// Whether a partition belongs to storage someone plugged in: not internal, removable or ejectable, not a disk image, with a file system.
-public func isPhysicalVolume(isInternal: Bool, isRemovable: Bool, isEjectable: Bool, deviceProtocol: String?, isMountable: Bool) -> Bool {
+/// Whether a partition is on media someone plugged in: removable or ejectable, not a disk image, with a file system.
+/// The media decides, not the hardware: the Mac's own SD reader reports itself as internal.
+public func isPhysicalVolume(isRemovable: Bool, isEjectable: Bool, deviceProtocol: String?, isMountable: Bool) -> Bool {
     // DiskArbitration reports disk images on the "Virtual Interface" protocol.
-    !isInternal && (isRemovable || isEjectable) && deviceProtocol != "Virtual Interface" && isMountable
+    (isRemovable || isEjectable) && deviceProtocol != "Virtual Interface" && isMountable
 }
 
 /// One device per piece of hardware, in the order they first appear; volumes in partition order.
