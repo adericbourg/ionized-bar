@@ -213,8 +213,9 @@ One icon per plugged-in storage device (USB key, SD card, external drive), left 
 
 - **Which devices:** external hardware that is removable or ejectable, with a file system. Internal disks, disk images and network shares have no icon.
 - **One icon per device:** all its volumes share it, APFS ones included, which macOS lists as a disk of their own. Two keys show two icons side by side, in the order they were plugged in.
-- **Tooltip:** the names of its mounted volumes, which VoiceOver reads too.
-- **Menu:** a click opens a menu headed by the device's vendor and model. Under each volume's name come Open in Finder and Eject. With several volumes, Eject All ends it.
+- **Tooltip:** the names of its mounted volumes, or the device's name when none is, which VoiceOver reads too.
+- **Menu:** a click opens a menu headed by the device's vendor and model. Under each mounted volume's name come its free space, read when the menu opens, then Open in Finder and Eject. An unmounted volume offers Mount. With several volumes, Eject All ends it.
+- **Mount:** brings back a volume ejected on its own, without unplugging the device. macOS mounts volumes by itself when a device is plugged in.
 - **Eject:** unmounts that volume only. The last mounted one also ejects the device, so it can be pulled out.
 - **Eject All:** unmounts every volume, then ejects the device.
 - **Failure:** an alert says why, such as a file still open in an app.
@@ -268,7 +269,7 @@ The app follows the spirit of WCAG 2.2 AA.
 - **Unresponsive apps:** AX calls use a 0.25 s messaging timeout, so a hung app can't freeze the bar.
 - **Preview capture:** `SCScreenshotManager`, since `CGWindowListCreateImage` is unavailable in the macOS 15+ SDK.
 - **Re-ordering:** mouse tracking in the entry views rather than `NSDraggingSource`, since nothing leaves the bar. One relative order of all windows is projected onto each bar, so a move doesn't disturb other bars or windows on another Space.
-- **Devices:** DiskArbitration rather than `NSWorkspace`, because it tells which hardware a volume is on, and a key's APFS volumes are on a disk of their own.
+- **Devices:** DiskArbitration rather than `NSWorkspace`, because it tells which hardware a volume is on, a key's APFS volumes being on a disk of their own, and it sees volumes that aren't mounted.
 - **Pure logic in `IonizedBarCore`:** a check executable tests it, because Command Line Tools have no working test framework.
 - **Hardened runtime:** the app is signed with it, so another process can't load code into it and act with its Accessibility and Screen Recording grants.
 - **Self-signed certificate:** the Transparency, Consent and Control (TCC) database then pins grants to the identifier and certificate, not to each build's hash, so they survive upgrades. Gatekeeper doesn't trust it, and a fix needs a paid Developer ID with notarization. Until then the cask removes the quarantine attribute, which a third-party tap may do. See [Signing certificate](DEVELOPMENT.md#signing-certificate).

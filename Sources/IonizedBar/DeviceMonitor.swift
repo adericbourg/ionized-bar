@@ -71,12 +71,23 @@ final class DeviceMonitor {
         )
     }
 
+    func mount(_ volume: DiskVolume) {
+        guard let disk = disk(volume) else { return }
+        DADiskMount(disk, nil, DADiskMountOptions(kDADiskMountOptionDefault), { disk, dissenter, _ in
+            MainActor.assumeIsolated { DeviceMonitor.report(dissenter, disk, failedTo: "mounted") }
+        }, nil)
+    }
+
+    private func disk(_ volume: DiskVolume) -> DADisk? {
+        disks.first { DADiskGetBSDName($0).map { String(cString: $0) } == volume.bsdName }
+    }
+
     /// Unmounts `volume` only. The last mounted volume takes the hardware with it, so it can be pulled out.
     func eject(_ volume: DiskVolume, of device: Device) {
         guard device.volumes.filter({ $0.maybeMountURL != nil }) != [volume] else { return ejectAll(device) }
-        guard let disk = disks.first(where: { DADiskGetBSDName($0).map { String(cString: $0) } == volume.bsdName }) else { return }
+        guard let disk = disk(volume) else { return }
         DADiskUnmount(disk, DADiskUnmountOptions(kDADiskUnmountOptionDefault), { disk, dissenter, _ in
-            MainActor.assumeIsolated { DeviceMonitor.report(dissenter, disk) }
+            MainActor.assumeIsolated { DeviceMonitor.report(dissenter, disk, failedTo: "ejected") }
         }, nil)
     }
 
@@ -85,9 +96,9 @@ final class DeviceMonitor {
         guard let root = physicalDisk(of: device) else { return }
         DADiskUnmount(root, DADiskUnmountOptions(kDADiskUnmountOptionWhole), { disk, dissenter, _ in
             MainActor.assumeIsolated {
-                guard dissenter == nil else { return DeviceMonitor.report(dissenter, disk) }
+                guard dissenter == nil else { return DeviceMonitor.report(dissenter, disk, failedTo: "ejected") }
                 DADiskEject(disk, DADiskEjectOptions(kDADiskEjectOptionDefault), { disk, dissenter, _ in
-                    MainActor.assumeIsolated { DeviceMonitor.report(dissenter, disk) }
+                    MainActor.assumeIsolated { DeviceMonitor.report(dissenter, disk, failedTo: "ejected") }
                 }, nil)
             }
         }, nil)
@@ -105,13 +116,13 @@ final class DeviceMonitor {
         }.min { $0.mediaPath.count < $1.mediaPath.count }?.disk
     }
 
-    private static func report(_ maybeDissenter: DADissenter?, _ disk: DADisk) {
+    private static func report(_ maybeDissenter: DADissenter?, _ disk: DADisk, failedTo verb: String) {
         guard let dissenter = maybeDissenter else { return }
         let description = DADiskCopyDescription(disk) as NSDictionary?
         let name = description?[kDADiskDescriptionVolumeNameKey] as? String ?? description?[kDADiskDescriptionMediaNameKey] as? String ?? "The disk"
         let status = DADissenterGetStatus(dissenter)
         let alert = NSAlert()
-        alert.messageText = "“\(name)” couldn’t be ejected"
+        alert.messageText = "“\(name)” couldn’t be \(verb)"
         alert.informativeText = DADissenterGetStatusString(dissenter) as String?
             ?? (status == kDAReturnBusy ? "An app is using it. Close its files there, then try again." : "DiskArbitration error \(String(format: "0x%x", status)).")
         // The app is never active on its own, and an inactive app's alert opens behind the other windows.
