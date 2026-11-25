@@ -49,9 +49,10 @@ final class DevicesButton: BarIconButton {
     /// "12.3 GB free of 64 GB", read when the menu opens.
     private static func capacity(of url: URL) -> String? {
         guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey, .volumeTotalCapacityKey]),
-              let free = values.volumeAvailableCapacityForImportantUsage ?? values.volumeAvailableCapacity.map(Int64.init),
               let total = values.volumeTotalCapacity
         else { return nil }
+        // FAT/exFAT report 0 for important usage; APFS reports more than plain available (purgeable space).
+        let free = max(values.volumeAvailableCapacityForImportantUsage ?? 0, Int64(values.volumeAvailableCapacity ?? 0))
         return "\(ByteCountFormatter.string(fromByteCount: free, countStyle: .file)) free of \(ByteCountFormatter.string(fromByteCount: Int64(total), countStyle: .file))"
     }
 
