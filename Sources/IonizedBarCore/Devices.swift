@@ -55,7 +55,9 @@ public func deviceLabel(_ device: Device) -> String {
 }
 
 /// "SanDisk Ultra" from the vendor and model the hardware reports, which can be blank or padded; `fallback` when both are blank.
-public func deviceName(vendor: String?, model: String?, fallback: String) -> String {
+/// Also `fallback` for internal hardware: there, vendor and model name the Mac's own reader, not the card in it.
+public func deviceName(vendor: String?, model: String?, isInternal: Bool = false, fallback: String) -> String {
+    guard !isInternal else { return fallback }
     let name = [vendor, model].compactMap { $0?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: " ")
     return name.isEmpty ? fallback : name
 }

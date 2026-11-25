@@ -64,7 +64,8 @@ final class DeviceMonitor {
             bsdName: bsdName, deviceID: deviceID,
             deviceName: deviceName(
                 vendor: description[kDADiskDescriptionDeviceVendorKey] as? String,
-                model: description[kDADiskDescriptionDeviceModelKey] as? String, fallback: name
+                model: description[kDADiskDescriptionDeviceModelKey] as? String,
+                isInternal: description[kDADiskDescriptionDeviceInternalKey] as? Bool ?? false, fallback: name
             ),
             name: name, maybeMountURL: description[kDADiskDescriptionVolumePathKey] as? URL
         )

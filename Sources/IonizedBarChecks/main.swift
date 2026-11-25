@@ -1580,6 +1580,9 @@ do {
 
     check("deviceName_joinsVendorAndModel", deviceName(vendor: "SanDisk ", model: " Ultra", fallback: "KEY") == "SanDisk Ultra")
     check("deviceName_ofBlankVendor_isTheModel", deviceName(vendor: "", model: "Ultra", fallback: "KEY") == "Ultra")
+    // Given the Mac's own SD reader, Then the card is named after its volume: vendor and model name the reader
+    check("deviceName_ofBuiltInReader_isTheFallback",
+          deviceName(vendor: "Apple", model: "Built In SDXC Reader", isInternal: true, fallback: "H2N_SD") == "H2N_SD")
     check("deviceName_ofNoVendorNorModel_isTheFallback", deviceName(vendor: nil, model: " ", fallback: "KEY") == "KEY")
 }
 

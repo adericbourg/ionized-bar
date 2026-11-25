@@ -214,7 +214,7 @@ One icon per plugged-in storage device (USB key, SD card, external drive), left 
 - **Which devices:** removable or ejectable media with a file system, a card in the built-in SD reader included. Internal disks, disk images and network shares have no icon.
 - **One icon per device:** all its volumes share it, APFS ones included, which macOS lists as a disk of their own. Two keys show two icons side by side, in the order they were plugged in.
 - **Tooltip:** the names of its mounted volumes, or the device's name when none is, which VoiceOver reads too.
-- **Menu:** a click opens a menu headed by the device's vendor and model. Under each mounted volume's name come its free space, read when the menu opens, then Open in Finder and Eject. An unmounted volume offers Mount. With several volumes, Eject All ends it.
+- **Menu:** a click opens a menu headed by the device's vendor and model, or by the card's volume name for the Mac's own SD reader. Under each mounted volume's name come its free space, read when the menu opens, then Open in Finder and Eject. An unmounted volume offers Mount. With several volumes, Eject All ends it.
 - **Mount:** brings back a volume ejected on its own, without unplugging the device. macOS mounts volumes by itself when a device is plugged in.
 - **Eject:** unmounts that volume only. The last mounted one also ejects the device, so it can be pulled out.
 - **Eject All:** unmounts every volume, then ejects the device.
