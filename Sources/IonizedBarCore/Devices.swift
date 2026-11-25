@@ -48,10 +48,11 @@ public func groupDevices(_ volumes: [DiskVolume]) -> [Device] {
     }
 }
 
-/// The tooltip and VoiceOver label: the mounted volumes' names, or the device's name when none is mounted.
-public func deviceLabel(_ device: Device) -> String {
+/// The tooltip and VoiceOver label: the mounted volumes' names, or the device's name when none is mounted. "Ejecting …" while it ejects.
+public func deviceLabel(_ device: Device, isEjecting: Bool = false) -> String {
     let mounted = device.volumes.filter { $0.maybeMountURL != nil }.map(\.name)
-    return mounted.isEmpty ? device.name : mounted.joined(separator: ", ")
+    let label = mounted.isEmpty ? device.name : mounted.joined(separator: ", ")
+    return isEjecting ? "Ejecting \(label)…" : label
 }
 
 /// "SanDisk Ultra" from the vendor and model the hardware reports, which can be blank or padded; `fallback` when both are blank.

@@ -1575,8 +1575,9 @@ do {
 
     let both = Device(id: "usb@1", name: "SanDisk Ultra", volumes: [key, DiskVolume(bsdName: "disk4s3", deviceID: "usb@1", deviceName: "SanDisk Ultra", name: "DATA", maybeMountURL: mounted)])
     check("deviceLabel_joinsTheMountedVolumeNames", deviceLabel(both) == "KEY, DATA")
-    check("deviceLabel_skipsUnmountedVolumes", devices.first.map(deviceLabel) == "KEY")
-    check("deviceLabel_withNoMountedVolume_isTheDeviceName", devices.dropFirst().first.map(deviceLabel) == "SD Card")
+    check("deviceLabel_skipsUnmountedVolumes", devices.first.map { deviceLabel($0) } == "KEY")
+    check("deviceLabel_withNoMountedVolume_isTheDeviceName", devices.dropFirst().first.map { deviceLabel($0) } == "SD Card")
+    check("deviceLabel_whenEjecting_saysEjecting", deviceLabel(both, isEjecting: true) == "Ejecting KEY, DATA…")
 
     check("deviceName_joinsVendorAndModel", deviceName(vendor: "SanDisk ", model: " Ultra", fallback: "KEY") == "SanDisk Ultra")
     check("deviceName_ofBlankVendor_isTheModel", deviceName(vendor: "", model: "Ultra", fallback: "KEY") == "Ultra")

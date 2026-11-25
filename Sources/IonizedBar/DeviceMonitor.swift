@@ -7,6 +7,8 @@ import IonizedBarCore
 final class DeviceMonitor {
     var onChange: (() -> Void)?
     private(set) var devices: [Device] = []
+    /// Ids of the devices an eject is running on: it can take seconds.
+    private(set) var ejecting: Set<String> = []
     private let session = DASessionCreate(kCFAllocatorDefault)!
     // In order of appearance, so the icons keep their place.
     private var disks: [DADisk] = []
@@ -43,6 +45,8 @@ final class DeviceMonitor {
 
     private func refresh() {
         let newDevices = groupDevices(disks.compactMap(Self.volume))
+        // An ejected disk may no longer describe itself to `finishEjecting`: don't leave a replugged device dimmed.
+        ejecting.formIntersection(newDevices.map(\.id))
         guard newDevices != devices else { return }
         devices = newDevices
         onChange?()
@@ -86,22 +90,38 @@ final class DeviceMonitor {
     func eject(_ volume: DiskVolume, of device: Device) {
         guard device.volumes.filter({ $0.maybeMountURL != nil }) != [volume] else { return ejectAll(device) }
         guard let disk = disk(volume) else { return }
-        DADiskUnmount(disk, DADiskUnmountOptions(kDADiskUnmountOptionDefault), { disk, dissenter, _ in
-            MainActor.assumeIsolated { DeviceMonitor.report(dissenter, disk, failedTo: "ejected") }
-        }, nil)
+        startEjecting(device)
+        DADiskUnmount(disk, DADiskUnmountOptions(kDADiskUnmountOptionDefault), { disk, dissenter, context in
+            MainActor.assumeIsolated { DeviceMonitor.from(context).finishEjecting(disk, dissenter) }
+        }, Unmanaged.passUnretained(self).toOpaque())
     }
 
     /// Unmounts every volume of the hardware, its APFS disks included, then ejects it.
     func ejectAll(_ device: Device) {
         guard let root = physicalDisk(of: device) else { return }
-        DADiskUnmount(root, DADiskUnmountOptions(kDADiskUnmountOptionWhole), { disk, dissenter, _ in
+        startEjecting(device)
+        DADiskUnmount(root, DADiskUnmountOptions(kDADiskUnmountOptionWhole), { disk, dissenter, context in
             MainActor.assumeIsolated {
-                guard dissenter == nil else { return DeviceMonitor.report(dissenter, disk, failedTo: "ejected") }
-                DADiskEject(disk, DADiskEjectOptions(kDADiskEjectOptionDefault), { disk, dissenter, _ in
-                    MainActor.assumeIsolated { DeviceMonitor.report(dissenter, disk, failedTo: "ejected") }
-                }, nil)
+                guard dissenter == nil else { return DeviceMonitor.from(context).finishEjecting(disk, dissenter) }
+                DADiskEject(disk, DADiskEjectOptions(kDADiskEjectOptionDefault), { disk, dissenter, context in
+                    MainActor.assumeIsolated { DeviceMonitor.from(context).finishEjecting(disk, dissenter) }
+                }, context)
             }
-        }, nil)
+        }, Unmanaged.passUnretained(self).toOpaque())
+    }
+
+    private func startEjecting(_ device: Device) {
+        ejecting.insert(device.id)
+        onChange?()
+    }
+
+    /// On failure too, so the device can be ejected again.
+    private func finishEjecting(_ disk: DADisk, _ maybeDissenter: DADissenter?) {
+        if let deviceID = (DADiskCopyDescription(disk) as NSDictionary?)?[kDADiskDescriptionDevicePathKey] as? String {
+            ejecting.remove(deviceID)
+            onChange?()
+        }
+        Self.report(maybeDissenter, disk, failedTo: "ejected")
     }
 
     /// The whole disk at the root of the hardware's IOKit tree: its APFS disks sit deeper, under one of its partitions.

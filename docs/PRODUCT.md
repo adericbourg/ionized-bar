@@ -218,6 +218,7 @@ One icon per plugged-in storage device (USB key, SD card, external drive), left 
 - **Mount:** brings back a volume ejected on its own, without unplugging the device. macOS mounts volumes by itself when a device is plugged in.
 - **Eject:** unmounts that volume only. The last mounted one also ejects the device, so it can be pulled out.
 - **Eject All:** unmounts every volume, then ejects the device.
+- **Ejecting:** macOS can take seconds. Meanwhile the icon dims, its tooltip reads "Ejecting …" and its menu shows Ejecting… in place of Eject and Eject All. A failed eject brings them back.
 - **Failure:** an alert says why, such as a file still open in an app.
 - **Width:** each icon is as wide as a pinned icon. Tasks shrink and group in the width left.
 

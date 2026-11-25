@@ -13,10 +13,13 @@ final class DevicesButton: BarIconButton {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    private var isEjecting: Bool { manager.deviceMonitor.ejecting.contains(device.id) }
+
     func update(with newDevice: Device) {
         device = newDevice
-        toolTip = deviceLabel(device)
-        setAccessibilityLabel(deviceLabel(device))
+        icon.alphaValue = isEjecting ? 0.5 : 1
+        toolTip = deviceLabel(device, isEjecting: isEjecting)
+        setAccessibilityLabel(deviceLabel(device, isEjecting: isEjecting))
     }
 
     override func layout() {
@@ -37,9 +40,9 @@ final class DevicesButton: BarIconButton {
             }
             if let capacity = Self.capacity(of: url) { menu.addItem(disabledItem(capacity, indentation: 1)) }
             menu.addItem(item("Open in Finder", #selector(openInFinder), url))
-            menu.addItem(item("Eject", #selector(eject), volume.bsdName))
+            menu.addItem(isEjecting ? disabledItem("Ejecting…", indentation: 1) : item("Eject", #selector(eject), volume.bsdName))
         }
-        if device.volumes.count > 1 {
+        if device.volumes.count > 1 && !isEjecting {
             menu.addItem(.separator())
             menu.addItem(withTitle: "Eject All", action: #selector(ejectAll), keyEquivalent: "").target = self
         }
