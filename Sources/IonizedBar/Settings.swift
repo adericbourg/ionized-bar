@@ -21,6 +21,7 @@ struct Settings {
     private static let resizesJointWindowsKey = "resizesJointWindows"
     private static let barHeightKey = "barHeight"
     private static let desktopCountKey = "desktopCount"
+    private static let showsDevicesKey = "showsDevices"
 
     var grouping: GroupingMode
     var taskDisplay: TaskDisplay
@@ -31,6 +32,7 @@ struct Settings {
     var resizesJointWindows = false
     var barHeight = BarHeight.small
     var desktopCount = 1
+    var showsDevices = true
 
     static func load() -> Settings {
         let defaults = UserDefaults.standard
@@ -54,7 +56,8 @@ struct Settings {
             resizesJointWindows: defaults.bool(forKey: resizesJointWindowsKey),
             barHeight: BarHeight(rawValue: defaults.string(forKey: barHeightKey) ?? "") ?? .small,
             // 0 when absent.
-            desktopCount: min(max(defaults.integer(forKey: desktopCountKey), 1), VirtualDesktops<Int>.maxCount)
+            desktopCount: min(max(defaults.integer(forKey: desktopCountKey), 1), VirtualDesktops<Int>.maxCount),
+            showsDevices: defaults.object(forKey: showsDevicesKey) as? Bool ?? true
         )
     }
 
@@ -74,5 +77,6 @@ struct Settings {
         UserDefaults.standard.set(resizesJointWindows, forKey: Self.resizesJointWindowsKey)
         UserDefaults.standard.set(barHeight.rawValue, forKey: Self.barHeightKey)
         UserDefaults.standard.set(desktopCount, forKey: Self.desktopCountKey)
+        UserDefaults.standard.set(showsDevices, forKey: Self.showsDevicesKey)
     }
 }

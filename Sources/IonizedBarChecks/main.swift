@@ -1540,7 +1540,7 @@ do {
     check("pagerGrid_ofFive_isTwoRowsOfThree", pagerGrid(count: 5) == (2, 3))
 }
 
-// isPhysicalVolume, groupDevices, deviceLabel
+// isPhysicalVolume, groupDevices, deviceLabel, deviceName
 do {
     // Given a USB key, Then it counts; Given an internal disk, a disk image or a partition with no file system, Then it doesn't
     check("isPhysicalVolume_ofUSBKey_isTrue",
@@ -1556,23 +1556,28 @@ do {
     check("isPhysicalVolume_ofPartitionWithoutFileSystem_isFalse",
           !isPhysicalVolume(isInternal: false, isRemovable: true, isEjectable: true, deviceProtocol: "USB", isMountable: false))
 
-    // Given two keys, the first with partitions listed out of order (s10 before s2)
+    // Given two keys, the first with partitions listed out of order (s10 before s2), and one on an APFS disk of its own (disk6)
     let mounted = URL(filePath: "/Volumes/KEY")
-    let key = DiskVolume(bsdName: "disk4s2", wholeDiskBSDName: "disk4", deviceName: "SanDisk Ultra", name: "KEY", maybeMountURL: mounted)
-    let data = DiskVolume(bsdName: "disk4s10", wholeDiskBSDName: "disk4", deviceName: "SanDisk Ultra", name: "DATA", maybeMountURL: nil)
-    let card = DiskVolume(bsdName: "disk5s1", wholeDiskBSDName: "disk5", deviceName: "SD Card", name: "CARD", maybeMountURL: nil)
+    let key = DiskVolume(bsdName: "disk4s2", deviceID: "usb@1", deviceName: "SanDisk Ultra", name: "KEY", maybeMountURL: mounted)
+    let data = DiskVolume(bsdName: "disk4s10", deviceID: "usb@1", deviceName: "SanDisk Ultra", name: "DATA", maybeMountURL: nil)
+    let card = DiskVolume(bsdName: "disk5s1", deviceID: "usb@2", deviceName: "SD Card", name: "CARD", maybeMountURL: nil)
     // When grouping
-    let devices = groupDevices([data, card, key])
+    let apfs = DiskVolume(bsdName: "disk6s1", deviceID: "usb@1", deviceName: "SanDisk Ultra", name: "MAC", maybeMountURL: nil)
+    let devices = groupDevices([data, card, apfs, key])
     // Then one device per disk, in order of appearance, partitions in numeric order
-    check("groupDevices_ofTwoDisks_returnsOneDeviceEach", devices.map(\.wholeDiskBSDName) == ["disk4", "disk5"])
-    check("groupDevices_ofTwoPartitions_keepsThemOnOneDeviceInPartitionOrder", devices.first?.volumes == [key, data])
+    check("groupDevices_ofTwoDevices_returnsOneEach", devices.map(\.id) == ["usb@1", "usb@2"])
+    check("groupDevices_ofPartitionsOnSeveralDisksOfOneDevice_keepsThemOnItInPartitionOrder", devices.first?.volumes == [key, data, apfs])
     check("groupDevices_namesTheDeviceAfterTheDisk", devices.map(\.name) == ["SanDisk Ultra", "SD Card"])
     check("groupDevices_ofNothing_returnsNothing", groupDevices([]).isEmpty)
 
-    let both = Device(wholeDiskBSDName: "disk4", name: "SanDisk Ultra", volumes: [key, DiskVolume(bsdName: "disk4s3", wholeDiskBSDName: "disk4", deviceName: "SanDisk Ultra", name: "DATA", maybeMountURL: mounted)])
+    let both = Device(id: "usb@1", name: "SanDisk Ultra", volumes: [key, DiskVolume(bsdName: "disk4s3", deviceID: "usb@1", deviceName: "SanDisk Ultra", name: "DATA", maybeMountURL: mounted)])
     check("deviceLabel_joinsTheMountedVolumeNames", deviceLabel(both) == "KEY, DATA")
     check("deviceLabel_skipsUnmountedVolumes", devices.first.map(deviceLabel) == "KEY")
     check("deviceLabel_withNoMountedVolume_isTheDeviceName", devices.dropFirst().first.map(deviceLabel) == "SD Card")
+
+    check("deviceName_joinsVendorAndModel", deviceName(vendor: "SanDisk ", model: " Ultra", fallback: "KEY") == "SanDisk Ultra")
+    check("deviceName_ofBlankVendor_isTheModel", deviceName(vendor: "", model: "Ultra", fallback: "KEY") == "Ultra")
+    check("deviceName_ofNoVendorNorModel_isTheFallback", deviceName(vendor: nil, model: " ", fallback: "KEY") == "KEY")
 }
 
 if failures > 0 {

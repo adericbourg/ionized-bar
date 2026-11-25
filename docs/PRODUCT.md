@@ -105,7 +105,7 @@ The General tab holds:
 - **Keep pinned app icons visible:** see [Pinned apps](#pinned-apps).
 - **Start at login:** see [Start at login](#start-at-login).
 
-The Widgets tab holds the [clock](#clock) and [calendar](#calendar) settings. The Windows tab holds [Resize tiled windows together](#resizing-tiled-windows-together). The About tab shows the version and the commit it was built from, which `scripts/bundle.sh` writes into the bundle, because a local build has the same version as the last release. A release shows the last commit before its `chore: release` commit. Below them, a link opens the GitHub repository in the browser.
+The Widgets tab holds the [clock](#clock), [calendar](#calendar) and [devices](#devices) settings. The Windows tab holds [Resize tiled windows together](#resizing-tiled-windows-together). The About tab shows the version and the commit it was built from, which `scripts/bundle.sh` writes into the bundle, because a local build has the same version as the last release. A release shows the last commit before its `chore: release` commit. Below them, a link opens the GitHub repository in the browser.
 
 ### Group entries
 
@@ -158,7 +158,7 @@ A button at the left of every bar opens a panel in the layout of Plasma's launch
 
 ## Pinned apps
 
-Pinning keeps an app's icon on the bar while the app is closed. The bar reads, from the left: launcher, pinned icons, tasks, then the [clock](#clock) when it is on, and the [pager](#virtual-desktops) with several desktops.
+Pinning keeps an app's icon on the bar while the app is closed. The bar reads, from the left: launcher, pinned icons, tasks, then the [devices](#devices), the [clock](#clock) when it is on, and the [pager](#virtual-desktops) with several desktops.
 
 - **Pinning:** "Pin" and "Unpin" are in the menu of a task or group, since a pin belongs to the app and not to a window. "Unpin" is also in the icon's menu. An app with no bundle identifier can't be pinned.
 - **Icon:** about 36 pt wide with a 28 pt icon, and the app name as tooltip. A click opens the app. A running app comes to the front and decides whether to reopen a window.
@@ -169,7 +169,7 @@ Pinning keeps an app's icon on the bar while the app is closed. The bar reads, f
 
 ## Clock
 
-A clock at the right end of every bar, off by default. It is the first widget, so the code has no widget abstraction until a second one shows what it should be. The layout follows Plasma's panel clock.
+A clock at the right end of every bar, off by default. It and the [devices](#devices) share no widget abstraction in the code: their place at the right end is all they have in common. The layout follows Plasma's panel clock.
 
 - **Layout:** the time alone is one vertically centred line. With the date, the time (13 pt) sits above the date (11 pt), which fits the default 36 pt bar. Both sizes scale with the [bar height](#settings); when the two lines don't fit the bar, as at Extra small, the date goes beside the time, at the time's size.
 - **Width:** measured on a sample date with two digits everywhere, and with monospaced digits. It changes only with the settings or the locale, so tasks don't move as the time changes. Tasks shrink and group in the width left.
@@ -207,6 +207,19 @@ A click on the clock opens a month calendar above it, in a panel as dark as the 
 
 These settings are greyed out when the clock is off, because the calendar opens from the clock. A change applies the next time the calendar opens.
 
+## Devices
+
+One icon per plugged-in storage device (USB key, SD card, external drive), left of the clock, as in Plasma's Disks & Devices. "Display devices" in the Widgets tab turns them off; it is on by default, and an icon only shows while its device is plugged in.
+
+- **Which devices:** external hardware that is removable or ejectable, with a file system. Internal disks, disk images and network shares have no icon.
+- **One icon per device:** all its volumes share it, APFS ones included, which macOS lists as a disk of their own. Two keys show two icons side by side, in the order they were plugged in.
+- **Tooltip:** the names of its mounted volumes, which VoiceOver reads too.
+- **Menu:** a click opens a menu headed by the device's vendor and model. Under each volume's name come Open in Finder and Eject. With several volumes, Eject All ends it.
+- **Eject:** unmounts that volume only. The last mounted one also ejects the device, so it can be pulled out.
+- **Eject All:** unmounts every volume, then ejects the device.
+- **Failure:** an alert says why, such as a file still open in an app.
+- **Width:** each icon is as wide as a pinned icon. Tasks shrink and group in the width left.
+
 ## Re-ordering
 
 Dragging a task or a pinned icon along the bar changes its place. Only the entry moves: the window is neither raised nor moved.
@@ -241,7 +254,7 @@ Dragging a task or a pinned icon along the bar changes its place. Only the entry
 The app follows the spirit of WCAG 2.2 AA.
 
 - **VoiceOver:** every entry is an element with the window title, the app name and its state. Launcher rows and pinned icons have labels, and the launcher announces results and view changes.
-- **Keyboard:** ⌃⌥B reaches the bar. It walks the launcher, the pinned icons, the tasks, the clock and the pager, and Shift-F10 opens the menus. ⌃⌥1 to ⌃⌥8 switch desktops.
+- **Keyboard:** ⌃⌥B reaches the bar. It walks the launcher, the pinned icons, the tasks, the devices, the clock and the pager, and Shift-F10 opens the menus. ⌃⌥1 to ⌃⌥8 switch desktops.
 - **System settings:** the bar and its panels honor Reduce Motion, Reduce Transparency and Increase Contrast.
 - **Contrast:** text keeps a ratio of at least 4.5:1, using label colors rather than hard-coded grey.
 
@@ -255,10 +268,11 @@ The app follows the spirit of WCAG 2.2 AA.
 - **Unresponsive apps:** AX calls use a 0.25 s messaging timeout, so a hung app can't freeze the bar.
 - **Preview capture:** `SCScreenshotManager`, since `CGWindowListCreateImage` is unavailable in the macOS 15+ SDK.
 - **Re-ordering:** mouse tracking in the entry views rather than `NSDraggingSource`, since nothing leaves the bar. One relative order of all windows is projected onto each bar, so a move doesn't disturb other bars or windows on another Space.
+- **Devices:** DiskArbitration rather than `NSWorkspace`, because it tells which hardware a volume is on, and a key's APFS volumes are on a disk of their own.
 - **Pure logic in `IonizedBarCore`:** a check executable tests it, because Command Line Tools have no working test framework.
 - **Hardened runtime:** the app is signed with it, so another process can't load code into it and act with its Accessibility and Screen Recording grants.
 - **Self-signed certificate:** the Transparency, Consent and Control (TCC) database then pins grants to the identifier and certificate, not to each build's hash, so they survive upgrades. Gatekeeper doesn't trust it, and a fix needs a paid Developer ID with notarization. Until then the cask removes the quarantine attribute, which a third-party tap may do. See [Signing certificate](DEVELOPMENT.md#signing-certificate).
 
 ## Out of scope
 
-A tray widget, windows from all Spaces, a top or side bar position, theming, multiple rows, and recent apps in the launcher.
+A tray for other apps' status icons, windows from all Spaces, a top or side bar position, theming, multiple rows, and recent apps in the launcher.

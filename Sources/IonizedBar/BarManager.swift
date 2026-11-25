@@ -12,6 +12,7 @@ final class BarManager {
     let windowTracker: WindowTracker
     let settingsWindow: SettingsWindow
     let desktops: Desktops
+    let deviceMonitor = DeviceMonitor()
     private var panels: [UInt32: BarPanel] = [:]
     /// Over the corners where windows are parked, when the bar is lower than what macOS leaves of them.
     private var cornerCovers: [NSPanel] = []
@@ -34,6 +35,10 @@ final class BarManager {
             var newSettings = $0
             newSettings.showsPreviews = settings.showsPreviews
             apply(newSettings)
+        }
+        deviceMonitor.onChange = { [weak self] in
+            guard let self else { return }
+            update(windowsByDisplay: latestWindowsByDisplay)
         }
         desktops.onSwitch = { [weak self] in
             guard let self else { return }

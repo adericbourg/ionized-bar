@@ -23,6 +23,7 @@ final class SettingsWindow: AppWindow {
     private let distanceFormatLabel = NSTextField(labelWithString: "Time from today:")
     private let distanceFormatPopUp = NSPopUpButton()
     private let weekNumbersCheckbox = NSButton(checkboxWithTitle: "Show week numbers", target: nil, action: nil)
+    private let devicesCheckbox = NSButton(checkboxWithTitle: "Display devices", target: nil, action: nil)
     private let jointCheckbox = NSButton(checkboxWithTitle: "Resize tiled windows together", target: nil, action: nil)
 
     init(settings: Settings) {
@@ -71,9 +72,11 @@ final class SettingsWindow: AppWindow {
         dateCheckbox.setAccessibilityLabel("Display date")
         weekNumbersCheckbox.state = settings.calendar.showsWeekNumbers ? .on : .off
         weekNumbersCheckbox.setAccessibilityLabel("Show week numbers")
+        devicesCheckbox.state = settings.showsDevices ? .on : .off
+        devicesCheckbox.setAccessibilityLabel("Display devices")
         jointCheckbox.state = settings.resizesJointWindows ? .on : .off
         jointCheckbox.setAccessibilityLabel("Resize tiled windows together")
-        for checkbox in [pinnedCheckbox, clockCheckbox, secondsCheckbox, dateCheckbox, weekNumbersCheckbox, jointCheckbox] {
+        for checkbox in [pinnedCheckbox, clockCheckbox, secondsCheckbox, dateCheckbox, weekNumbersCheckbox, devicesCheckbox, jointCheckbox] {
             checkbox.target = self
             checkbox.action = #selector(selectionChanged)
         }
@@ -81,7 +84,7 @@ final class SettingsWindow: AppWindow {
         let tabs = NSTabViewController()
         tabs.tabStyle = .toolbar
         tabs.addTabViewItem(Self.tab("General", symbol: "gearshape", content: makeGeneralContent(), size: CGSize(width: 320, height: 240)))
-        tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 360, height: 360)))
+        tabs.addTabViewItem(Self.tab("Widgets", symbol: "square.grid.2x2", content: makeWidgetsContent(), size: CGSize(width: 360, height: 420)))
         tabs.addTabViewItem(Self.tab("Windows", symbol: "macwindow", content: jointCheckbox, size: CGSize(width: 320, height: 80)))
         tabs.addTabViewItem(Self.tab("About", symbol: "info.circle", content: makeAboutContent(), size: CGSize(width: 320, height: 80)))
         toolbarStyle = .preference
@@ -108,6 +111,8 @@ final class SettingsWindow: AppWindow {
         let heading = NSTextField(labelWithString: "Clock")
         heading.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
         calendarHeading.font = heading.font
+        let devicesHeading = NSTextField(labelWithString: "Devices")
+        devicesHeading.font = heading.font
         let stack = NSStackView(views: [
             heading,
             clockCheckbox,
@@ -118,12 +123,15 @@ final class SettingsWindow: AppWindow {
             calendarHeading,
             Self.row([firstWeekdayLabel, firstWeekdayPopUp], indent: 20),
             Self.row([weekNumbersCheckbox], indent: 20),
-            Self.row([distanceFormatLabel, distanceFormatPopUp], indent: 20)
+            Self.row([distanceFormatLabel, distanceFormatPopUp], indent: 20),
+            devicesHeading,
+            devicesCheckbox
         ])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.setCustomSpacing(20, after: stack.arrangedSubviews[5])
+        stack.setCustomSpacing(20, after: stack.arrangedSubviews[9])
         return stack
     }
 
@@ -278,7 +286,8 @@ final class SettingsWindow: AppWindow {
             ),
             resizesJointWindows: jointCheckbox.state == .on,
             barHeight: BarHeight.allCases[heightPopUp.indexOfSelectedItem],
-            desktopCount: desktopsPopUp.indexOfSelectedItem + 1
+            desktopCount: desktopsPopUp.indexOfSelectedItem + 1,
+            showsDevices: devicesCheckbox.state == .on
         ))
     }
 

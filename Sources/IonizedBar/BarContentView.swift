@@ -39,6 +39,7 @@ final class BarContentView: NSView {
     private var leavingIcons: [PinnedIconView] = []
     private var maybeClock: ClockView?
     private var desktopButtons: [DesktopButton] = []
+    private var deviceButtons: [DevicesButton] = []
     // Apps split apart while a file is dragged over the bar, so each of their windows can be sprung.
     private var ungroupedDuringDrag: Set<pid_t> = []
     private var maybeRegroupTimer: Timer?
@@ -86,9 +87,11 @@ final class BarContentView: NSView {
     private var slot: (x: CGFloat, width: CGFloat) {
         taskSlot(
             barWidth: bounds.width, launcherWidth: settings.barHeight.launcherWidth,
-            pinnedWidth: CGFloat(pinnedIcons.count) * settings.barHeight.pinnedIconWidth, clockWidth: (maybeClock?.width ?? 0) + pagerWidth
+            pinnedWidth: CGFloat(pinnedIcons.count) * settings.barHeight.pinnedIconWidth, clockWidth: devicesWidth + (maybeClock?.width ?? 0) + pagerWidth
         )
     }
+
+    private var devicesWidth: CGFloat { CGFloat(deviceButtons.count) * settings.barHeight.pinnedIconWidth }
 
     private var pagerCellSize: CGFloat { settings.barHeight.points / CGFloat(pagerGrid(count: desktopButtons.count).rows) }
 
@@ -101,6 +104,7 @@ final class BarContentView: NSView {
         let focusedIndex = focusStops.firstIndex { $0 === maybeFocused }
         updateClock()
         updatePager()
+        updateDevices()
         let previousIcons = pinnedIcons
         pinnedIcons = pins.map { bundleID in previousIcons.first { $0.bundleID == bundleID } ?? reviveIcon(bundleID) ?? addPinnedIcon(bundleID) }
         for icon in previousIcons where !pinnedIcons.contains(icon) {
@@ -195,8 +199,20 @@ final class BarContentView: NSView {
         for button in desktopButtons { button.isCurrent = button.desktop == manager.desktops.current }
     }
 
+    /// One icon per device, none with the setting off. Before anything reads `slot`, which depends on their width.
+    private func updateDevices() {
+        let previous = deviceButtons
+        deviceButtons = (settings.showsDevices ? manager.deviceMonitor.devices : []).map { device in
+            let button = previous.first { $0.device.id == device.id } ?? DevicesButton(device: device, manager: manager)
+            if button.superview == nil { addSubview(button) }
+            button.update(with: device)
+            return button
+        }
+        for button in previous where !deviceButtons.contains(button) { button.removeFromSuperview() }
+    }
+
     // In visual order, without the entries fading out: Tab order and VoiceOver's order.
-    private var focusStops: [NSView] { [launcher] + pinnedIcons + ordered + (maybeClock.map { [$0] } ?? []) + desktopButtons }
+    private var focusStops: [NSView] { [launcher] + pinnedIcons + ordered + deviceButtons + (maybeClock.map { [$0] } ?? []) + desktopButtons }
 
     var initialFocusStop: NSView { ordered.first(where: \.isActive) ?? focusStops[0] }
 
@@ -362,6 +378,11 @@ final class BarContentView: NSView {
         launcher.frame = backingAlignedRect(CGRect(x: 0, y: 0, width: settings.barHeight.launcherWidth, height: bounds.height), options: .alignAllEdgesNearest)
         if let maybeClock {
             maybeClock.frame = backingAlignedRect(CGRect(x: bounds.width - pagerWidth - maybeClock.width, y: 0, width: maybeClock.width, height: bounds.height), options: .alignAllEdgesNearest)
+        }
+        let devicesX = bounds.width - pagerWidth - (maybeClock?.width ?? 0) - devicesWidth
+        for (index, button) in deviceButtons.enumerated() {
+            let width = settings.barHeight.pinnedIconWidth
+            button.frame = backingAlignedRect(CGRect(x: devicesX + CGFloat(index) * width, y: 0, width: width, height: bounds.height), options: .alignAllEdgesNearest)
         }
         let grid = pagerGrid(count: desktopButtons.count)
         let cellHeight = bounds.height / CGFloat(max(grid.rows, 1))

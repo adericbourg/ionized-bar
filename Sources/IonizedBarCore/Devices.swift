@@ -3,28 +3,29 @@ import Foundation
 /// A partition that can hold a file system, mounted or not.
 public struct DiskVolume: Equatable, Sendable {
     public let bsdName: String
-    public let wholeDiskBSDName: String
+    /// The IOKit path of the hardware, shared by all its disks, APFS ones included, which DiskArbitration lists as a disk of their own.
+    public let deviceID: String
     public let deviceName: String
     public let name: String
     public let maybeMountURL: URL?
 
-    public init(bsdName: String, wholeDiskBSDName: String, deviceName: String, name: String, maybeMountURL: URL?) {
+    public init(bsdName: String, deviceID: String, deviceName: String, name: String, maybeMountURL: URL?) {
         self.bsdName = bsdName
-        self.wholeDiskBSDName = wholeDiskBSDName
+        self.deviceID = deviceID
         self.deviceName = deviceName
         self.name = name
         self.maybeMountURL = maybeMountURL
     }
 }
 
-/// A plugged-in disk and its volumes: one icon on the bar.
+/// A plugged-in piece of hardware and its volumes: one icon on the bar.
 public struct Device: Equatable, Sendable {
-    public let wholeDiskBSDName: String
+    public let id: String
     public let name: String
     public let volumes: [DiskVolume]
 
-    public init(wholeDiskBSDName: String, name: String, volumes: [DiskVolume]) {
-        self.wholeDiskBSDName = wholeDiskBSDName
+    public init(id: String, name: String, volumes: [DiskVolume]) {
+        self.id = id
         self.name = name
         self.volumes = volumes
     }
@@ -36,13 +37,13 @@ public func isPhysicalVolume(isInternal: Bool, isRemovable: Bool, isEjectable: B
     !isInternal && (isRemovable || isEjectable) && deviceProtocol != "Virtual Interface" && isMountable
 }
 
-/// One device per whole disk, in the order the disks first appear; volumes in partition order.
+/// One device per piece of hardware, in the order they first appear; volumes in partition order.
 public func groupDevices(_ volumes: [DiskVolume]) -> [Device] {
-    let disks = volumes.map(\.wholeDiskBSDName).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
-    return disks.map { disk in
-        let ofDisk = volumes.filter { $0.wholeDiskBSDName == disk }
+    let ids = volumes.map(\.deviceID).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+    return ids.map { id in
+        let ofDevice = volumes.filter { $0.deviceID == id }
             .sorted { $0.bsdName.compare($1.bsdName, options: .numeric) == .orderedAscending }
-        return Device(wholeDiskBSDName: disk, name: ofDisk[0].deviceName, volumes: ofDisk)
+        return Device(id: id, name: ofDevice[0].deviceName, volumes: ofDevice)
     }
 }
 
@@ -50,4 +51,10 @@ public func groupDevices(_ volumes: [DiskVolume]) -> [Device] {
 public func deviceLabel(_ device: Device) -> String {
     let mounted = device.volumes.filter { $0.maybeMountURL != nil }.map(\.name)
     return mounted.isEmpty ? device.name : mounted.joined(separator: ", ")
+}
+
+/// "SanDisk Ultra" from the vendor and model the hardware reports, which can be blank or padded; `fallback` when both are blank.
+public func deviceName(vendor: String?, model: String?, fallback: String) -> String {
+    let name = [vendor, model].compactMap { $0?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: " ")
+    return name.isEmpty ? fallback : name
 }
